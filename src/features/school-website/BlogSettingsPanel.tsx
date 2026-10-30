@@ -135,7 +135,7 @@ function BlogEditor({ schoolId }: { schoolId?: string }) {
       {error && (
         <p
           role="alert"
-          className="rounded-lg border border-destructive p-3 text-sm text-destructive"
+          className="rounded-lg border border-destructive p-3 text-sm text-destructive-strong"
         >
           {error}
         </p>

@@ -64,7 +64,7 @@ export function ConfirmDestructive({
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className="h-auto min-h-[44px] whitespace-normal break-words rounded-xl bg-destructive px-4 py-3 text-[14px] leading-[20px] text-destructive-foreground hover:bg-destructive/90 lg:min-h-[44px]"
+            className="h-auto min-h-[44px] whitespace-normal break-words rounded-xl bg-destructive px-4 py-3 text-[14px] leading-[20px] text-destructive-foreground hover:bg-destructive-hover lg:min-h-[44px]"
           >
             {confirmLabel}
           </AlertDialogAction>

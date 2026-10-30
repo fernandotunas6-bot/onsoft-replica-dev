@@ -8,7 +8,7 @@ const PILL_TONE: Record<ChipTone, string> = {
   success: "bg-success/10 text-success-strong",
   warning: "bg-warning/15 text-warning-foreground dark:text-warning",
   info: "bg-info/10 text-info",
-  destructive: "bg-destructive/10 text-destructive",
+  destructive: "bg-destructive/10 text-destructive-strong",
   muted: "bg-muted text-muted-foreground",
   sidebar: "bg-muted text-muted-foreground",
 };

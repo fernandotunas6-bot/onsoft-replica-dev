@@ -779,7 +779,7 @@ export function PautasWorkspaceModule({
           </div>
           <div className="rounded-lg border border-border bg-card p-2.5">
             <p className="text-[11px] font-medium text-muted-foreground">Não Transitam / Retidos</p>
-            <p className="text-lg font-bold text-destructive">
+            <p className="text-lg font-bold text-destructive-strong">
               {currentStudents.length - passCount}
             </p>
           </div>
@@ -829,7 +829,7 @@ export function PautasWorkspaceModule({
                 type="button"
                 className={`px-2.5 py-1 rounded font-medium text-[11px] transition-all ${
                   statusFilter === "fail"
-                    ? "bg-background text-destructive font-bold shadow-xs"
+                    ? "bg-background text-destructive-strong font-bold shadow-xs"
                     : "text-muted-foreground"
                 }`}
                 onClick={() => setStatusFilter("fail")}
@@ -1053,7 +1053,7 @@ export function PautasWorkspaceModule({
               </div>
             ) : examAssessmentsQuery.isError || examAssessmentsQuery.data?.available === false ? (
               <div className="rounded-xl border border-destructive/30 bg-card shadow-xs p-10 text-center">
-                <p className="text-sm font-semibold text-destructive">
+                <p className="text-sm font-semibold text-destructive-strong">
                   Não foi possível carregar as avaliações de exame desta disciplina.
                 </p>
               </div>

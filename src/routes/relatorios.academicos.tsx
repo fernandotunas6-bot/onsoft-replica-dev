@@ -451,7 +451,7 @@ function RelatoriosAcademicos() {
         ) : workspaceQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">A carregar indicadores académicos…</p>
         ) : workspaceQuery.isError ? (
-          <p className="text-sm text-destructive">
+          <p className="text-sm text-destructive-strong">
             {workspaceQuery.error instanceof Error
               ? workspaceQuery.error.message
               : "Não foi possível carregar os relatórios."}

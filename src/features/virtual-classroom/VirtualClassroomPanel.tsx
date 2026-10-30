@@ -111,7 +111,7 @@ export function VirtualClassroomPanel({ schoolId, classGroupId, teacherId, canSc
             {pending ? "A agendar..." : "Agendar aula"}
           </Button>
           {formError && (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="text-sm text-destructive-strong">
               {formError}
             </p>
           )}
@@ -135,7 +135,7 @@ export function VirtualClassroomPanel({ schoolId, classGroupId, teacherId, canSc
           </p>
         )}
         {error && (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-sm text-destructive-strong">
             {error}
           </p>
         )}

@@ -393,7 +393,7 @@ function SchoolPresenceSettingsForm({
           <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
             {confirmRotate ? (
               <div className="flex flex-wrap items-center gap-2" role="alert">
-                <span className="text-xs text-destructive">
+                <span className="text-xs text-destructive-strong">
                   Os QR no ecrã e impressos deixam de valer já.
                 </span>
                 <Button
@@ -418,7 +418,7 @@ function SchoolPresenceSettingsForm({
               <Button
                 type="button"
                 variant="ghost"
-                className="gap-1.5 text-destructive"
+                className="gap-1.5 text-destructive-strong"
                 disabled={save.isPending}
                 onClick={() => setConfirmRotate(true)}
               >
@@ -877,7 +877,7 @@ function PresenceScansReview() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="h-8 gap-1 text-destructive"
+                          className="h-8 gap-1 text-destructive-strong"
                           disabled={review.isPending || (notes[row.id] ?? "").trim().length < 5}
                           onClick={() =>
                             review.mutate({

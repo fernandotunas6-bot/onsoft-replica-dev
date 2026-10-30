@@ -377,7 +377,7 @@ function TurmaDetail() {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="gap-1.5 text-destructive"
+                      className="gap-1.5 text-destructive-strong"
                       onClick={openConfirm}
                     >
                       <Trash2 className="size-3.5" /> Desactivar

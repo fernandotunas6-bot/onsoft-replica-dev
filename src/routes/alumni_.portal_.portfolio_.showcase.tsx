@@ -102,7 +102,7 @@ function AlumniPortfolioShowcasePage() {
   if (!portal)
     return (
       <AppShell>
-        <div className="mx-auto max-w-6xl px-6 py-16 text-sm text-destructive">
+        <div className="mx-auto max-w-6xl px-6 py-16 text-sm text-destructive-strong">
           O Portal Alumni ainda não está activado.
         </div>
       </AppShell>

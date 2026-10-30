@@ -149,7 +149,10 @@ export function AccountRowActions({
                 {account.disabled ? "Reactivar acesso" : "Bloquear acesso"}
               </DropdownMenuItem>
               {!account.disabled ? (
-                <DropdownMenuItem onSelect={() => setDialog("remove")} className="text-destructive">
+                <DropdownMenuItem
+                  onSelect={() => setDialog("remove")}
+                  className="text-destructive-strong"
+                >
                   <UserX className="mr-2 size-4" /> Remover acesso à escola…
                 </DropdownMenuItem>
               ) : null}

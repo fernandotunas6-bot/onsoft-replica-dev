@@ -98,7 +98,7 @@ export function PaymentReferenceCard({
 
   if (refQuery.isError || !referenceData) {
     return (
-      <p className="py-8 text-center text-sm text-destructive">
+      <p className="py-8 text-center text-sm text-destructive-strong">
         {refQuery.error instanceof Error
           ? refQuery.error.message
           : "Não foi possível gerar a referência EMIS."}

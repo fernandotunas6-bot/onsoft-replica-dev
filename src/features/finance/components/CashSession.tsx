@@ -56,7 +56,7 @@ export function CashSessionBar() {
 
   if (state.error) {
     return (
-      <p role="alert" className="text-sm text-destructive">
+      <p role="alert" className="text-sm text-destructive-strong">
         {(state.error as Error).message}
       </p>
     );
@@ -352,7 +352,7 @@ export function CashClosingsPanel() {
   const rows = closings.data ?? [];
   if (closings.error) {
     return (
-      <p role="alert" className="text-sm text-destructive">
+      <p role="alert" className="text-sm text-destructive-strong">
         {(closings.error as Error).message}
       </p>
     );
@@ -402,7 +402,7 @@ export function CashClosingsPanel() {
                     <p className="text-xs text-muted-foreground">{row.reason}</p>
                   ) : null}
                   {row.consistent ? null : (
-                    <p className="text-xs text-destructive">
+                    <p className="text-xs text-destructive-strong">
                       Os movimentos mudaram depois do fecho: confira o registo de auditoria.
                     </p>
                   )}

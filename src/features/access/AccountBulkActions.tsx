@@ -141,7 +141,10 @@ export function AccountBulkActions({
             {isAdministrator ? (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => void suspend()} className="text-destructive">
+                <DropdownMenuItem
+                  onSelect={() => void suspend()}
+                  className="text-destructive-strong"
+                >
                   <ShieldOff className="mr-2 size-4" /> Suspender acessos…
                 </DropdownMenuItem>
               </>

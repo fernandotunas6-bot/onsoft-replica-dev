@@ -109,7 +109,7 @@ export function DesktopVaultGate() {
               não foram enviadas perdem-se.
             </p>
             {error && (
-              <p role="alert" className="text-sm text-destructive">
+              <p role="alert" className="text-sm text-destructive-strong">
                 {error}
               </p>
             )}
@@ -155,7 +155,7 @@ export function DesktopVaultGate() {
               </div>
             )}
             {error && (
-              <p role="alert" className="text-sm text-destructive">
+              <p role="alert" className="text-sm text-destructive-strong">
                 {error}
               </p>
             )}

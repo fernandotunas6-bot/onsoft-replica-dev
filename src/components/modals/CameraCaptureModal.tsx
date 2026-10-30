@@ -147,7 +147,7 @@ export function CameraCaptureModal({
 
         <div className="relative mt-2 flex flex-col items-center justify-center overflow-hidden rounded-xl bg-slate-950 aspect-square border border-border shadow-inner">
           {error ? (
-            <div className="p-6 text-center text-sm text-destructive">
+            <div className="p-6 text-center text-sm text-destructive-strong">
               <p className="font-semibold">{error}</p>
               <p className="mt-2 text-xs text-muted-foreground">
                 Pode usar o botão de ficheiro convencional para escolher uma imagem.

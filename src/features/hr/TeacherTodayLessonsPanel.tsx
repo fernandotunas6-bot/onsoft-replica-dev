@@ -72,7 +72,7 @@ export function TeacherTodayLessonsPanel() {
       {sessionsQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">A carregar as aulas de hoje…</p>
       ) : sessionsQuery.isError ? (
-        <p className="text-sm text-destructive">
+        <p className="text-sm text-destructive-strong">
           {sessionsQuery.error instanceof Error
             ? sessionsQuery.error.message
             : "Não foi possível carregar as aulas de hoje."}

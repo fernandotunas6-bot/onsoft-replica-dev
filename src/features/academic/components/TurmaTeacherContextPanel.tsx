@@ -57,7 +57,7 @@ export function TurmaTeacherContextPanel({
           não significa que foi leccionada.
         </p>
         {tasksQuery.isError ? (
-          <p role="alert" className="mt-2 text-xs text-destructive">
+          <p role="alert" className="mt-2 text-xs text-destructive-strong">
             Não foi possível consultar os trabalhos agora.
           </p>
         ) : null}

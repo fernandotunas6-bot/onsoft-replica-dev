@@ -116,7 +116,7 @@ export function TurmasWorkspaceTab({
   if (isError) {
     return (
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-soft">
-        <p className="font-semibold text-destructive">Não foi possível carregar as turmas</p>
+        <p className="font-semibold text-destructive-strong">Não foi possível carregar as turmas</p>
         <p className="mt-2 text-sm text-muted-foreground">{errorMessage || "Erro desconhecido"}</p>
       </div>
     );

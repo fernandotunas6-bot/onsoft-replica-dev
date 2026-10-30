@@ -562,7 +562,7 @@ export function TeacherAttendancePanel({
               {occurrences.isLoading ? (
                 <p className="text-sm text-muted-foreground">A carregar presenças…</p>
               ) : occurrences.isError ? (
-                <p className="text-sm text-destructive">
+                <p className="text-sm text-destructive-strong">
                   {occurrences.error instanceof Error
                     ? occurrences.error.message
                     : "Não foi possível carregar as presenças."}

@@ -188,7 +188,7 @@ export function QuickFormModal({
           <ModalHeader title={title} subtitle={description ?? eyebrow} onClose={guardedClose} />
           <ModalContent>
             {submitError ? (
-              <p role="alert" className="mb-3 text-sm text-destructive">
+              <p role="alert" className="mb-3 text-sm text-destructive-strong">
                 Não foi possível guardar. Os dados introduzidos foram mantidos para nova tentativa.
               </p>
             ) : null}
@@ -328,7 +328,7 @@ export function QuickFormModal({
                     <p
                       id={`${field.name}-error`}
                       role="alert"
-                      className="mt-1 text-xs text-destructive"
+                      className="mt-1 text-xs text-destructive-strong"
                     >
                       {fieldErrors[field.name]}
                     </p>

@@ -140,7 +140,7 @@ function HistoryYear({ year }: { year: StudentAcademicHistoryYear }) {
                     <td
                       className={
                         subject.mfd != null && subject.mfd < passing
-                          ? "py-1.5 pl-2 text-right font-semibold text-destructive"
+                          ? "py-1.5 pl-2 text-right font-semibold text-destructive-strong"
                           : "py-1.5 pl-2 text-right font-semibold"
                       }
                     >

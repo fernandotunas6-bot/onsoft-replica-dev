@@ -327,7 +327,7 @@ function ScanOutcomeCard({ outcome }: { outcome: ScanOutcome }) {
   if (outcome.kind === "error") {
     return (
       <div className="mt-4 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-        <XCircle className="mt-0.5 size-5 shrink-0 text-destructive" aria-hidden />
+        <XCircle className="mt-0.5 size-5 shrink-0 text-destructive-strong" aria-hidden />
         <p className="text-sm">{outcome.message}</p>
       </div>
     );
@@ -340,7 +340,7 @@ function ScanOutcomeCard({ outcome }: { outcome: ScanOutcome }) {
         ? { box: "border-warning/40 bg-warning/10", icon: "text-warning-strong", Icon: Clock }
         : {
             box: "border-destructive/30 bg-destructive/5",
-            icon: "text-destructive",
+            icon: "text-destructive-strong",
             Icon: XCircle,
           };
   return (

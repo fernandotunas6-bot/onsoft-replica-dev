@@ -365,7 +365,7 @@ function LessonPlansPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="gap-1.5 text-destructive hover:text-destructive"
+                          className="gap-1.5 text-destructive-strong hover:text-destructive-strong"
                           onClick={() => remove(plan)}
                         >
                           <Trash2 className="size-3.5" /> Remover

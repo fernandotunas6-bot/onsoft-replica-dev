@@ -12,7 +12,10 @@ const statusBadge: Record<string, { label: string; class: string }> = {
     class: "bg-success/15 text-success border-success/30",
   },
   rolled_back: { label: "Revertido", class: "bg-warning/15 text-warning border-warning/30" },
-  failed: { label: "Falhou", class: "bg-destructive/15 text-destructive border-destructive/30" },
+  failed: {
+    label: "Falhou",
+    class: "bg-destructive/15 text-destructive-strong border-destructive/30",
+  },
   ready: { label: "Pronto", class: "bg-primary/15 text-primary border-primary/30" },
   importing: {
     label: "Em Processamento",

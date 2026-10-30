@@ -688,8 +688,8 @@ export function ImportWorkflowWizard({
               <p className="text-lg font-bold text-warning">{stageCounts.duplicate}</p>
             </div>
             <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-center shadow-card">
-              <p className="text-[11px] font-medium text-destructive">Erros</p>
-              <p className="text-lg font-bold text-destructive">{stageCounts.invalid}</p>
+              <p className="text-[11px] font-medium text-destructive-strong">Erros</p>
+              <p className="text-lg font-bold text-destructive-strong">{stageCounts.invalid}</p>
             </div>
           </div>
 
@@ -778,7 +778,7 @@ export function ImportWorkflowWizard({
                           </p>
                         ) : null}
                         {row.errors.length ? (
-                          <p className="mt-1 text-[11px] text-destructive">
+                          <p className="mt-1 text-[11px] text-destructive-strong">
                             {row.errors.join(" · ")}
                           </p>
                         ) : null}
@@ -797,7 +797,7 @@ export function ImportWorkflowWizard({
                             <Copy className="size-3.5" /> Duplicado
                           </span>
                         ) : row.status === "error" ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-destructive">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-destructive-strong">
                             <XCircle className="size-3.5" /> Erro
                           </span>
                         ) : (
@@ -955,7 +955,7 @@ export function ImportWorkflowWizard({
               <span className="font-bold text-muted-foreground">{result.ignored} ignorados</span>
             ) : null}
             {result.failed ? (
-              <span className="font-bold text-destructive">{result.failed} com erro</span>
+              <span className="font-bold text-destructive-strong">{result.failed} com erro</span>
             ) : null}
           </div>
 

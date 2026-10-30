@@ -16,7 +16,7 @@ type Grade = {
 
 const TREND_TONE = {
   "a subir": "text-success",
-  "a descer": "text-destructive",
+  "a descer": "text-destructive-strong",
   estável: "text-muted-foreground",
 } as const;
 

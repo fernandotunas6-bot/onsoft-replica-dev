@@ -68,7 +68,7 @@ export function VerificationStatus() {
   if (profileError || preferencesError) {
     return (
       <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4">
-        <p className="text-destructive text-sm">Erro ao carregar dados de verificação</p>
+        <p className="text-destructive-strong text-sm">Erro ao carregar dados de verificação</p>
       </div>
     );
   }
@@ -202,7 +202,7 @@ export function VerificationStatus() {
                     Alertas de autenticação, mudanças de conta
                   </p>
                 </div>
-                <div className="text-xs font-bold text-destructive">OBRIGATÓRIO</div>
+                <div className="text-xs font-bold text-destructive-strong">OBRIGATÓRIO</div>
               </div>
 
               {/* Académico */}

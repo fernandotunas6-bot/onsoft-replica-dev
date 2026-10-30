@@ -892,7 +892,9 @@ function CalendarioPage() {
                   : "Seleccione um dia"}
               </p>
               {selectedHoliday ? (
-                <p className="text-sm font-semibold text-destructive">{selectedHoliday.name}</p>
+                <p className="text-sm font-semibold text-destructive-strong">
+                  {selectedHoliday.name}
+                </p>
               ) : null}
               {selectedTerms.length ? (
                 <ul className="space-y-1 text-sm">
@@ -1147,7 +1149,7 @@ function CalendarioPage() {
           {eventsQuery.isLoading ? (
             <p className="text-sm text-muted-foreground">A carregar calendário…</p>
           ) : eventsQuery.isError ? (
-            <p className="text-sm text-destructive">
+            <p className="text-sm text-destructive-strong">
               {eventsQuery.error instanceof Error
                 ? eventsQuery.error.message
                 : "Não foi possível carregar o calendário."}
@@ -1382,7 +1384,7 @@ function CalendarioPage() {
                                       <Button
                                         size="sm"
                                         variant="ghost"
-                                        className="gap-1.5 text-destructive"
+                                        className="gap-1.5 text-destructive-strong"
                                         onClick={open}
                                       >
                                         <Trash2 className="size-3.5" /> Apagar

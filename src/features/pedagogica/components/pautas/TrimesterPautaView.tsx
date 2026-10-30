@@ -66,7 +66,7 @@ export function TrimesterPautaView({ data }: { data: TrimesterPautaDocument }) {
                     <td
                       key={sub.id}
                       className={`border border-border p-1.5 cursor-pointer hover:bg-primary/20 underline decoration-dotted ${
-                        isFail ? "text-destructive font-bold" : ""
+                        isFail ? "text-destructive-strong font-bold" : ""
                       }`}
                       onClick={() => handleOpenAudit(student.name, sub.name, grade)}
                       title="Clique para auditar a nota desta disciplina"

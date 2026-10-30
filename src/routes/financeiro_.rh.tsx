@@ -107,7 +107,7 @@ function HrPayrollPage() {
 
         {dashboard.isError ? (
           <Panel title="Acesso ao RH">
-            <p className="text-sm text-destructive">
+            <p className="text-sm text-destructive-strong">
               {dashboard.error instanceof Error
                 ? dashboard.error.message
                 : "Não foi possível carregar o módulo de RH."}
@@ -166,7 +166,7 @@ function HrPayrollPage() {
               {payrolls.isLoading ? (
                 <p className="text-sm text-muted-foreground">A carregar folhas salariais…</p>
               ) : payrolls.isError ? (
-                <p className="text-sm text-destructive">
+                <p className="text-sm text-destructive-strong">
                   Não foi possível carregar as folhas salariais.
                 </p>
               ) : (payrolls.data ?? []).length === 0 ? (

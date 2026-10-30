@@ -657,7 +657,7 @@ function ComunicacoesPage() {
                 {announcementsQuery.isLoading ? (
                   <p className="text-sm text-muted-foreground">A carregar comunicados…</p>
                 ) : announcementsQuery.isError && !migrationMissing ? (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm text-destructive-strong">
                     {announcementsQuery.error instanceof Error
                       ? announcementsQuery.error.message
                       : "Não foi possível carregar os comunicados."}
@@ -916,7 +916,7 @@ function ComunicacoesPage() {
                                             <Button
                                               size="sm"
                                               variant="ghost"
-                                              className="gap-1.5 text-destructive"
+                                              className="gap-1.5 text-destructive-strong"
                                               onClick={open}
                                             >
                                               <Archive className="size-3.5" /> Arquivar

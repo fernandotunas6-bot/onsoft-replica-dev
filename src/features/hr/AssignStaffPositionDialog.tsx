@@ -99,7 +99,9 @@ export function AssignStaffPositionDialog({ person }: { person?: { id: string; n
                     <p className="text-xs text-muted-foreground">A procurar pessoas…</p>
                   ) : null}
                   {people.isError ? (
-                    <p className="text-xs text-destructive">Não foi possível procurar pessoas.</p>
+                    <p className="text-xs text-destructive-strong">
+                      Não foi possível procurar pessoas.
+                    </p>
                   ) : null}
                   <div className="max-h-40 overflow-auto rounded-lg border border-border">
                     {(people.data?.items ?? []).map((personRow) => (
@@ -189,7 +191,7 @@ export function AssignStaffPositionDialog({ person }: { person?: { id: string; n
               </select>
             </label>
             {positions.isError ? (
-              <p className="text-xs text-destructive">
+              <p className="text-xs text-destructive-strong">
                 Não foi possível consultar os cargos desta escola.
               </p>
             ) : null}

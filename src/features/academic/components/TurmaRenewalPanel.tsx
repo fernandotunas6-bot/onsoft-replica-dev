@@ -162,7 +162,7 @@ export function TurmaRenewalPanel({
             Crie primeiro o ano lectivo seguinte no Calendário e as suas turmas na Pedagógica.
           </p>
         ) : planQuery.isError ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-sm text-destructive-strong">
             {planQuery.error instanceof Error ? planQuery.error.message : "Plano indisponível."}
           </p>
         ) : planQuery.isLoading ? (

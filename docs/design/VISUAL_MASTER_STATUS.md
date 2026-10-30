@@ -515,41 +515,63 @@ por baixo com o botão em contorno. Definições → «Apps do SIGA»; no ecrã 
 
 ## Contraste dos tokens e tamanho tipográfico (30/10/2026)
 
-Primeiro trabalho registado na fase 2.2, que estava `por auditar`. Não altera
-componentes, layout, rotas, dados nem permissões: só nove valores de token em
-`src/styles.css`, mais um teste e a prova.
+Estado: **parcial**. A PR #419, integrada em `6e4aed3`, mede 78 pares de tokens,
+corrige 10 das 16 falhas numéricas e isenta seis pares de separadores decorativos.
+Altera também a raiz de 11px para 11,5px na faixa 1024–1535px. Não foi apenas
+uma alteração de tokens de cor. O JSON `contrast-tokens.json` conserva essa
+fotografia histórica.
 
-- **Corrigido e verificado:** 6 das 14 falhas de contraste WCAG 2.2 AA. As que
-  importavam estavam na variante base do `Button` e do `Badge` — todo o botão e
-  etiqueta destrutivos do sistema estavam a 4,40:1 (claro) e 3,34:1 (escuro).
-  Agora 4,51:1 nos dois temas. Matiz preservada; `--primary` não foi tocado.
-- **Alterados em conjunto** `--success`/`--chart-3`, `--info`/`--chart-5` e
-  `--warning`/`--chart-4`, que partilhavam o valor exacto, para não criar dois
-  verdes, dois azuis e dois âmbares. `--warning-foreground`/`--warning` desceu
-  de 7,15 para 5,20 — medido, continua acima de 4,5.
-- **Isento com razão escrita:** `--border` e `--sidebar-border` (1,21–1,42).
-  São separadores decorativos; 1.4.11 não exige 3:1 e o contrato pede bordas
-  subtis. Registado como isenção no teste, não como dívida.
-- **Decidido pelo proprietário no mesmo dia e aplicado:** o contorno dos campos
-  foi escurecido — `--input` de `oklch(0.918 0.008 286)` para
-  `oklch(0.65 0.008 286)` no claro e de 16% para 34% de branco no escuro —
-  passando a 3,07–3,24:1 contra a página e contra o cartão nos dois temas.
-  `border-input` está em 71 ficheiros, pelo que a mudança atravessa todos os
-  formulários: foi a escolha explícita. `--input` deixa de ser igual a
-  `--border`, que fica subtil como estava.
-- **Decidido e aplicado:** a raiz tipográfica de 1024–1535px subiu de 68,75%
-  para os 71,875% que já vigoravam acima de 1536px, unificando as duas consultas
-  numa só. O portátil deixa de ser a largura mais apertada das três: 11px → 11,5px,
-  +4,5% de texto, sem tocar no telemóvel nem no monitor. Não torna o `text-xs`
-  confortável (8,25px → 8,63px); subir os consumidores de `text-xs` para
-  `text-sm` continua disponível e não foi escolhido.
-- **Prova:** `evidence/2026-10-30/contrast-tokens.json` (76 pares, antes e
-  depois) e `evidence/2026-10-30/typography-scale.json`. Teste verificado a
-  falhar com os valores antigos antes de se dar por bom.
-- **Continua por auditar nesta fase:** imagens, nitidez de SVG, pesos e
-  hierarquia página a página, contraste sobre gradientes e Aurora, e o efeito da
-  marca escolar personalizada. 22 dos 76 pares usam um token fora do gamut sRGB,
-  `--primary` escuro incluído: a cor mostrada é o corte, não a declarada.
+A revisão dos consumidores encontrou contraste insuficiente no uso de
+`text-destructive` no tema escuro (4,06:1 na página, 3,70:1 no cartão) e hover
+translúcido fora da cobertura inicial. Implementado no ramo de revisão: migrar o texto para
+`text-destructive-strong` e usar hover destrutivo opaco, sem alterar dados,
+permissões, handlers ou dimensões. Cobertura de regressão inclui fundos tintados
+e impede a reutilização do preenchimento como texto em `src/`.
 
-Sem validação em sessão autenticada nem em dispositivo físico: a medição é sobre
-os tokens declarados, não sobre ecrãs renderizados. Não substitui a fase 8.
+A evidência tipográfica foi corrigida: `text-xs` já tinha mínimo de 11px,
+`text-sm` 12px, `text-base` 13px e `text-lg` 14px. Os 8,25/8,63px não eram o
+tamanho das classes. A raiz afecta também espaçamentos e dimensões em rem.
+
+Prova e limites: [relatório 2.2](VISUAL_2026-10-30_FASE_2-2.md),
+`evidence/2026-10-30/typography-scale.json` e
+`tests/ui/theme-token-contrast.test.ts`. Falta validação de páginas renderizadas
+em sessão autenticada, dispositivos físicos, zoom/reflow, SVG, imagens,
+hierarquia e marcas personalizadas. Não declarar conformidade integral WCAG.
+
+Verificação local desta revisão: `npm test -- --maxWorkers=4` — 804 ficheiros
+aprovados, 3 ignorados; 5.696 testes aprovados e 25 ignorados. Após acrescentar
+os quatro casos que seguem as classes hover de Button/Badge, execução específica:
+`vitest run tests/ui/theme-token-contrast.test.ts` — 119 aprovados e seis
+isenções. Repor temporariamente o hover antigo reproduziu duas falhas no tema
+claro; os ficheiros finais foram restaurados. O teste novo também falhou antes
+da correcção dos consumidores e da evidência tipográfica.
+
+`npm run build`, `npm run typecheck`, `npm run check:style` (65/65 rotas) e
+`npm run lint` aprovados; lint com 58 avisos, zero erros. CSS compilado pelo
+Tailwind confirma o mapeamento de texto strong, fundo original, hover novo e
+mínimo `text-xs` de 11px. Uma comparação automática dos 148 ficheiros de origem
+alterados confirma apenas as substituições de classes previstas e formatação.
+Sem navegador Chromium instalado neste executor: não houve capturas nem prova
+visual renderizada. Não houve merge, deploy, SQL ou escrita de dados escolares.
+
+## Etiquetas de alunos — revisão adicional de contraste (30/10/2026)
+
+Estado: **parcial**, implementado e testado localmente; sem publicação.
+`StudentFinanceBadge`, `StudentStatusBadge` e o mapa de pagamentos da lista de
+alunos mantêm fundos, contornos, tamanhos, rótulos e estados. Só os textos
+passam para os tokens strong adequados. Corrigida a reutilização de
+`warning-foreground` sobre fundo warning translúcido no tema escuro.
+
+O teste lê os mapas dos consumidores e mede os 15 estados nos dois temas e
+sobre página/cartão (60 casos). Antes: 23 falhas; depois: todos passam.
+`vitest run tests/ui/theme-token-contrast.test.ts tests/students
+ tests/ui/shared-list-controls.test.tsx tests/ui/education-workflow-visual.test.ts`:
+26 ficheiros, 349 testes aprovados, seis isenções decorativas. O teste de tema
+tem agora 179 aprovados e seis isenções. Lint dos quatro ficheiros de código e
+check:style aprovados. Marca personalizada, renderização autenticada,
+zoom/reflow e aparelhos físicos continuam sem validação neste ciclo.
+
+Build e tipos desta revisão: as execuções simultâneas foram terminadas com 137
+por falta de memória (dois eventos OOM kill registados no cgroup). Repetidos
+sequencialmente com `NODE_OPTIONS=--max-old-space-size=3072`: `npm run build`
+e `tsc --noEmit` aprovados. Nenhuma validação foi desactivada.

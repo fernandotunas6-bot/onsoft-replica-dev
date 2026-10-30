@@ -281,7 +281,7 @@ export function AccessOnboardingDialog({
                     ))}
                   </select>
                   {accountsError ? (
-                    <p role="alert" className="mt-1 text-xs text-destructive">
+                    <p role="alert" className="mt-1 text-xs text-destructive-strong">
                       Não foi possível consultar as contas da escola.
                     </p>
                   ) : !accountsLoading && candidates.length === 0 ? (
@@ -401,7 +401,7 @@ export function AccessOnboardingDialog({
               </p>
             ) : null}
             {secretMissing && mode !== "person" ? (
-              <p role="alert" className="text-xs text-destructive">
+              <p role="alert" className="text-xs text-destructive-strong">
                 A gestão de contas está indisponível neste ambiente. O registo sem login continua
                 disponível.
               </p>

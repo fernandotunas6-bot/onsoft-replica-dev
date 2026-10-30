@@ -40,8 +40,11 @@ const STATUS: Record<LineStatus, { label: string; tone: string }> = {
     label: "Com notas — fica",
     tone: "bg-warning/15 text-warning-foreground dark:text-warning",
   },
-  no_birth_date: { label: "Sem data de nascimento", tone: "bg-destructive/10 text-destructive" },
-  no_capacity: { label: "Sem vaga", tone: "bg-destructive/10 text-destructive" },
+  no_birth_date: {
+    label: "Sem data de nascimento",
+    tone: "bg-destructive/10 text-destructive-strong",
+  },
+  no_capacity: { label: "Sem vaga", tone: "bg-destructive/10 text-destructive-strong" },
 };
 
 /** Até aqui, as propostas de todas as classes carregam logo, para a lista dizer o estado. */
@@ -211,7 +214,7 @@ export function ClassOrganizationView() {
       ) : preview.isLoading ? (
         <InlineLoading label="A preparar a proposta…" />
       ) : preview.isError || !plan ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive-strong">
           {publicErrorMessage(preview.error, "Não foi possível preparar a proposta.")}
         </p>
       ) : (
@@ -224,7 +227,7 @@ export function ClassOrganizationView() {
                   className={cn(
                     "flex gap-2 rounded-lg px-3 py-2 text-sm",
                     index < plan.blockers.length
-                      ? "bg-destructive/10 text-destructive"
+                      ? "bg-destructive/10 text-destructive-strong"
                       : "bg-warning/10 text-foreground",
                   )}
                 >

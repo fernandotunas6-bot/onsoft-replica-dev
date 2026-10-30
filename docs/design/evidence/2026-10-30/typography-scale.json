@@ -1,6 +1,6 @@
 {
   "medido_em": "2026-10-30",
-  "fonte": "src/styles.css (html font-size em percentagem do 16px do browser)",
+  "fonte": "src/styles.css: html font-size e mínimos --text-* em @theme inline (16px no browser)",
   "alteracao": "as consultas de 1024px (68,75%) e 1536px (71,875%) passaram a uma so: 71,875% acima de 1024px",
   "antes": [
     {
@@ -38,23 +38,55 @@
     {
       "largura": "<1024px",
       "raiz_px": 12,
-      "text-xs": 9,
-      "text-sm": 10.5,
-      "text-base": 12,
-      "text-lg": 13.5
+      "text-xs": 11,
+      "text-sm": 12,
+      "text-base": 13,
+      "text-lg": 14
     },
     {
       "largura": ">=1024px",
       "raiz_px": 11.5,
-      "text-xs": 8.63,
-      "text-sm": 10.06,
-      "text-base": 11.5,
-      "text-lg": 12.94
+      "text-xs": 11,
+      "text-sm": 12,
+      "text-base": 13,
+      "text-lg": 14
     }
   ],
   "badge_text_xs": {
-    "antes_1024_1535": "8.25px",
-    "depois": "8.63px"
+    "antes_1024_1535": "11px",
+    "depois": "11px"
   },
-  "nota": "valores com a predefinicao de 16px do browser; escalam se o utilizador a alterar"
+  "nota": "Valores calculados do CSS com 16px no browser, não medição de ecrã. max(px, rem) aplica mínimos; dimensões e espaçamentos rem crescem 4,55% a 1024–1535px. Texto só cresce quando rem supera o mínimo.",
+  "minimos_px": {
+    "text-xs": 11,
+    "text-sm": 12,
+    "text-base": 13,
+    "text-lg": 14
+  },
+  "render_px_antes": [
+    {
+      "largura": "<1024px",
+      "raiz_px": 12,
+      "text-xs": 11,
+      "text-sm": 12,
+      "text-base": 13,
+      "text-lg": 14
+    },
+    {
+      "largura": "1024-1535px",
+      "raiz_px": 11,
+      "text-xs": 11,
+      "text-sm": 12,
+      "text-base": 13,
+      "text-lg": 14
+    },
+    {
+      "largura": ">=1536px",
+      "raiz_px": 11.5,
+      "text-xs": 11,
+      "text-sm": 12,
+      "text-base": 13,
+      "text-lg": 14
+    }
+  ]
 }

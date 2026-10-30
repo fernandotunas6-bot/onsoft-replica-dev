@@ -200,7 +200,7 @@ export function AcademicMonthCalendar({
 
       <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-muted-foreground">
         {WEEKDAYS.map((label, index) => (
-          <div key={label} className={cn("py-1", index >= 5 && "text-destructive/70")}>
+          <div key={label} className={cn("py-1", index >= 5 && "text-destructive-strong")}>
             {label}
           </div>
         ))}
@@ -259,7 +259,7 @@ export function AcademicMonthCalendar({
                   {primary.title}
                 </span>
               ) : holiday ? (
-                <span className="mt-1 line-clamp-2 text-[11px] font-medium leading-tight text-destructive">
+                <span className="mt-1 line-clamp-2 text-[11px] font-medium leading-tight text-destructive-strong">
                   {holiday.name}
                 </span>
               ) : null}

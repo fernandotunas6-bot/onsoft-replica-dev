@@ -1474,7 +1474,7 @@ function StudentDetail() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-9 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
+                        className="h-9 gap-1.5 text-xs text-destructive-strong hover:bg-destructive/10"
                         onClick={open}
                       >
                         <Trash2 className="size-3.5" /> Anular
@@ -1800,7 +1800,7 @@ function StudentDetail() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="text-destructive"
+                                  className="text-destructive-strong"
                                   aria-label="Remover encarregado"
                                   onClick={open}
                                 >

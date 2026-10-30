@@ -132,7 +132,10 @@ export function MfaChallenge({
       ) : null}
 
       {error ? (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        <p
+          role="alert"
+          className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive-strong"
+        >
           {error}
         </p>
       ) : null}
