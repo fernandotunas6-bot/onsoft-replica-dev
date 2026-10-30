@@ -131,26 +131,6 @@ export function AdminPortalDashboard({
           : undefined,
     },
     {
-      label: "Estudantes masculinos",
-      icon: UserRound,
-      value: capabilities.students ? String(data?.totals.male ?? 0) : "—",
-      tone: "info" as const,
-      hint:
-        capabilities.students && totalStudents
-          ? `${Math.round(((data?.totals.male ?? 0) / totalStudents) * 100)}% do total`
-          : "Aguardando dados",
-    },
-    {
-      label: "Estudantes femininos",
-      icon: UserRound,
-      value: capabilities.students ? String(data?.totals.female ?? 0) : "—",
-      tone: "pink" as const,
-      hint:
-        capabilities.students && totalStudents
-          ? `${Math.round(((data?.totals.female ?? 0) / totalStudents) * 100)}% do total`
-          : "Aguardando dados",
-    },
-    {
       label: capabilities.documents ? "Documentos emitidos" : "Total recebido",
       icon: capabilities.documents ? FileText : Receipt,
       value: capabilities.documents
@@ -691,12 +671,7 @@ export function AdminPortalDashboard({
             <>
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm text-muted-foreground">{s.label}</p>
-                <IconChip
-                  icon={s.icon}
-                  size="md"
-                  tone={s.tone === "pink" ? "info" : s.tone}
-                  label={s.label}
-                />
+                <IconChip icon={s.icon} size="md" tone={s.tone} label={s.label} />
               </div>
               <p className="mt-3 text-4xl font-extrabold tracking-tight">{s.value}</p>
               <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
