@@ -168,14 +168,16 @@ SELECT
     WHEN to_regclass('public.class_subject_teacher_periods') IS NOT NULL
      AND EXISTS (SELECT 1 FROM pg_trigger
                   WHERE tgname = 'class_subjects_track_teacher_period' AND NOT tgisinternal)
-     AND NOT has_table_privilege('authenticated', 'public.class_subject_teacher_periods', 'SELECT')
+     AND NOT coalesce(has_table_privilege('authenticated',
+           to_regclass('public.class_subject_teacher_periods'), 'SELECT'), true)
       THEN 'aplicada'
     ELSE 'por aplicar'
   END AS "20261029220000 vigência docente",
   CASE
-    WHEN (SELECT relforcerowsecurity FROM pg_class WHERE oid = 'public.audit_logs'::regclass)
-     AND NOT has_table_privilege('authenticated', 'public.audit_logs', 'INSERT')
-     AND NOT has_table_privilege('anon', 'public.audit_logs', 'SELECT')
+    WHEN coalesce((SELECT relforcerowsecurity FROM pg_class
+                    WHERE oid = to_regclass('public.audit_logs')), false)
+     AND NOT coalesce(has_table_privilege('authenticated', to_regclass('public.audit_logs'), 'INSERT'), true)
+     AND NOT coalesce(has_table_privilege('anon', to_regclass('public.audit_logs'), 'SELECT'), true)
       THEN 'aplicada'
     ELSE 'por aplicar'
   END AS "20261029220100 auditoria protegida";
