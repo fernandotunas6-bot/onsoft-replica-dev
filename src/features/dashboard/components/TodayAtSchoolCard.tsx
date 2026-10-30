@@ -134,7 +134,7 @@ export function TodayAtSchoolCard() {
           </div>
         </div>
         {canCalendario ? (
-          <Button asChild size="sm" variant="ghost">
+          <Button asChild size="sm" variant="link">
             <Link to="/calendario">Abrir calendário</Link>
           </Button>
         ) : null}

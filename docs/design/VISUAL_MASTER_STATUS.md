@@ -649,3 +649,36 @@ código morto.
   um `<table>` era um comentário, e o `scope` que dei por ausente está presente.
   A análise estática por ficheiro sobre-reporta; o que não foi confirmado a
   abrir o ficheiro não serve.
+
+## Dashboard, notificações e estados vazios (30/10/2026)
+
+Quarto incremento do dia na fase 2.3, a pedido do proprietário: tirar excesso do
+dashboard e simplificar botões que só navegam.
+
+- **O excesso não estava na contagem.** O `AdminPortalDashboard` tem 7 botões,
+  9 ligações, 6 cartões, **zero gradientes e zero badges**. Estava no
+  comportamento: três cartões cresciam ao passar o rato
+  (`transition-all hover:scale-[1.02]`). O cartão não revela nada ao crescer — é
+  decoração — e `transition-all` animava tudo em vez das duas propriedades que
+  mudam. Ficou `transition-[border-color,box-shadow] duration-150`, dentro da
+  faixa do contrato, com o retorno útil e o `motion-reduce` preservados.
+- **Dois botões passam a estilo de ligação:** «Ver todos» no Admin e «Abrir
+  calendário» no `TodayAtSchoolCard`. Ambos só navegam e já eram `<a>`. O
+  `portal-ui.tsx` **já rendia** o «Ver tudo» como ligação simples nos portais de
+  aluno e encarregado: o padrão existia e eram estes que destoavam. Usei
+  `variant="link"` e não ligação inline porque esta perderia o `min-h-[44px]`.
+- **Não mexi**, com razão escrita, nas duas acções primárias do cabeçalho, nos
+  quatro alternadores de vista com `aria-pressed`, nos três botões só de ícone
+  do professor, nem no `transition-all` da barra de progresso, onde a animação
+  é função.
+- **Notificações:** o botão de fechar do aviso media **21px** no telemóvel
+  (`size-7` = 1,75rem com a raiz a 12px), abaixo da SC 2.5.8. Passa a
+  `size-[24px]`. O resto do `Toaster` já estava cuidado — contraste da descrição
+  e alvo do botão de acção têm comentários a explicá-lo no código.
+- **Estados vazios: por auditar a sério.** 34 ficheiros usam o `EmptyState`
+  partilhado e 80 contêm texto de vazio à mão — **mas esse segundo número não é
+  conclusão**: «Nenhum» aparece em contextos que não são estados vazios e não
+  verifiquei ficheiro a ficheiro.
+- **Limite:** sem sessão autenticada o dashboard **não pôde ser visto nem
+  fotografado**. Tudo foi lido no código. Nenhuma destas alterações tem
+  confirmação visual.
