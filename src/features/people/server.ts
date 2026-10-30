@@ -55,6 +55,9 @@ import {
   ensureStaffEmploymentDraft,
 } from "@/features/hr/staff-positions-server";
 import { listTeachersDirectoryPage, searchPeopleDirectoryPage } from "./directory-server";
+import { reopenSurvivorGuardianLinks } from "@/features/students/guardian-links";
+import { commitTeacherUpdate } from "./teacher-update";
+import { recordAccessAudit } from "@/features/audit/record-audit";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -310,6 +313,7 @@ export const searchPeople = createServerFn({ method: "GET" })
       db
         .from("student_guardians")
         .select("guardian_person_id")
+        .is("valid_until", null)
         .eq("school_id", membership.schoolId)
         .in("guardian_person_id", personIds),
       db
@@ -629,6 +633,16 @@ export const mergePeople = createServerFn({ method: "POST" })
     }
     requireAal2(context.claims, "Fundir fichas de pessoas");
     const db = await loadSgaAdminClient();
+
+    // A fusão apaga a ligação repetida do duplicado ao mesmo educando. Se a ficha que
+    // fica só tinha um vínculo fechado, reabre-o primeiro, ou o encarregado vigente
+    // perdia o acesso ao educando.
+    await reopenSurvivorGuardianLinks(db, {
+      schoolId: membership.schoolId,
+      survivorId: data.survivorId,
+      duplicateId: data.duplicateId,
+      today: schoolTodayIso(),
+    });
 
     // Numa só transacção (private.merge_people, migração 20261010110000): tudo ou
     // nada. Antes de a migração ser aplicada, segue o caminho em passos, abaixo.
@@ -1028,7 +1042,7 @@ export const listTeachers = createServerFn({ method: "GET" })
     const { data: people } = personIds.length
       ? await db
           .from("people")
-          .select("id, full_name, email, phone, photo_url")
+          .select("id, full_name, email, phone, photo_url, updated_at")
           .eq("school_id", membership.schoolId)
           .in("id", personIds)
       : {
@@ -1038,6 +1052,7 @@ export const listTeachers = createServerFn({ method: "GET" })
             email: string | null;
             phone: string | null;
             photo_url: string | null;
+            updated_at: string;
           }>,
         };
     const peopleById = new Map((people ?? []).map((row) => [row.id, row]));
@@ -1062,6 +1077,7 @@ export const listTeachers = createServerFn({ method: "GET" })
         phone: person?.phone ?? null,
         photo_url: (person?.photo_url as string | null | undefined) ?? null,
         updated_at: teacher.updated_at as string,
+        person_updated_at: (person?.updated_at as string | undefined) ?? null,
       };
     });
 
@@ -1238,29 +1254,28 @@ export const updateTeacher = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    const { data: teacher, error: teacherError } = await db
-      .from("teachers")
-      .update({ status: data.status, updated_by: context.userId })
-      .eq("id", data.teacherId)
-      .eq("school_id", membership.schoolId)
-      .select("id, person_id, status")
-      .maybeSingle();
-    if (teacherError)
-      throw publicDatabaseError(teacherError, "Não foi possível actualizar o professor.");
-    if (!teacher) throw new Error("Professor não encontrado.");
-
-    const { error: personError } = await db
-      .from("people")
-      .update({
-        full_name: data.fullName,
-        email: data.email || null,
-        phone: normalizePersonPhone(data.phone),
-        updated_by: context.userId,
-      })
-      .eq("id", teacher.person_id)
-      .eq("school_id", membership.schoolId);
-    if (personError) throw publicDatabaseError(personError, "Não foi possível actualizar a ficha.");
-    return teacher;
+    const updated = await commitTeacherUpdate(db, {
+      schoolId: membership.schoolId,
+      userId: context.userId,
+      teacherId: data.teacherId,
+      fullName: data.fullName,
+      email: data.email || null,
+      phone: normalizePersonPhone(data.phone),
+      status: data.status,
+      expectedTeacherUpdatedAt: data.expectedUpdatedAt,
+      expectedPersonUpdatedAt: data.expectedPersonUpdatedAt,
+    });
+    if (updated.changedFields.length) {
+      await recordAccessAudit({
+        schoolId: membership.schoolId,
+        actorUserId: context.userId,
+        action: "people.teacher_updated",
+        entityType: "teacher",
+        entityId: updated.id,
+        metadata: { person_id: updated.person_id, changed_fields: updated.changedFields },
+      });
+    }
+    return { id: updated.id, person_id: updated.person_id, status: updated.status };
   });
 
 export const deleteTeacher = createServerFn({ method: "POST" })

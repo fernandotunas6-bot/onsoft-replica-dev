@@ -118,6 +118,7 @@ export async function resolveUserLinkedEntities(
     const { data: guardianLinks } = await db
       .from("student_guardians")
       .select("student_id, guardian_person_id")
+      .is("valid_until", null)
       .eq("school_id", schoolId)
       .eq("guardian_person_id", personId ?? userId);
 

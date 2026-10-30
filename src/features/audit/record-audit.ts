@@ -8,6 +8,7 @@
  */
 import type { Json } from "@/integrations/supabase/types";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { currentRequestId } from "@/lib/execution-context";
 
 export type AccessAuditEntry = {
   schoolId: string;
@@ -26,6 +27,9 @@ export async function recordAccessAudit(entry: AccessAuditEntry): Promise<void> 
 export async function recordAuditBatch(entries: AccessAuditEntry[]): Promise<void> {
   if (!entries.length) return;
   const label = entries[0]!.action;
+  // ID de correlação em `metadata`: a coluna `request_id` é a chave de idempotência
+  // das RPCs (matrícula, chat) e não pode ganhar outro significado.
+  const correlationId = currentRequestId();
   try {
     const db = await loadSgaAdminClient();
     const { error } = await db.from("audit_logs").insert(
@@ -35,7 +39,9 @@ export async function recordAuditBatch(entries: AccessAuditEntry[]): Promise<voi
         action: entry.action,
         entity_type: entry.entityType,
         entity_id: entry.entityId,
-        metadata: (entry.metadata ?? {}) as Json,
+        metadata: (correlationId
+          ? { ...entry.metadata, correlation_id: correlationId }
+          : (entry.metadata ?? {})) as Json,
       })),
     );
     if (error) console.error(`[audit] ${label}:`, error.message);

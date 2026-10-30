@@ -31,6 +31,10 @@ function memoryDb() {
           filters.push((row) => values.includes(row[column]));
           return chain;
         },
+        is: (column: string, value: unknown) => {
+          filters.push((row) => (row[column] ?? null) === value);
+          return chain;
+        },
         insert: (rows: Row[]) => {
           inserted = rows;
           return chain;
