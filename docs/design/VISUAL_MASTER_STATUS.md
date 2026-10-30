@@ -8,6 +8,27 @@ registo da emissão de validação dos dados impressos. Testes DOM de troca de e
 e menu/diálogo aprovados; aparelhos, sessões reais e homologação da migração académica
 continuam pendentes. Evidências em `docs/agents/HANDOFF_AUDIT_CONSOLIDATION_2026-10-29.md`.
 
+**29/10/2026 — integração da escolha de turma com o formulário actual:**
+preservada a correcção de Claude que cancela Enter na pesquisa e coloca o foco
+na lista. Integração com `main` 74695eaa sem reescrever o histórico; o selector
+pesquisável passa também a anunciar os erros por campo introduzidos no formulário
+partilhado. Pesquisar conserva o erro associado à escolha; mudar a escolha limpa-o.
+171 testes locais de alunos e formulários passaram nesta integração; tipos,
+compilação, CI e conferência publicada continuam sujeitos aos respectivos resultados.
+Nenhuma matrícula foi criada ou alterada para este ensaio.
+
+**28/10/2026 — escolha de turma na matrícula existente (implementado):**
+o selector nativo recebe pesquisa opcional por palavras sem distinção de acentos.
+A matrícula existente exige escolha explícita quando não há turma de origem; a
+abertura pela turma conserva o preenchimento contextual. Filtrar mantém o ID
+seleccionado, mesmo quando não corresponde à pesquisa; o texto da pesquisa não
+entra nos dados enviados. A opção é activada somente neste fluxo de matrícula;
+os outros selectores e as opções dependentes mantêm o comportamento anterior.
+132 testes locais de alunos e QuickForm passaram, incluindo envio do ID escolhido,
+validação obrigatória, contexto, opções dependentes e protecção contra duplo envio.
+Lint sem erros. Compilação, CI e validação publicada ainda pendentes nesta entrega.
+Sem migração, alteração de permissões ou gravações de teste.
+
 **28/10/2026 — destinos das secções da turma (implementado):**
 os deep links `?secao=` passam a reservar 88 px antes da secção e a colocar o foco
 no título sem criar uma nova paragem de Tab. O acesso explícito a Resumo deixa de

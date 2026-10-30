@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SearchableNativeSelect } from "@/components/forms/SearchableNativeSelect";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
 
 type QuickOptions = string[] | { value: string; label: string }[];
@@ -18,6 +19,8 @@ export type QuickField = {
   type?:
     "text" | "number" | "date" | "time" | "textarea" | "select" | "angola-identity" | "password";
   options?: QuickOptions | undefined;
+  /** Opt-in text filter; the selected value is preserved while searching. */
+  searchable?: boolean;
   /**
    * Opções que dependem do que já está escolhido noutros campos (ex.: as disciplinas
    * da turma do aluno). Substitui `options`; ao mudarem, o campo volta à primeira.
@@ -240,6 +243,31 @@ export function QuickFormModal({
                       ).map((option) =>
                         typeof option === "string" ? { value: option, label: option } : option,
                       );
+                      if (field.searchable) {
+                        return (
+                          <SearchableNativeSelect
+                            key={
+                              field.optionsFor
+                                ? normalizedOptions.map((option) => option.value).join("\u0000")
+                                : undefined
+                            }
+                            id={field.name}
+                            name={field.name}
+                            label={field.label}
+                            options={normalizedOptions}
+                            required={field.required ?? true}
+                            invalid={Boolean(fieldErrors[field.name])}
+                            errorId={fieldErrors[field.name] ? `${field.name}-error` : undefined}
+                            placeholder={field.placeholder}
+                            defaultValue={String(
+                              field.defaultValue ??
+                                (field.placeholder || field.required === false
+                                  ? ""
+                                  : (normalizedOptions[0]?.value ?? "")),
+                            )}
+                          />
+                        );
+                      }
                       return (
                         <select
                           // Opções novas: monta de novo, para não ficar um valor que já não está na lista.

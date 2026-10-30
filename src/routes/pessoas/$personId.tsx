@@ -42,6 +42,7 @@ import { listSchoolFiles } from "@/features/arquivos/server";
 import { formatFileSize } from "@/features/arquivos/kinds";
 import { uploadPersonPhotoToLibrary } from "@/features/arquivos/apply-person-photo";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { AssignStaffPositionDialog } from "@/features/hr/AssignStaffPositionDialog";
 import { getPerson, setPersonInstitutionRoles, updatePerson } from "@/features/people/server";
 import type { PersonRecord } from "@/features/people/person-record";
 import { whatsappHref } from "@/features/integrations/actions";
@@ -417,6 +418,9 @@ function PersonDetail() {
               </div>
 
               <div className="flex shrink-0 flex-wrap items-center gap-2">
+                {account.role === "Administrador" ? (
+                  <AssignStaffPositionDialog person={{ id: personId, name: person.full_name }} />
+                ) : null}
                 {hasStudentRole ? (
                   <Button type="button" size="sm" onClick={goEnroll} className="gap-1.5 shadow-sm">
                     <GraduationCap className="size-4" />

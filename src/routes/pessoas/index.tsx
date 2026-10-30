@@ -449,7 +449,7 @@ function PeoplePage() {
               submitLabel="Criar professor"
               validate={validateTeacherQuickForm}
               onSubmit={async (values) => {
-                await createTeacher({
+                const created = await createTeacher({
                   data: {
                     fullName: values["nome"] ?? "",
                     email: values["email"] || undefined,
@@ -460,6 +460,11 @@ function PeoplePage() {
                 });
                 await queryClient.invalidateQueries({ queryKey: ["people", "teachers"] });
                 await queryClient.invalidateQueries({ queryKey: ["people", "search"] });
+                await navigate({
+                  to: "/professores/$teacherId",
+                  params: { teacherId: created.id },
+                  search: { tab: "documentos" },
+                });
               }}
               fields={[
                 { name: "nome", label: "Nome completo", full: true },
@@ -802,6 +807,9 @@ function PeoplePage() {
                                       phone: values["telefone"] || undefined,
                                       status:
                                         values["estado"] === "Inactivo" ? "inactive" : "active",
+                                      expectedUpdatedAt: teacher.updated_at || undefined,
+                                      expectedPersonUpdatedAt:
+                                        teacher.person_updated_at ?? undefined,
                                     },
                                   });
                                   await queryClient.invalidateQueries({
