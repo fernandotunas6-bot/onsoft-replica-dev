@@ -15,13 +15,35 @@ const PHASES: SetupStep["phase"][] = ["Base", "Pedagógica", "Financeiro", "Pess
 function storageKey(schoolName: string) {
   return `siga:setup-guide:${schoolName}`;
 }
-function readPreference(key: string): "open" | "min" | "hidden" {
+/**
+ * Quando o arranque já vai adiantado, o guia aberto ocupa cerca de 550px do
+ * ecrã de entrada — medido a 30/10/2026 numa escola com 9 de 10 passos feitos,
+ * 14% da altura total da página — para listar passos que já estão feitos. Sem
+ * escolha guardada, passa a abrir minimizado a partir desse ponto: ficam o
+ * progresso e o próximo passo com a sua acção, e só a lista exaustiva recolhe.
+ * Quem minimizar ou expandir continua a mandar, por escola e por navegador.
+ */
+const LIMIAR_MINIMIZAR = 0.8;
+
+function readPreference(
+  key: string,
+  progresso?: { completed: number; total: number },
+): "open" | "min" | "hidden" {
+  let guardada: string | null = null;
   try {
-    const value = localStorage.getItem(key);
-    return value === "min" || value === "hidden" ? value : "open";
+    guardada = localStorage.getItem(key);
   } catch {
-    return "open";
+    /* navegador sem armazenamento: cai no padrão abaixo */
   }
+  if (guardada === "min" || guardada === "hidden" || guardada === "open") return guardada;
+  if (
+    progresso &&
+    progresso.total > 0 &&
+    progresso.completed / progresso.total >= LIMIAR_MINIMIZAR
+  ) {
+    return "min";
+  }
+  return "open";
 }
 function writePreference(key: string, value: "open" | "min" | "hidden") {
   try {
@@ -101,7 +123,8 @@ export function SchoolSetupGuide() {
   const [preference, setPreference] = useState<"open" | "min" | "hidden" | null>(null);
 
   if (!guide) return null;
-  const current = preference ?? readPreference(key);
+  const current =
+    preference ?? readPreference(key, { completed: guide.completed, total: guide.total });
   const choose = (value: "open" | "min" | "hidden") => {
     writePreference(key, value);
     setPreference(value);

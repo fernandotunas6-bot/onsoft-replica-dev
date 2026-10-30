@@ -682,3 +682,31 @@ dashboard e simplificar botões que só navegam.
 - **Limite:** sem sessão autenticada o dashboard **não pôde ser visto nem
   fotografado**. Tudo foi lido no código. Nenhuma destas alterações tem
   confirmação visual.
+
+## O dashboard visto no ecrã real (30/10/2026)
+
+O proprietário autorizou e abriu sessão; o dashboard foi medido no ecrã, não
+lido no código. Conta de Administrador, ISPAB, 1440×900.
+
+- **O ecrã de entrada tem 3794px: 4,2 ecrãs de scroll.** O maior bloco isolado é
+  o «Arranque da escola», com **549px — 14% da página** — a listar 11 passos dos
+  quais 9 estavam feitos.
+- **Corrigido:** o guia só ficava compacto quando *todos* os passos estavam
+  concluídos. Passa a abrir minimizado a partir de 80%, sem escolha guardada.
+  Ficam o progresso e o próximo passo com a sua acção; recolhe só a lista
+  exaustiva, e a escolha de quem minimiza ou expande continua a mandar.
+  Medido no mesmo carregamento: **3794px → 3370px, −424px, −11,2%**, de 4,2 para
+  3,7 ecrãs. Preferência do navegador reposta ao estado pristino.
+- **Visto e não corrigido:** «Estudantes masculinos» e «Estudantes femininos»
+  duplicam o gráfico «Distribuição por género» logo abaixo — é o candidato mais
+  claro ao corte seguinte, mas tirar mosaicos é tirar informação e fica para
+  decisão. Dois mosaicos mostram zero («A iniciar», «Aniversários»); escondê-los
+  seria mudança de comportamento.
+- **Falso alarme desfeito:** o aviso «Toque lento detectado» que aparece no
+  carregamento está atrás de `import.meta.env.DEV` — só existe em
+  desenvolvimento e nunca chega ao utilizador. Ia propô-lo para remoção antes de
+  abrir o ficheiro.
+- **Correcção à secção anterior:** concluir que «o excesso não estava na
+  contagem» estava certo pela razão errada. O ficheiro não tem decoração a mais;
+  o ecrã composto tem 4,2 ecrãs de scroll. Isso não se via contando elementos —
+  só se via abrindo o dashboard.
