@@ -26,7 +26,7 @@ jobs:
       - name: Upgrade only transitive re2js within Firebase range
         run: |
           bun update re2js
-          node -e 'const fs=require("fs");const lock=fs.readFileSync("bun.lock","utf8");if(!/re2js@2\\.8\\.(?:[7-9]|[1-9][0-9]+)/.test(lock)){throw Error("re2js still vulnerable")}'
+          node -e 'const fs=require("fs");const lock=fs.readFileSync("bun.lock","utf8");const m=lock.match(/re2js@([0-9]+)[.]([0-9]+)[.]([0-9]+)/);if(!m || Number(m[1])<2 || (Number(m[1])===2 && (Number(m[2])<8 || (Number(m[2])===8 && Number(m[3])<7))))throw Error("re2js still vulnerable");'
           bun install --frozen-lockfile
       - name: Audit high and critical vulnerabilities
         run: bun audit --audit-level=high
