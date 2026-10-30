@@ -1,0 +1,35 @@
+name: Finance layout formatting once
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/finance-layout-format-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.number == 424 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx prettier --write src/features/finance/components/StudentLedgerPanel.tsx tests/finance/student-ledger-panel.test.tsx
+      - run: git diff --check
+      - name: Commit formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/finance/components/StudentLedgerPanel.tsx tests/finance/student-ledger-panel.test.tsx
+          if ! git diff --cached --quiet; then
+            git commit -m "style(finance): format grouped ledger actions and updated tests"
+            git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+          fi
