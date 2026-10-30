@@ -116,7 +116,7 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
     // Cliente privilegiado exclusivamente no servidor, com RBAC e escola obrigatórios.
     // Segue o mesmo contrato de leitura de getInvoiceDetail.
     const db = await loadSgaAdminClient();
-    const empty = { rows: [], total: 0, page: data.page, pageSize: data.pageSize };
+    const empty = { schoolId, rows: [], total: 0, page: data.page, pageSize: data.pageSize };
 
     let invoiceId: string | null = null;
     if (data.invoiceNumber) {
@@ -215,6 +215,7 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
     const personById = new Map((people.data ?? []).map((row) => [row.id, row]));
 
     return {
+      schoolId,
       page: data.page,
       pageSize: data.pageSize,
       total: count ?? 0,
@@ -268,6 +269,7 @@ export const getReceiptPrintState = createServerFn({ method: "GET" })
     if (error) throw publicDatabaseError(error, "Não foi possível conferir o recibo.");
     if (!receipt) throw new Error("Recibo inexistente ou sem acesso nesta escola.");
     return {
+      schoolId: membership.schoolId,
       id: receipt.id,
       invoiceId: receipt.invoice_id ?? "",
       receiptNumber: receipt.receipt_number ?? "Sem número",
