@@ -22,6 +22,12 @@ export interface DeleteConfirmModalProps {
   onConfirm: () => void | Promise<void>;
   isDeleting?: boolean;
   cannotDeleteReason?: string;
+  /** Verbo da pergunta («Desactivar», «Arquivar»…); por omissão «Eliminar». */
+  verb?: string;
+  /** Texto do botão de confirmação; por omissão «Eliminar definitivamente». */
+  confirmLabel?: string;
+  /** Impacto ainda a ser calculado no servidor: não se confirma às cegas. */
+  loadingImpacts?: boolean;
 }
 
 /** Confirmação breve. A eliminação só pode ser executada uma vez por submissão. */
@@ -36,6 +42,9 @@ export function DeleteConfirmModal({
   onConfirm,
   isDeleting = false,
   cannotDeleteReason,
+  verb = "Eliminar",
+  confirmLabel = "Eliminar definitivamente",
+  loadingImpacts = false,
 }: DeleteConfirmModalProps) {
   const submitting = React.useRef(false);
   const [pending, setPending] = React.useState(false);
@@ -50,7 +59,7 @@ export function DeleteConfirmModal({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!open || busy || submitting.current || cannotDeleteReason) return;
+    if (!open || busy || submitting.current || cannotDeleteReason || loadingImpacts) return;
 
     submitting.current = true;
     setPending(true);
@@ -60,7 +69,7 @@ export function DeleteConfirmModal({
       await onConfirm();
     } catch {
       // Não imprimir dados de erros de backend ou outras escolas neste modal.
-      setError("Não foi possível eliminar. Tente novamente.");
+      setError(`Não foi possível ${verb.toLowerCase()}. Tente novamente.`);
     } finally {
       submitting.current = false;
       setPending(false);
@@ -72,12 +81,12 @@ export function DeleteConfirmModal({
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
         <DialogPrimitive.Description className="sr-only">
-          Confirme a eliminação de {itemName}.
+          Confirme: {verb.toLowerCase()} {itemName}.
         </DialogPrimitive.Description>
         <ModalHeader title={title} onClose={() => requestOpenChange(false)} />
         <ModalContent className="space-y-3">
           <p className="break-words text-sm leading-relaxed text-foreground">
-            Eliminar {itemType} <strong className="[overflow-wrap:anywhere]">{itemName}</strong>?
+            {verb} {itemType} <strong className="[overflow-wrap:anywhere]">{itemName}</strong>?
           </p>
 
           {warningMessage ? (
@@ -85,6 +94,12 @@ export function DeleteConfirmModal({
               <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-amber-600" />
               <p className="text-sm leading-relaxed">{warningMessage}</p>
             </div>
+          ) : null}
+
+          {loadingImpacts ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              A calcular o impacto…
+            </p>
           ) : null}
 
           {impacts.length > 0 ? (
@@ -114,10 +129,10 @@ export function DeleteConfirmModal({
         <ModalFooter
           onCancel={() => requestOpenChange(false)}
           onSubmit={handleSubmit}
-          submitLabel="Eliminar definitivamente"
+          submitLabel={confirmLabel}
           submitVariant="destructive"
           isSubmitting={busy}
-          disabled={Boolean(cannotDeleteReason)}
+          disabled={Boolean(cannotDeleteReason) || loadingImpacts}
         />
       </form>
     </ModalShell>
