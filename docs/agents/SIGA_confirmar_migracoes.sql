@@ -176,6 +176,11 @@ from (values
                where oid = to_regclass('public.audit_logs')), false)
      and not coalesce(has_table_privilege('authenticated',
        to_regclass('public.audit_logs'), 'INSERT'), true)),
+  -- Comunicados «encarregados com dívida» só para encarregados com vínculo vigente.
+  ('20261030010000_announcement_audience_current_guardians',
+     coalesce(pg_get_functiondef(
+       to_regprocedure('private.announcement_audiences_for(uuid)')) like '%valid_until IS NULL%',
+       false)),
   ('20261015120000_tenant_billing_profiles',
      to_regclass('public.tenant_billing_profiles') is not null
      and not has_table_privilege('authenticated', 'public.tenant_billing_profiles', 'SELECT'))
