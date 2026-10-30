@@ -105,6 +105,12 @@ const StudentLedgerPanel = lazy(() =>
   })),
 );
 
+const ReceiptRegisterPanel = lazy(() =>
+  import("@/features/finance/components/ReceiptRegisterPanel").then((module) => ({
+    default: module.ReceiptRegisterPanel,
+  })),
+);
+
 const faturasFilterDefaults = {
   q: "",
   estado: "todos",
@@ -178,6 +184,7 @@ function receiveDescription(multa: { counter: number; electronic: number }) {
 
 function FaturasPage() {
   const [showStudentLedger, setShowStudentLedger] = useState(false);
+  const [showReceipts, setShowReceipts] = useState(false);
   const paymentKey = usePaymentAttemptKey();
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
@@ -1209,6 +1216,22 @@ function FaturasPage() {
         {showStudentLedger ? (
           <Suspense fallback={<EntityListSkeleton rows={4} />}>
             <StudentLedgerPanel blocked={financeInvoiceBlocked} />
+          </Suspense>
+        ) : null}
+
+        <div>
+          <Button
+            variant="outline"
+            aria-expanded={showReceipts}
+            onClick={() => setShowReceipts((open) => !open)}
+          >
+            <FileDown className="size-4" />
+            {showReceipts ? "Fechar pesquisa de recibos" : "Pesquisar recibos"}
+          </Button>
+        </div>
+        {showReceipts ? (
+          <Suspense fallback={<EntityListSkeleton rows={4} />}>
+            <ReceiptRegisterPanel />
           </Suspense>
         ) : null}
 
