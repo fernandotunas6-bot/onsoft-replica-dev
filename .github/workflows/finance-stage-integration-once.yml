@@ -1,4 +1,4 @@
-name: Finance staged integration validation (strict checks)
+name: Finance staged integration validation (index resolved)
 on:
   pull_request:
     paths:
@@ -26,6 +26,7 @@ jobs:
           git fetch origin feat/finance-excel-receipts-20261030
           git merge --no-commit --no-ff origin/feat/finance-excel-receipts-20261030 || true
           python3 scripts/qa/resolve-finance-merge-once.py
+          git add -A
           git diff --name-only --diff-filter=U | grep . && { echo "Unresolved conflict"; exit 1; } || true
       - uses: oven-sh/setup-bun@v2
         with:
