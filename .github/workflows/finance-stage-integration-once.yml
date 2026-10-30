@@ -1,4 +1,4 @@
-name: Finance staged integration validation (index resolved)
+name: Finance staged integration validation (RLS corrected)
 on:
   pull_request:
     paths:
@@ -35,7 +35,7 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Reformat conflict resolutions
         run: |
-          bunx prettier --write src/features/finance/server.ts src/features/finance/schemas.ts tests/finance/tuition-batch.test.ts tests/security/rls-client-migration.test.ts
+          bunx prettier --write src/features/finance/server.ts src/features/finance/schemas.ts src/features/finance/receipt-register-server.ts tests/finance/receipt-register-rls.test.ts tests/finance/tuition-batch.test.ts tests/security/rls-client-migration.test.ts
           git diff --check
       - name: Verify lint
         run: bun run lint
@@ -45,7 +45,7 @@ jobs:
         run: bun run build
       - name: Verify finance and tenant regression tests
         run: |
-          bun run test tests/finance/tuition-batch.test.ts tests/finance/student-ledger-panel.test.tsx tests/finance/student-ledger-server.test.ts tests/finance/student-ledger.test.ts tests/finance/student-ledger-excel.test.ts tests/finance/receipt-register-excel.test.ts tests/finance/receipt-register-filter.test.ts tests/security/rls-client-migration.test.ts
+          bun run test tests/finance/tuition-batch.test.ts tests/finance/student-ledger-panel.test.tsx tests/finance/student-ledger-server.test.ts tests/finance/student-ledger.test.ts tests/finance/student-ledger-excel.test.ts tests/finance/receipt-register-excel.test.ts tests/finance/receipt-register-filter.test.ts tests/finance/receipt-register-rls.test.ts tests/security/rls-client-migration.test.ts
       - name: Commit only to isolated integration branch
         run: |
           git rm -f --ignore-unmatch .github/workflows/finance-main-merge-audit.yml .github/workflows/finance-stage-integration-once.yml scripts/qa/resolve-finance-merge-once.py
