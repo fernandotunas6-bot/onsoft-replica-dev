@@ -66,6 +66,11 @@ export function ReceiptRegisterPanel() {
   const exportFilteredExcel = async () => {
     const initialTotal = query.data?.total ?? 0;
     if (initialTotal === 0 || exporting) return;
+    const originSchoolId = school?.id;
+    if (!originSchoolId || query.data?.schoolId !== originSchoolId) {
+      toast.error("Actualize a lista financeira antes de exportar.");
+      return;
+    }
     const MAX_EXPORT = 2000;
     if (initialTotal > MAX_EXPORT) {
       toast.error(
@@ -83,6 +88,9 @@ export function ReceiptRegisterPanel() {
         const result = await listReceiptRegister({
           data: { ...filters, page: current, pageSize },
         });
+        if (result.schoolId !== originSchoolId) {
+          throw new Error("A escola activa mudou durante a exportação. O ficheiro não foi gerado.");
+        }
         if (result.total !== initialTotal) {
           throw new Error("Os recibos foram actualizados durante a exportação. Repita a operação.");
         }
@@ -160,6 +168,9 @@ export function ReceiptRegisterPanel() {
     setPrinting(receipt.id);
     try {
       const live = await getReceiptPrintState({ data: { receiptId: receipt.id } });
+      if (!school?.id || live.schoolId !== school.id) {
+        throw new Error("A escola activa mudou. Actualize os recibos antes de imprimir.");
+      }
       if (live.invoiceId !== receipt.invoiceId) {
         throw new Error("O vínculo da fatura mudou. Actualize a pesquisa antes de imprimir.");
       }
