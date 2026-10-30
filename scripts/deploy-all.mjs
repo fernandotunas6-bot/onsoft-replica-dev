@@ -18,6 +18,11 @@ import {
   PAYFLOW_D1_DATABASE_NAME,
   applyPayflowProductionBindings,
 } from "./siga/payflow-bindings.mjs";
+import {
+  assertWranglerLoginAllowed,
+  selectDeployApps,
+  usesWranglerLogin,
+} from "./siga/deploy-apps.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Falhar antes de builds, secrets ou publicação de qualquer app incompatível.
@@ -82,7 +87,19 @@ const mergedEnv = {
     "https://payflow.portal-siga.com",
 };
 
-function runStep(title, fn) {
+const selectedApps = selectDeployApps(process.env.SIGA_DEPLOY_APPS ?? envVars["SIGA_DEPLOY_APPS"]);
+assertWranglerLoginAllowed({ ...envVars, ...process.env });
+if (usesWranglerLogin({ ...envVars, ...process.env })) {
+  // Sem token no ambiente o wrangler usa a sessão de `npx wrangler login`.
+  delete mergedEnv.CLOUDFLARE_API_TOKEN;
+  console.log("==> Autenticação: sessão do `wrangler login` (sem API token).");
+}
+
+function runStep(app, title, fn) {
+  if (!selectedApps.has(app)) {
+    console.log(`\n⏭  ${title}: não pedido (SIGA_DEPLOY_APPS).`);
+    return;
+  }
   console.log(`\n======================================================`);
   console.log(`🚀 ${title}`);
   console.log(`======================================================\n`);
@@ -95,7 +112,7 @@ function runStep(title, fn) {
 console.log("=== INICIANDO DEPLOY COMPLETO DO ECOSSISTEMA SIGA PLUS ===");
 
 // 1. DOC (painel/docs)
-runStep("Deploy DOC (painel/docs → siga-docs.pages.dev)", () => {
+runStep("docs", "Deploy DOC (painel/docs → siga-docs.pages.dev)", () => {
   const docsDir = path.resolve(root, "painel/docs");
   console.log("==> Building DOC (VitePress)...");
   execSync("npm run build", { cwd: docsDir, stdio: "inherit", env: mergedEnv });
@@ -111,7 +128,7 @@ runStep("Deploy DOC (painel/docs → siga-docs.pages.dev)", () => {
 });
 
 // 2. WEB (painel/web)
-runStep("Deploy WEB (painel/web → siga-web.pages.dev)", () => {
+runStep("web", "Deploy WEB (painel/web → siga-web.pages.dev)", () => {
   const webDir = path.resolve(root, "painel/web");
   console.log("==> Building WEB (Vite SPA)...");
   execSync("npm run build", { cwd: webDir, stdio: "inherit", env: mergedEnv });
@@ -127,7 +144,7 @@ runStep("Deploy WEB (painel/web → siga-web.pages.dev)", () => {
 });
 
 // 3. ADMIN (painel/admin)
-runStep("Deploy ADMIN (painel/admin → siga-admin.pages.dev)", () => {
+runStep("admin", "Deploy ADMIN (painel/admin → siga-admin.pages.dev)", () => {
   const adminDir = path.resolve(root, "painel/admin");
   console.log("==> Building ADMIN (Next.js Static Export)...");
   execSync("npm run build", { cwd: adminDir, stdio: "inherit", env: mergedEnv });
@@ -143,7 +160,7 @@ runStep("Deploy ADMIN (painel/admin → siga-admin.pages.dev)", () => {
 });
 
 // 4. PAYFLOW (painel/payflow)
-runStep("Deploy PAYFLOW (painel/payflow → payflow.portal-siga.com)", () => {
+runStep("payflow", "Deploy PAYFLOW (painel/payflow → payflow.portal-siga.com)", () => {
   const payflowDir = path.resolve(root, "painel/payflow");
   console.log("==> Building PAYFLOW (vinext)...");
   execSync("npm run build", { cwd: payflowDir, stdio: "inherit", env: mergedEnv });
@@ -177,12 +194,12 @@ runStep("Deploy PAYFLOW (painel/payflow → payflow.portal-siga.com)", () => {
 });
 
 // 5. SIGA (raiz)
-runStep("Deploy SIGA Plus (raiz → Cloudflare Workers / portal-siga.com)", () => {
+runStep("siga", "Deploy SIGA Plus (raiz → Cloudflare Workers / portal-siga.com)", () => {
   execSync("node scripts/deploy-cf.mjs", { cwd: root, stdio: "inherit", env: mergedEnv });
 });
 
 console.log(`\n======================================================`);
-console.log(`🎉 DEPLOY DE TODO O ECOSSISTEMA CONCLUÍDO COM SUCESSO!`);
+console.log(`🎉 DEPLOY CONCLUÍDO COM SUCESSO: ${[...selectedApps].join(", ")}`);
 console.log(`======================================================`);
 console.log(`  SIGA PLUS : https://portal-siga.com`);
 console.log(`  PAYFLOW   : https://payflow.portal-siga.com`);

@@ -29,6 +29,13 @@ on:
     # abaixo publica sempre, qualquer que seja o que mudou.
     paths-ignore: ["**/*.md", "docs/**"]
   workflow_dispatch:
+    # Republicar só parte do ecossistema (ex.: «siga,payflow») sem mexer no código.
+    # Lista em scripts/siga/deploy-apps.mjs; um nome errado recusa antes de publicar.
+    inputs:
+      apps:
+        description: "Apps a publicar: all, ou lista com siga, payflow, web, admin, docs"
+        required: false
+        default: "all"
 
 permissions:
   contents: read
@@ -144,6 +151,8 @@ jobs:
       - name: Publicar (DOC, WEB, ADMIN, PAYFLOW + D1, SIGA)
         run: node scripts/deploy-all.mjs
         env:
+          # Push para a main publica tudo; o «Run workflow» pode escolher apps.
+          SIGA_DEPLOY_APPS: ${{ inputs.apps || 'all' }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || secrets.SUPABASE_URL || 'https://xodgfmxiaunpamctfeea.supabase.co' }}
