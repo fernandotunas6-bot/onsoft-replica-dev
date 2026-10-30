@@ -266,7 +266,7 @@ sem `<Outlet />`.
 | ------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1 — auditoria integral          | parcial     | Branch/HEAD/estado inicial limpos, arquitectura e handoff lidos; 18 módulos/186 ficheiros do inventário verificados. Falta auditoria runtime completa de todos os módulos.                                                                                                  |
 | 2.1 — superfícies               | parcial     | Definições em página, coluna menor; PremiumModal mais discreto; rever cartões, bordas, sombras, composição e alinhamentos em cada módulo.                                                                                                                                   |
-| 2.2 — tipografia/nitidez        | por auditar | Inter e tokens preservados; falta medir contraste, imagens, SVG, pesos, densidade e hierarquia em todas as páginas.                                                                                                                                                         |
+| 2.2 — tipografia/nitidez        | parcial     | **Medido em 30/10/2026:** 78 pares de contraste, 16 falhas, 10 corrigidas; restam 6 isenções com razão escrita (bordas decorativas). Raiz tipográfica do portátil alinhada com a do monitor por decisão do proprietário. Regressão em `tests/ui/theme-token-contrast.test.ts`. Faltam imagens, nitidez de SVG, pesos e hierarquia página a página. [Relatório](VISUAL_2026-10-30_FASE_2-2.md). |
 | 2.3 — componentes universais    | parcial     | StackedModal, SettingsCenter, FormModal, QuickModal, WizardModal, PremiumModal e SequentialSheetModal refinados; falta revisão integral de inputs, selectores, listas, filtros, paginação, pesquisa, calendário, abas, notificações, estados e dashboards.                  |
 | 3 — navegação contextual        | parcial     | Menu compacto, sem expansão automática; preferências institucionais; guardas de acesso mantidas. Falta validar todos os contextos, cabeçalhos, escola activa, rotas e teclado virtual.                                                                                      |
 | 4.1 — interacções               | parcial     | Pendência local e bloqueio de envios em três formulários; faltam estados, skeletons, scroll, cache de filtros e feedback dos outros consumidores.                                                                                                                           |
@@ -510,3 +510,44 @@ visita primeiro. No Android o cartão «SIGA Plus para Android» (APK de 64 bits
 para o de 32 bits, passos e certificado recolhidos) vem em cima e destacado; no computador fica
 por baixo com o botão em contorno. Definições → «Apps do SIGA»; no ecrã de entrada a ligação
 «Transferir a app do SIGA» aparece em todos os tamanhos (fora da app de computador).
+
+## Contraste dos tokens e tamanho tipográfico (30/10/2026)
+
+Primeiro trabalho registado na fase 2.2, que estava `por auditar`. Não altera
+componentes, layout, rotas, dados nem permissões: só nove valores de token em
+`src/styles.css`, mais um teste e a prova.
+
+- **Corrigido e verificado:** 6 das 14 falhas de contraste WCAG 2.2 AA. As que
+  importavam estavam na variante base do `Button` e do `Badge` — todo o botão e
+  etiqueta destrutivos do sistema estavam a 4,40:1 (claro) e 3,34:1 (escuro).
+  Agora 4,51:1 nos dois temas. Matiz preservada; `--primary` não foi tocado.
+- **Alterados em conjunto** `--success`/`--chart-3`, `--info`/`--chart-5` e
+  `--warning`/`--chart-4`, que partilhavam o valor exacto, para não criar dois
+  verdes, dois azuis e dois âmbares. `--warning-foreground`/`--warning` desceu
+  de 7,15 para 5,20 — medido, continua acima de 4,5.
+- **Isento com razão escrita:** `--border` e `--sidebar-border` (1,21–1,42).
+  São separadores decorativos; 1.4.11 não exige 3:1 e o contrato pede bordas
+  subtis. Registado como isenção no teste, não como dívida.
+- **Decidido pelo proprietário no mesmo dia e aplicado:** o contorno dos campos
+  foi escurecido — `--input` de `oklch(0.918 0.008 286)` para
+  `oklch(0.65 0.008 286)` no claro e de 16% para 34% de branco no escuro —
+  passando a 3,07–3,24:1 contra a página e contra o cartão nos dois temas.
+  `border-input` está em 71 ficheiros, pelo que a mudança atravessa todos os
+  formulários: foi a escolha explícita. `--input` deixa de ser igual a
+  `--border`, que fica subtil como estava.
+- **Decidido e aplicado:** a raiz tipográfica de 1024–1535px subiu de 68,75%
+  para os 71,875% que já vigoravam acima de 1536px, unificando as duas consultas
+  numa só. O portátil deixa de ser a largura mais apertada das três: 11px → 11,5px,
+  +4,5% de texto, sem tocar no telemóvel nem no monitor. Não torna o `text-xs`
+  confortável (8,25px → 8,63px); subir os consumidores de `text-xs` para
+  `text-sm` continua disponível e não foi escolhido.
+- **Prova:** `evidence/2026-10-30/contrast-tokens.json` (76 pares, antes e
+  depois) e `evidence/2026-10-30/typography-scale.json`. Teste verificado a
+  falhar com os valores antigos antes de se dar por bom.
+- **Continua por auditar nesta fase:** imagens, nitidez de SVG, pesos e
+  hierarquia página a página, contraste sobre gradientes e Aurora, e o efeito da
+  marca escolar personalizada. 22 dos 76 pares usam um token fora do gamut sRGB,
+  `--primary` escuro incluído: a cor mostrada é o corte, não a declarada.
+
+Sem validação em sessão autenticada nem em dispositivo físico: a medição é sobre
+os tokens declarados, não sobre ecrãs renderizados. Não substitui a fase 8.
