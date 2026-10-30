@@ -1,4 +1,4 @@
-name: Finance layout formatting once
+name: Finance layout formatting once (retry after syntax fix)
 
 on:
   pull_request:
