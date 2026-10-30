@@ -64,6 +64,10 @@ const MIGRATIONS = {
     "siga_lesson_plans",
     "siga_lesson_plan_components",
   ],
+  // Histórico de quem deu cada disciplina em cada turma: dado de pessoal.
+  "supabase/migrations/20261029220000_class_subject_teacher_periods.sql": [
+    "class_subject_teacher_periods",
+  ],
 };
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");

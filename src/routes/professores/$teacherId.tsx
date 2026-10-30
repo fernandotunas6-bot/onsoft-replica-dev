@@ -7,8 +7,13 @@ import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
-import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
-import { listTeachers, updateTeacher, deleteTeacher } from "@/features/people/server";
+import {
+  listTeachers,
+  updateTeacher,
+  deleteTeacher,
+  getTeacherDeletionImpact,
+} from "@/features/people/server";
+import { ImpactConfirmModal } from "@/components/modals/ImpactConfirmModal";
 import { TeacherProfile360 } from "@/features/people/TeacherProfile360";
 import {
   assignClassSubjectTeacher,
@@ -218,16 +223,20 @@ function TeacherProfilePage() {
                 />
               ) : null}
               {canManage && teacher && teacher.status === "active" ? (
-                <ConfirmActionModal
+                <ImpactConfirmModal
                   title="Desligar professor"
-                  description={`O professor ${teacher.full_name} será marcado como inactivo e perderá acesso ao painel de professor.`}
-                  confirmLabel="Desactivar"
+                  verb="Desligar"
+                  itemType="o professor"
+                  itemName={teacher.full_name}
+                  confirmLabel="Desligar professor"
+                  loadImpact={() => getTeacherDeletionImpact({ data: { teacherId: teacher.id } })}
                   onConfirm={async () => {
                     await deleteTeacher({ data: { teacherId: teacher.id } });
                     await queryClient.invalidateQueries({ queryKey: ["people", "teachers"] });
                     await queryClient.invalidateQueries({
                       queryKey: ["academic", "teacher-workspace"],
                     });
+                    toast.success("Professor desligado.");
                   }}
                   trigger={(open: () => void) => (
                     <Button
