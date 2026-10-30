@@ -136,7 +136,7 @@ describe("lista financeira — interacções", () => {
         .disabled,
     ).toBe(true);
   });
-  it("mantém selecção entre páginas e impede ultrapassar 60 alunos", async () => {
+  it("permite seleccionar mais de 60 alunos para relatórios, mas não emitir propinas em lote", async () => {
     for (let i = 3; i <= 73; i++)
       fixtures.rows.push({ ...fixtures.rows[0], studentId: `s${i}`, name: `Aluno ${i}` });
     mount();
@@ -146,12 +146,28 @@ describe("lista financeira — interacções", () => {
     fireEvent.click(screen.getByRole("button", { name: "Seleccionar página" }));
     expect(screen.getByRole("button", { name: "Limpar selecção (50)" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Página seguinte" }));
+    fireEvent.click(screen.getByRole("button", { name: "Seleccionar página" }));
+    expect(screen.getByRole("button", { name: "Limpar selecção (73)" })).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Seleccionar página" }) as HTMLButtonElement).disabled,
+      (screen.getByRole("button", { name: "Emitir propinas (73)" }) as HTMLButtonElement).disabled,
     ).toBe(true);
-    for (const checkbox of screen.getAllByRole("checkbox").slice(0, 10)) fireEvent.click(checkbox);
-    expect(screen.getByRole("button", { name: "Limpar selecção (60)" })).toBeTruthy();
-    expect(screen.getAllByRole("checkbox")[10].getAttribute("data-disabled")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "CSV seleccionados (73)" }));
+    const exported = fixtures.exportCsv.mock.calls[0]?.[2] as Array<{ studentId: string }>;
+    expect(exported).toHaveLength(73);
+    expect(new Set(exported.map((row) => row.studentId)).size).toBe(73);
+  });
+  it("o CSV exporta apenas os estudantes seleccionados e não todos os filtrados", async () => {
+    mount();
+    await screen.findByText("Ana");
+    fireEvent.click(screen.getByRole("checkbox", { name: "Seleccionar Ana" }));
+    fireEvent.click(screen.getByRole("button", { name: "CSV seleccionados (1)" }));
+    const [name, columns, exported] = fixtures.exportCsv.mock.calls[0];
+    expect(name).toBe("situacao-financeira-alunos");
+    expect(columns.some((col: { label: string }) => col.label === "Dívida (Kz)")).toBe(true);
+    expect(exported.map((row: { name: string }) => row.name)).toEqual(["Ana"]);
+    fireEvent.click(screen.getByRole("button", { name: "Limpar selecção (1)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Exportar CSV filtrados" }));
+    expect(fixtures.exportCsv.mock.calls[1][2]).toHaveLength(2);
   });
   it("no telemóvel mostra os valores no cartão e preserva selecção ao passar para tabela", async () => {
     window.innerWidth = 390;
