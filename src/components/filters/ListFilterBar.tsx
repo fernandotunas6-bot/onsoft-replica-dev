@@ -29,6 +29,9 @@ export function ListFilterBar({
   extras,
   chips,
   className,
+  resultCount,
+  resultNoun = "resultado",
+  resultNounPlural,
 }: {
   fields: ListFilterField[];
   values: Record<string, string>;
@@ -38,9 +41,28 @@ export function ListFilterBar({
   extras?: ReactNode;
   chips?: Array<{ name: string; label: string; value: string; emptyValue?: string }>;
   className?: string;
+  /**
+   * Número de resultados depois de filtrar. Quando é fornecido, a barra
+   * anuncia-o numa região invisível: filtrar troca a lista sem mover o foco e,
+   * sem isto, quem usa leitor de ecrã não tem como saber que algo mudou.
+   * Não desenha nada — é só para tecnologia de apoio.
+   */
+  resultCount?: number;
+  /** Substantivo a anunciar, no singular. Por omissão «resultado». */
+  resultNoun?: string;
+  /**
+   * Plural, quando não é o singular com «s». Obrigatório para palavras como
+   * «comunicação», que daria «comunicaçãos».
+   */
+  resultNounPlural?: string;
 }) {
   return (
     <div className={cn("rounded-xl border border-border bg-card p-3 sm:p-4", className)}>
+      {resultCount === undefined ? null : (
+        <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+          {resultCount} {resultCount === 1 ? resultNoun : (resultNounPlural ?? `${resultNoun}s`)}
+        </span>
+      )}
       <div className="flex flex-wrap items-end gap-2">
         {fields.map((field) => {
           const value = values[field.name] ?? "";

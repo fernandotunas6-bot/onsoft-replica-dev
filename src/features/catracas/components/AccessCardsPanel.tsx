@@ -77,6 +77,9 @@ export function AccessCardsPanel() {
       </div>
 
       <ListFilterBar
+        resultCount={cards.length}
+        resultNoun="cartão"
+        resultNounPlural="cartões"
         fields={[
           {
             name: "q",

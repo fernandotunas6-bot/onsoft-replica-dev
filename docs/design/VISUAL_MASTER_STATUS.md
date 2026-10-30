@@ -628,9 +628,17 @@ código morto.
   importam, e são os testes que os mantêm verdes. Os dois são nomeados em
   `CONTEXTUAL_VISUAL_INTEGRATION.md` como sítios onde aplicar o novo visual.
   Decisão: remover com os seus testes, ou adoptá-los nos 31 ecrãs.
-- **Maior do que o corrigido:** 11 dos 14 ecrãs com `ListFilterBar` não usam a
-  `ListPaginationBar`, logo filtram sem contagem e sem anúncio nenhum. São 11
-  ficheiros, fora deste incremento.
+- **Fechado a seguir, no mesmo dia:** os outros 11 ecrãs com `ListFilterBar`
+  filtravam **em silêncio absoluto** — verificados um a um, nenhum mostrava
+  contagem. Como acrescentar um contador visível seria acrescentar interface, a
+  `ListFilterBar` ganhou uma prop opcional `resultCount` que rende uma região
+  `role="status" aria-live="polite" aria-atomic="true" sr-only`: **zero efeito
+  visual**, e sem a prop nada muda. Ligados **8 ecrãs** — documentos, planos,
+  comunicações, calendário, acessos, financeiro, turmas e cartões de acesso.
+  Três ficaram de fora com razão escrita: dois são relatórios que rendem
+  gráficos e não listas contáveis, e o terceiro é um selector de turma/
+  disciplina/período que muda uma grelha. Anunciar ali seria anunciar um número
+  errado. Regressão em `tests/ui/filter-bar-result-announcement.test.ts`.
 - **Medido e sem falhas:** alvos de toque das barras (já usam `h-[44px]`
   explícito), rótulo do selector de página, transbordo horizontal (três
   suspeitos, todos descartados) e semântica das tabelas — só 2 das 51 são

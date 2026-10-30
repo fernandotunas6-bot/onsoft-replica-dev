@@ -500,6 +500,8 @@ function AcessosPage() {
         />
 
         <ListFilterBar
+          resultCount={filteredAccounts.length}
+          resultNoun="conta"
           values={filters}
           activeCount={activeCount}
           onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
