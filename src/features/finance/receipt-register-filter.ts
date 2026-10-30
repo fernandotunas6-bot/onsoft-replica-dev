@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal(""));
+const day = z.string().date().or(z.literal(""));
 
 /** Escapa % e _ em ILIKE, impedindo que pesquisa textual alargue o filtro. */
 export function receiptLikeTerm(text: string): string {
