@@ -23,6 +23,8 @@ import { issueTuitionBatch, type TuitionBatchResult } from "../server";
 import { studentBalanceState } from "../student-ledger";
 
 const defaults = { q: "", turma: "", classe: "", curso: "", nivel: "", estado: "" };
+/** Selecção para relatórios; o limite operacional de emissão continua a ser de 60. */
+const MAX_REPORT_SELECTION = 5000;
 
 export function StudentLedgerPanel({ blocked }: { blocked: boolean }) {
   const { school, selectedYearId, selectedYearLabel } = useSchoolSettings();
@@ -104,7 +106,9 @@ function Ledger({
       ).values(),
     ].sort((a, b) => a.label.localeCompare(b.label, "pt")),
   ];
-  const selectedRows = filtered.filter((row) => selected.includes(row.studentId));
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
+  const selectedRows = filtered.filter((row) => selectedSet.has(row.studentId));
+  const allFilteredSelected = filtered.length > 0 && selectedRows.length === filtered.length;
   const selectedClass = selectedRows[0]?.classGroupId;
   const canIssue =
     !blocked &&
@@ -117,7 +121,7 @@ function Ledger({
   const currentPage = Math.min(page, pages);
   const visible = filtered.slice((currentPage - 1) * 25, currentPage * 25);
   const visibleIds = visible.map((row) => row.studentId);
-  const pageSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
+  const pageSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedSet.has(id));
   const pageSelection = [...new Set([...selected, ...visibleIds])];
   const selectedDebtors = selectedRows.filter((row) => row.outstanding > 0);
   const selectedDebt =
@@ -135,12 +139,12 @@ function Ledger({
     >
       <Checkbox
         aria-label={`Seleccionar ${row.name}`}
-        checked={selected.includes(row.studentId)}
-        disabled={!selected.includes(row.studentId) && selected.length >= 60}
+        checked={selectedSet.has(row.studentId)}
+        disabled={!selectedSet.has(row.studentId) && selected.length >= MAX_REPORT_SELECTION}
         onCheckedChange={(checked) =>
           setSelected((old) =>
             checked === true
-              ? old.includes(row.studentId) || old.length >= 60
+              ? old.includes(row.studentId) || old.length >= MAX_REPORT_SELECTION
                 ? old
                 : [...old, row.studentId]
               : old.filter((id) => id !== row.studentId),
@@ -282,14 +286,14 @@ function Ledger({
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
-                Importar Excel
+                Importar pagamentos Excel
               </Link>
             </Button>
             <Button
               variant="outline"
               size="sm"
               disabled={
-                !visible.length || query.isFetching || (!pageSelected && pageSelection.length > 60)
+                !visible.length || query.isFetching || (!pageSelected && pageSelection.length > MAX_REPORT_SELECTION)
               }
               onClick={() =>
                 setSelected((old) =>
@@ -300,6 +304,19 @@ function Ledger({
               }
             >
               {pageSelected ? "Desmarcar página" : "Seleccionar página"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!filtered.length || query.isFetching ||
+                (!allFilteredSelected && filtered.length > MAX_REPORT_SELECTION)}
+              onClick={() =>
+                setSelected(allFilteredSelected ? [] : filtered.map((row) => row.studentId))
+              }
+            >
+              {allFilteredSelected
+                ? "Desmarcar todos filtrados"
+                : `Seleccionar todos filtrados (${filtered.length})`}
             </Button>
             <Button
               variant="outline"
@@ -367,7 +384,7 @@ function Ledger({
             />
           </div>
           <p className="px-3 pb-3 text-xs text-muted-foreground">
-            Seleccione até 60 alunos. Para emitir propinas, escolha alunos activos da mesma turma. A
+            Pode seleccionar até 5 000 alunos para relatórios, inclusive entre páginas. Para emitir propinas, escolha no máximo 60 alunos activos da mesma turma. A
             exportação de cobranças inclui apenas os seleccionados com dívida e não envia mensagens.
             Para receber, abra as facturas do aluno. Sem facturas não significa pago.
           </p>
