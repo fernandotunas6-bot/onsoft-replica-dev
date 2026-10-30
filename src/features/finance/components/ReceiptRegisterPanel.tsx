@@ -20,6 +20,8 @@ import { kwanza } from "@/lib/currency";
 import { toast } from "@/lib/toast";
 import { listReceiptRegister } from "../receipt-register-server";
 import { AccountantExportDialog } from "./AccountantExportDialog";
+import { downloadReceiptWorkbook, type ExportReceiptRow } from "../receipt-register-excel";
+import { schoolTodayIso } from "@/lib/school-date";
 
 const emptyFilters = {
   receiptNumber: "",
@@ -36,6 +38,8 @@ export function ReceiptRegisterPanel() {
   const [filters, setFilters] = useState(emptyFilters);
   const [page, setPage] = useState(1);
   const [printing, setPrinting] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
   const query = useQuery({
     queryKey: ["finance", "receipt-register", school?.id, filters, page],
     queryFn: () => listReceiptRegister({
@@ -51,6 +55,59 @@ export function ReceiptRegisterPanel() {
     school,
     selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || "",
   );
+
+  const exportFilteredExcel = async () => {
+    const initialTotal = query.data?.total ?? 0;
+    if (initialTotal === 0 || exporting) return;
+    const MAX_EXPORT = 2000;
+    if (initialTotal > MAX_EXPORT) {
+      toast.error(
+        "Esta pesquisa tem mais de 2 000 recibos. Refine os filtros antes de exportar.",
+      );
+      return;
+    }
+    setExporting(true);
+    setExportProgress(0);
+    try {
+      const rows: ExportReceiptRow[] = [];
+      const pageSize = 100;
+      const pages = Math.ceil(initialTotal / pageSize);
+      for (let current = 1; current <= pages; current++) {
+        const result = await listReceiptRegister({
+          data: { ...filters, page: current, pageSize },
+        });
+        if (result.total !== initialTotal) {
+          throw new Error("Os recibos foram actualizados durante a exportação. Repita a operação.");
+        }
+        rows.push(...result.rows);
+        setExportProgress(rows.length);
+      }
+      if (rows.length !== initialTotal) {
+        throw new Error("A exportação ficou incompleta; nenhum ficheiro foi criado.");
+      }
+      await downloadReceiptWorkbook(rows, {
+        schoolName: school?.name ?? "Escola",
+        exportedOn: schoolTodayIso(),
+        filterDescription: [
+          filters.receiptNumber && "Recibo: " + filters.receiptNumber,
+          filters.invoiceNumber && "Fatura: " + filters.invoiceNumber,
+          filters.studentQuery && "Aluno: " + filters.studentQuery,
+          filters.status !== "all" && "Estado: " + filters.status,
+          filters.method !== "all" && "Método: " + filters.method,
+          filters.from && "Desde: " + filters.from,
+          filters.to && "Até: " + filters.to,
+        ].filter(Boolean).join("; ") || "Todos os recibos desta escola",
+      });
+      toast.success("Excel de " + rows.length + " recibos exportado.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível exportar os recibos.",
+      );
+    } finally {
+      setExportProgress(0);
+      setExporting(false);
+    }
+  };
 
   const printReceipt = async (receipt: Receipt) => {
     if (printing) return;
@@ -166,6 +223,16 @@ export function ReceiptRegisterPanel() {
             >
               Exportar página CSV
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!query.data?.total || query.isFetching || exporting}
+              onClick={() => void exportFilteredExcel()}
+            >
+              {exporting
+                ? "A exportar " + exportProgress + "/" + (query.data?.total ?? 0) + "…"
+                : "Exportar filtrados Excel"}
+            </Button>
             <AccountantExportDialog
               trigger={(open) => (
                 <Button variant="outline" size="sm" onClick={open}>
@@ -259,7 +326,7 @@ export function ReceiptRegisterPanel() {
           onPageChange={setPage}
         />
         <p className="px-3 pb-3 text-xs text-muted-foreground">
-          CSV contém apenas os recibos desta página. Para exportar todos os documentos contabilísticos do mês,
+          A exportação dos resultados filtrados inclui até 2 000 recibos por operação; acima disso, refine os filtros. CSV contém apenas os recibos desta página. Para exportar todos os documentos contabilísticos do mês,
           utilize a exportação mensal do contabilista. Os recibos anulados permanecem no histórico.
           Estes documentos internos não substituem faturas fiscais certificadas.
         </p>
