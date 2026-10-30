@@ -44,6 +44,15 @@ Não executar migrações de produção, liquidações reais ou deploy durante e
 6. Validar selecção de mais de 60 alunos para exportação Excel sem poder emitir propinas acima do limite; pesquisa por referência de pagamento externa exacta.
 7. Confirmar que PR #386 está aprovada e integrada primeiro; rebase/merge controlado, não force push. Só publicar em produção quando testes e validações estiverem verdes.
 
+## Continuação — lista financeira, selecção e validação (30/10/2026)
+
+- Com 1 ou mais alunos seleccionados, **CSV e XLSX exportam só os seleccionados**; sem selecção, exportam os resultados filtrados. O botão indica o âmbito e quantidade.
+- Selecção entre páginas até 5 000 alunos para relatórios. O comando de **emitir propinas mantém o limite de 60 alunos activos da mesma turma**, separado da exportação.
+- A barra do painel financeiro foi dividida em grupos acessíveis: importação/exportação, selecção e cobranças/emissão, responsiva e sem remoção de operações.
+- Corrigido o teste anterior de 60 estudantes que já não corresponde à nova política; acrescentados testes para 73 seleccionados e para CSV limitado à selecção.
+- Detectado e corrigido um atributo JSX de cobrança que tinha perdido o fecho durante a reorganização; Prettier oficial aplicado com êxito na branch.
+- O CI completo ainda exige confirmação na versão final após esses ajustes. PR #386 permanece aberta e divergiu da main em 4 commits à frente / 139 atrás na última consulta. Não fundir nem fazer deploy sem reconciliação.
+
 ## Estado de execução e segurança (30/10/2026)
 
 - Reimpressão passa pela leitura autenticada por UUID com escola obrigatória, verificando estado, valor, número e fatura actuais. Recibo anulado aparece como anulado; não confiar na cache do browser.
