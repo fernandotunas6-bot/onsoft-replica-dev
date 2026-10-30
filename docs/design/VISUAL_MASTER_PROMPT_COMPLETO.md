@@ -461,6 +461,8 @@ As restantes regras do padrão visual de 23/10/2026 continuam válidas.
 
 # Execução do padrão visual — 23/10/2026
 
+**30/10/2026 — secções verticais e auditoria (implementado):** padrão aplicado a 15 consumidores; ficha de Pessoas também vertical no telemóvel. Corrigidos scroll que podia deslocar a página, nomes extensos e contraste activo (6,65:1 claro / 7,92:1 escuro no ensaio controlado). 557 testes aprovados em 76 ficheiros, seis excepções preexistentes de contraste decorativo ignoradas. Tipos e lint dos ficheiros alterados aprovados; conferência Chromium em seis larguras e temas claro/escuro. Script reproduzível: `node scripts/qa/vertical-navigation.mjs`. Validação autenticada e publicação pendentes; push anterior bloqueado pela revisão automática. Evidência e limites em `docs/agents/HANDOFF_VERTICAL_NAV_2026-10-30.md`.
+
 **29/10/2026 — integração da escolha de turma com o formulário actual:**
 preservada a correcção de Claude que cancela Enter na pesquisa e coloca o foco
 na lista. Integração com `main` 74695eaa sem reescrever o histórico; o selector

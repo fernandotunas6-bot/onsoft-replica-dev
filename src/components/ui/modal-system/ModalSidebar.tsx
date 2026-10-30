@@ -13,8 +13,8 @@ export interface ModalSidebarItem {
  * Sidebar contextual para Management Modals (ver PROMPT MASTER §5/§6).
  * Reaproveita TabsList/TabsTrigger do Radix (deve viver dentro de um <Tabs>) —
  * herda navegação por teclado e ARIA em vez de reimplementar troca de abas.
- * Em ecrãs pequenos vira uma tira horizontal no topo (mobile); em ecrãs
- * largos fica como coluna fixa à esquerda (desktop/tablet) — só CSS, sem
+ * Em ecrãs pequenos mantém uma lista vertical no topo (mobile); em ecrãs
+ * largos fica como coluna à esquerda (desktop/tablet) — só CSS, sem
  * ramo de código separado para mobile.
  */
 export function ModalSidebar({
@@ -34,17 +34,20 @@ export function ModalSidebar({
       )}
     >
       {header ? <div className="border-b border-border px-4 py-3">{header}</div> : null}
-      <TabsList className="h-auto w-full flex-row justify-start gap-1 overflow-x-auto rounded-none bg-transparent p-2 sm:flex-col sm:items-stretch sm:overflow-visible">
+      <TabsList
+        aria-label="Secções da ficha"
+        className="flex h-auto max-h-64 w-full flex-col items-stretch justify-start gap-1 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-none bg-transparent p-2 sm:max-h-none sm:overflow-visible"
+      >
         {items.map((item) => {
           const Icon = item.icon;
           return (
             <TabsTrigger
               key={item.value}
               value={item.value}
-              className="w-full shrink-0 justify-start gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors duration-150 motion-reduce:transition-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              className="min-h-10 w-full shrink-0 justify-start gap-2 whitespace-normal rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors duration-150 motion-reduce:transition-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
             >
               {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
-              <span className="truncate">{item.label}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere]">{item.label}</span>
             </TabsTrigger>
           );
         })}

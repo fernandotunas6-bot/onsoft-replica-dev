@@ -15,7 +15,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import {
   buildAlumniCommunicationAudience,
   getAlumniExportDataset,
@@ -153,8 +153,8 @@ function AlumniInsightsPage() {
           </Card>
         </section>
 
-        <Tabs defaultValue="geo" className="space-y-4">
-          <TabsList className="h-auto flex-wrap rounded-2xl bg-muted/60 p-1">
+        <Tabs layout="sidebar" defaultValue="geo" className="space-y-4">
+          <TabsList aria-label="Secções Alumni">
             <TabsTrigger value="geo" className="rounded-xl">
               Mapa & Território
             </TabsTrigger>
@@ -165,117 +165,121 @@ function AlumniInsightsPage() {
               Privacidade & Exportação
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="geo">
-            <Card className="border-border/70 shadow-sm">
-              <CardHeader>
-                <CardTitle>Distribuição por província</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {(geoQuery.data ?? []).map((row) => (
-                  <div
-                    key={row.province}
-                    className="grid gap-3 rounded-2xl border border-border/60 p-4 md:grid-cols-[minmax(0,1fr)_100px_120px_100px] md:items-center"
-                  >
-                    <div>
-                      <p className="font-bold">{row.province}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {row.cities.length
-                          ? row.cities.join(" · ")
-                          : "Município/cidade por actualizar"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-black">{row.total}</p>
-                      <p className="text-[11px] text-muted-foreground">Alumni</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-black">{row.employed}</p>
-                      <p className="text-[11px] text-muted-foreground">Empregados</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-black">{row.mentors}</p>
-                      <p className="text-[11px] text-muted-foreground">Mentores</p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="audience">
-            <Card className="border-border/70 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Megaphone className="size-5 text-primary" /> Público consentido
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {(
-                    [
-                      "general",
-                      "opportunities",
-                      "events",
-                      "mentoring",
-                      "surveys",
-                      "fundraising",
-                    ] as const
-                  ).map((item) => (
-                    <Button
-                      key={item}
-                      size="sm"
-                      variant={purpose === item ? "default" : "outline"}
-                      onClick={() => setPurpose(item)}
+          <TabsPanels>
+            <TabsContent value="geo">
+              <Card className="border-border/70 shadow-sm">
+                <CardHeader>
+                  <CardTitle>Distribuição por província</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {(geoQuery.data ?? []).map((row) => (
+                    <div
+                      key={row.province}
+                      className="grid gap-3 rounded-2xl border border-border/60 p-4 md:grid-cols-[minmax(0,1fr)_100px_120px_100px] md:items-center"
                     >
-                      {item}
-                    </Button>
-                  ))}
-                </div>
-                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {(audienceQuery.data ?? []).map((person) => (
-                    <div key={person.alumniId} className="rounded-2xl border border-border/60 p-4">
-                      <p className="font-semibold">{person.fullName}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {person.email || "E-mail desactivado"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {person.phone || "Telefone não autorizado"}
-                      </p>
-                      <p className="mt-2 text-[11px] font-bold text-primary">
-                        {[person.graduationYear, person.province].filter(Boolean).join(" · ") ||
-                          "Perfil Alumni"}
-                      </p>
+                      <div>
+                        <p className="font-bold">{row.province}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {row.cities.length
+                            ? row.cities.join(" · ")
+                            : "Município/cidade por actualizar"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-lg font-black">{row.total}</p>
+                        <p className="text-[11px] text-muted-foreground">Alumni</p>
+                      </div>
+                      <div>
+                        <p className="text-lg font-black">{row.employed}</p>
+                        <p className="text-[11px] text-muted-foreground">Empregados</p>
+                      </div>
+                      <div>
+                        <p className="text-lg font-black">{row.mentors}</p>
+                        <p className="text-[11px] text-muted-foreground">Mentores</p>
+                      </div>
                     </div>
                   ))}
-                </div>
-                <Link
-                  to="/alumni/communications"
-                  className="mt-5 inline-flex h-9 items-center rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground"
-                >
-                  <Megaphone className="mr-2 size-3.5" />
-                  Criar comunicado para este público
-                </Link>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <TabsContent value="privacy">
-            <Card className="border-border/70 shadow-sm">
-              <CardContent className="p-6">
-                <h3 className="font-bold">Princípios de exportação</h3>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                  O CSV institucional inclui dados profissionais e académicos de referência, mas
-                  e-mail e telefone só são preenchidos quando o Alumni autorizou contacto.
-                  Preferências de canal e finalidade são avaliadas separadamente na segmentação.
-                </p>
-                <Button className="mt-4 rounded-xl" onClick={downloadCsv}>
-                  <Download className="mr-2 size-4" />
-                  Gerar exportação protegida
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
+            <TabsContent value="audience">
+              <Card className="border-border/70 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Megaphone className="size-5 text-primary" /> Público consentido
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        "general",
+                        "opportunities",
+                        "events",
+                        "mentoring",
+                        "surveys",
+                        "fundraising",
+                      ] as const
+                    ).map((item) => (
+                      <Button
+                        key={item}
+                        size="sm"
+                        variant={purpose === item ? "default" : "outline"}
+                        onClick={() => setPurpose(item)}
+                      >
+                        {item}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {(audienceQuery.data ?? []).map((person) => (
+                      <div
+                        key={person.alumniId}
+                        className="rounded-2xl border border-border/60 p-4"
+                      >
+                        <p className="font-semibold">{person.fullName}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {person.email || "E-mail desactivado"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {person.phone || "Telefone não autorizado"}
+                        </p>
+                        <p className="mt-2 text-[11px] font-bold text-primary">
+                          {[person.graduationYear, person.province].filter(Boolean).join(" · ") ||
+                            "Perfil Alumni"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <Link
+                    to="/alumni/communications"
+                    className="mt-5 inline-flex h-9 items-center rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground"
+                  >
+                    <Megaphone className="mr-2 size-3.5" />
+                    Criar comunicado para este público
+                  </Link>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="privacy">
+              <Card className="border-border/70 shadow-sm">
+                <CardContent className="p-6">
+                  <h3 className="font-bold">Princípios de exportação</h3>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                    O CSV institucional inclui dados profissionais e académicos de referência, mas
+                    e-mail e telefone só são preenchidos quando o Alumni autorizou contacto.
+                    Preferências de canal e finalidade são avaliadas separadamente na segmentação.
+                  </p>
+                  <Button className="mt-4 rounded-xl" onClick={downloadCsv}>
+                    <Download className="mr-2 size-4" />
+                    Gerar exportação protegida
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </TabsPanels>
         </Tabs>
       </div>
     </AppShell>

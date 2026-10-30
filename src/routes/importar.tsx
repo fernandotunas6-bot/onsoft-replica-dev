@@ -14,7 +14,7 @@ import { toast } from "@/lib/toast";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -154,10 +154,11 @@ function ImportarDadosPage() {
           description="Excel/CSV bidirecional → validação relacional → staging → confirmação → auditoria → exportação reimportável"
         >
           <Tabs
+            layout="sidebar"
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as "novo" | "historico" | "modelos" | "exportar")}
           >
-            <TabsList className="no-scrollbar mb-4 max-w-full justify-start overflow-x-auto">
+            <TabsList aria-label="Importação e exportação">
               <TabsTrigger value="novo" className="gap-1.5">
                 <FileUp className="size-3.5" /> Nova Importação
               </TabsTrigger>
@@ -171,168 +172,173 @@ function ImportarDadosPage() {
                 <Download className="size-3.5" /> Modelos Oficiais
               </TabsTrigger>
             </TabsList>
+            <TabsPanels>
+              <TabsContent value="novo">
+                <ImportWorkflowWizard
+                  academicYearId={selectedYearId}
+                  initialModule={initialModule}
+                  onComplete={() => setActiveTab("historico")}
+                />
+              </TabsContent>
 
-            <TabsContent value="novo">
-              <ImportWorkflowWizard
-                academicYearId={selectedYearId}
-                initialModule={initialModule}
-                onComplete={() => setActiveTab("historico")}
-              />
-            </TabsContent>
+              <TabsContent value="exportar">
+                <SchoolDataExportPanel
+                  academicYearId={selectedYearId}
+                  academicYearLabel={activeYearLabel}
+                />
+              </TabsContent>
 
-            <TabsContent value="exportar">
-              <SchoolDataExportPanel
-                academicYearId={selectedYearId}
-                academicYearLabel={activeYearLabel}
-              />
-            </TabsContent>
+              <TabsContent value="historico">
+                <ImportHistoryPanel />
+              </TabsContent>
 
-            <TabsContent value="historico">
-              <ImportHistoryPanel />
-            </TabsContent>
-
-            <TabsContent value="modelos">
-              <div className="space-y-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h3 className="text-base font-semibold">
-                      Modelos Oficiais de Importação ({Object.keys(OFFICIAL_TEMPLATES).length})
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Descarregue modelos oficiais pré-formatados com validações de lista suspensa,
-                      exemplos angolanos e orientações relacionais.
-                    </p>
+              <TabsContent value="modelos">
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="text-base font-semibold">
+                        Modelos Oficiais de Importação ({Object.keys(OFFICIAL_TEMPLATES).length})
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Descarregue modelos oficiais pré-formatados com validações de lista
+                        suspensa, exemplos angolanos e orientações relacionais.
+                      </p>
+                    </div>
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+                      <Input
+                        id="search-import-templates"
+                        aria-label="Buscar modelo ou coluna"
+                        placeholder="Buscar modelo ou coluna..."
+                        value={templateSearch}
+                        onChange={(e) => setTemplateSearch(e.target.value)}
+                        className="h-8 pl-8 text-xs"
+                      />
+                    </div>
                   </div>
-                  <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
-                    <Input
-                      id="search-import-templates"
-                      aria-label="Buscar modelo ou coluna"
-                      placeholder="Buscar modelo ou coluna..."
-                      value={templateSearch}
-                      onChange={(e) => setTemplateSearch(e.target.value)}
-                      className="h-8 pl-8 text-xs"
-                    />
+
+                  <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
+                    {[
+                      {
+                        id: "todos",
+                        label: "Todos",
+                        count: Object.keys(OFFICIAL_TEMPLATES).length,
+                      },
+                      {
+                        id: "pessoas",
+                        label: "Identidade & Pessoas",
+                        count: Object.values(OFFICIAL_TEMPLATES).filter(
+                          (t) => t.category === "pessoas",
+                        ).length,
+                      },
+                      {
+                        id: "pedagogica",
+                        label: "Estrutura Pedagógica",
+                        count: Object.values(OFFICIAL_TEMPLATES).filter(
+                          (t) => t.category === "pedagogica",
+                        ).length,
+                      },
+                      {
+                        id: "academica",
+                        label: "Gestão Académica",
+                        count: Object.values(OFFICIAL_TEMPLATES).filter(
+                          (t) => t.category === "academica",
+                        ).length,
+                      },
+                      {
+                        id: "financeira",
+                        label: "Tesouraria & Finanças",
+                        count: Object.values(OFFICIAL_TEMPLATES).filter(
+                          (t) => t.category === "financeira",
+                        ).length,
+                      },
+                    ].map((cat) => (
+                      <Button
+                        key={cat.id}
+                        variant={templateCategory === cat.id ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setTemplateCategory(cat.id)}
+                      >
+                        {cat.label} ({cat.count})
+                      </Button>
+                    ))}
                   </div>
-                </div>
 
-                <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
-                  {[
-                    { id: "todos", label: "Todos", count: Object.keys(OFFICIAL_TEMPLATES).length },
-                    {
-                      id: "pessoas",
-                      label: "Identidade & Pessoas",
-                      count: Object.values(OFFICIAL_TEMPLATES).filter(
-                        (t) => t.category === "pessoas",
-                      ).length,
-                    },
-                    {
-                      id: "pedagogica",
-                      label: "Estrutura Pedagógica",
-                      count: Object.values(OFFICIAL_TEMPLATES).filter(
-                        (t) => t.category === "pedagogica",
-                      ).length,
-                    },
-                    {
-                      id: "academica",
-                      label: "Gestão Académica",
-                      count: Object.values(OFFICIAL_TEMPLATES).filter(
-                        (t) => t.category === "academica",
-                      ).length,
-                    },
-                    {
-                      id: "financeira",
-                      label: "Tesouraria & Finanças",
-                      count: Object.values(OFFICIAL_TEMPLATES).filter(
-                        (t) => t.category === "financeira",
-                      ).length,
-                    },
-                  ].map((cat) => (
-                    <Button
-                      key={cat.id}
-                      variant={templateCategory === cat.id ? "default" : "outline"}
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => setTemplateCategory(cat.id)}
-                    >
-                      {cat.label} ({cat.count})
-                    </Button>
-                  ))}
-                </div>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {filteredTemplates.map(([key, spec]) => (
+                      <div
+                        key={key}
+                        className="flex flex-col justify-between rounded-xl border border-border bg-card p-4 space-y-3 shadow-card hover:shadow-subtle transition-all"
+                      >
+                        <div className="flex items-start justify-between gap-2.5">
+                          <div className="flex items-start gap-2.5">
+                            <FileSpreadsheet className="size-5 shrink-0 text-primary mt-0.5" />
+                            <div>
+                              <p className="font-semibold text-xs text-foreground">{spec.label}</p>
+                              <p className="text-[11px] text-muted-foreground">
+                                {spec.columns.length} colunas mapeadas
+                              </p>
+                            </div>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className="text-[11px] capitalize shrink-0 font-normal"
+                          >
+                            {spec.category === "pessoas"
+                              ? "Identidade"
+                              : spec.category === "pedagogica"
+                                ? "Estrutura"
+                                : spec.category === "academica"
+                                  ? "Académico"
+                                  : "Financeiro"}
+                          </Badge>
+                        </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {filteredTemplates.map(([key, spec]) => (
-                    <div
-                      key={key}
-                      className="flex flex-col justify-between rounded-xl border border-border bg-card p-4 space-y-3 shadow-card hover:shadow-subtle transition-all"
-                    >
-                      <div className="flex items-start justify-between gap-2.5">
-                        <div className="flex items-start gap-2.5">
-                          <FileSpreadsheet className="size-5 shrink-0 text-primary mt-0.5" />
-                          <div>
-                            <p className="font-semibold text-xs text-foreground">{spec.label}</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {spec.columns.length} colunas mapeadas
-                            </p>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="w-full gap-1.5 text-xs font-semibold"
+                            onClick={() => handleDownloadXlsxTemplate(spec.module)}
+                          >
+                            <Sparkles className="size-3.5" /> Modelo Excel (.xlsx)
+                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-1/2 gap-1.5 text-xs"
+                              onClick={() => handleDownloadCsvTemplate(key)}
+                            >
+                              <Download className="size-3.5" /> CSV
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="w-1/2 gap-1.5 text-xs font-medium"
+                              onClick={() => {
+                                navigate({
+                                  search: (prev) => ({ ...prev, tab: "novo", modulo: spec.module }),
+                                });
+                              }}
+                            >
+                              <FileUp className="size-3.5 text-primary" /> Importar
+                            </Button>
                           </div>
                         </div>
-                        <Badge
-                          variant="outline"
-                          className="text-[11px] capitalize shrink-0 font-normal"
-                        >
-                          {spec.category === "pessoas"
-                            ? "Identidade"
-                            : spec.category === "pedagogica"
-                              ? "Estrutura"
-                              : spec.category === "academica"
-                                ? "Académico"
-                                : "Financeiro"}
-                        </Badge>
                       </div>
-
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="w-full gap-1.5 text-xs font-semibold"
-                          onClick={() => handleDownloadXlsxTemplate(spec.module)}
-                        >
-                          <Sparkles className="size-3.5" /> Modelo Excel (.xlsx)
-                        </Button>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-1/2 gap-1.5 text-xs"
-                            onClick={() => handleDownloadCsvTemplate(key)}
-                          >
-                            <Download className="size-3.5" /> CSV
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="w-1/2 gap-1.5 text-xs font-medium"
-                            onClick={() => {
-                              navigate({
-                                search: (prev) => ({ ...prev, tab: "novo", modulo: spec.module }),
-                              });
-                            }}
-                          >
-                            <FileUp className="size-3.5 text-primary" /> Importar
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {filteredTemplates.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-muted-foreground">
-                    Nenhum modelo oficial encontrado para a pesquisa "{templateSearch}".
+                    ))}
                   </div>
-                ) : null}
-              </div>
-            </TabsContent>
+
+                  {filteredTemplates.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-muted-foreground">
+                      Nenhum modelo oficial encontrado para a pesquisa "{templateSearch}".
+                    </div>
+                  ) : null}
+                </div>
+              </TabsContent>
+            </TabsPanels>
           </Tabs>
         </Panel>
       </div>
