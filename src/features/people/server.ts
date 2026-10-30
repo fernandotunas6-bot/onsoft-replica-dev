@@ -57,6 +57,7 @@ import {
 import { listTeachersDirectoryPage, searchPeopleDirectoryPage } from "./directory-server";
 import { reopenSurvivorGuardianLinks } from "@/features/students/guardian-links";
 import { commitTeacherUpdate } from "./teacher-update";
+import { teacherDeletionImpact, type DeletionImpact } from "@/features/school/deletion-impact";
 import { recordAccessAudit } from "@/features/audit/record-audit";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
@@ -1276,6 +1277,20 @@ export const updateTeacher = createServerFn({ method: "POST" })
       });
     }
     return { id: updated.id, person_id: updated.person_id, status: updated.status };
+  });
+
+/** Impacto de desligar um professor, antes de confirmar (mesma regra de deleteTeacher). */
+export const getTeacherDeletionImpact = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => deleteTeacherInputSchema.parse(input))
+  .handler(async ({ data, context }): Promise<DeletionImpact> => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    return teacherDeletionImpact(db, membership.schoolId, data.teacherId);
   });
 
 export const deleteTeacher = createServerFn({ method: "POST" })
