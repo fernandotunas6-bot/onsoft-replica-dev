@@ -25,3 +25,6 @@ export const receiptRegisterInputSchema = z
     message: "O início do período não pode ultrapassar o fim.",
     path: ["to"],
   });
+
+/** Ao reimprimir, voltar ao servidor e conferir o recibo real por ID. */
+export const receiptPrintInputSchema = z.object({ receiptId: z.string().uuid() });
