@@ -338,7 +338,7 @@ function Ledger({
               <Button
               variant="outline"
               size="sm"
-              disabled={!selectedDebtors.length || query.isFetching
+              disabled={!selectedDebtors.length || query.isFetching}
               onClick={() =>
                 exportCsv(
                   `cobrancas-seleccionadas-${schoolTodayIso()}`,
