@@ -38,12 +38,19 @@ Não executar migrações de produção, liquidações reais ou deploy durante e
 
 1. Executar `bun run build`, `bun run typecheck`, `bun run lint`, `npm test -- tests/finance/student-ledger-excel.test.ts tests/finance/receipt-register-excel.test.ts tests/finance/receipt-register-filter.test.ts tests/documents/finance-print-identity.test.ts` e `npm run build`.
 2. Validar o importador em staging com dados fictícios e duas escolas distintas, com uma sessão de Tesouraria e outra de Secretaria.
-3. Validar múltiplos pagamentos parciais por fatura, recibos válidos e anulados, pesquisa, PDF, CSV e Excel com 100+ alunos.
+3. Validar múltiplos pagamentos parciais por fatura, recibos válidos e anulados, reimpressão após anulação por outro operador, pesquisa, PDF, CSV e Excel com 100+ alunos.
 4. Ensaiar limites, acessibilidade, 360/768/1440px, Excel com acentos e números com zeros iniciais.
-5. Conferir exportação de recibos com 2 000 resultados, filtros por aluno e anulação com motivo; verificar que o PDF não usa símbolos oficiais da República.
+5. Conferir exportação de recibos com 2 000 resultados, filtros por aluno e anulação com motivo; simular mudança de escola a meio da exportação e reimpressão; verificar que o PDF não usa símbolos oficiais da República.
 6. Validar selecção de mais de 60 alunos para exportação Excel sem poder emitir propinas acima do limite; pesquisa por referência de pagamento externa exacta.
 7. Confirmar que PR #386 está aprovada e integrada primeiro; rebase/merge controlado, não force push. Só publicar em produção quando testes e validações estiverem verdes.
 
-## Estado de execução
+## Estado de execução e segurança (30/10/2026)
 
-Código e testes criados e enviados para a PR #424. Jobs CI lançados pelo GitHub, mas sem conclusão confirmada no momento desta actualização. Sem acesso a sessões reais de duas escolas e sem transacções financeiras. **Não integrar nem publicar enquanto houver testes por validar.**
+- Reimpressão passa pela leitura autenticada por UUID com escola obrigatória, verificando estado, valor, número e fatura actuais. Recibo anulado aparece como anulado; não confiar na cache do browser.
+- Exportação Excel multi-página impede mistura entre escolas: confere `schoolId` em todas as páginas e rejeita mudança de totais, duplicados ou mudança de escola.
+- A contagem de pagamentos, dívida e estorno continua a derivar dos recibos/lançamentos reais; não foram lançados pagamentos fictícios.
+- Estilo: formatter da própria stack (Prettier) aplicado em nove ficheiros, e regex de caracteres nulos alterada para passar o lint.
+- Segurança de dependências: `re2js` transitivo do Firebase actualizado **2.8.6 → 2.9.1** apenas em `bun.lock`; `bun audit --audit-level=high` passou sem vulnerabilidades altas/críticas (8 alertas abaixo desse nível). Aviso GHSA-gg6h-894w-4m9c.
+- Validação isolada GitHub Actions: build, TypeScript e testes financeiros seleccionados aprovados no commit `4078b941`; confirmar novamente após a actualização de dependências.
+- Workflows temporários da formatação, validação e correcção de segurança retirados da branch após utilização.
+- Aguardam-se jobs CI completos do head mais recente, testes E2E autenticados em duas escolas e inspeção visual dos PDFs. PR #386 ainda não integrada. **Não integrar nem publicar enquanto houver validações pendentes.**
