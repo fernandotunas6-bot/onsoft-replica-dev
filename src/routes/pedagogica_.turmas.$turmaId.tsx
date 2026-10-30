@@ -5,7 +5,11 @@ import {
   ArrowLeft,
   BookOpen,
   Calendar,
+  ChevronDown,
+  ChevronUp,
+  Download,
   GraduationCap,
+  MoreHorizontal,
   Pencil,
   RotateCcw,
   Trash2,
@@ -15,8 +19,22 @@ import {
 import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { IconChip } from "@/components/ui/icon-chip";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import {
@@ -33,7 +51,8 @@ import {
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
 import { listTeachers } from "@/features/people/server";
-import { canWriteModule } from "@/features/auth/access-policy";
+import { canAccessPath, canWriteModule } from "@/features/auth/access-policy";
+import { canReadStudentSection } from "@/features/students/student-sections";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
@@ -43,6 +62,12 @@ import { useSuggestions } from "@/features/intelligence/use-suggestions";
 import { errorMessage } from "@/lib/error-message";
 import { safeHref } from "@/lib/safe-url";
 import { TURMA_SECTIONS, type TurmaSection } from "@/features/academic/turma-sections";
+import {
+  timetableDays,
+  visibleTimetableSlots,
+  type TimetableDay,
+} from "@/features/academic/class-timetable-visibility";
+import { exportCsv } from "@/lib/export-csv";
 import { TurmaTeacherContextPanel } from "@/features/academic/components/TurmaTeacherContextPanel";
 import { z } from "zod";
 
@@ -118,6 +143,9 @@ function TurmaDetail() {
   const account = useCurrentAccount();
   const { school, selectedYearId } = useSchoolSettings();
   const canManageAcademic = canWriteModule(account.role, "pedagogica", account.grants);
+  // O Professor abre esta ficha, mas não /alunos (salvo permissão de Pessoas): sem
+  // isto, o nome e o menu do aluno levavam a uma página recusada.
+  const canOpenStudentProfile = canAccessPath("/alunos", account.role, account.grants);
   const canManageTurma =
     (account.role === "Administrador" || account.role === "Secretaria") && canManageAcademic;
   const canReadAcademic =
@@ -146,7 +174,29 @@ function TurmaDetail() {
   });
 
   const [studentSearch, setStudentSearch] = useState({ classId: turmaId, value: "" });
+  const [expandedLists, setExpandedLists] = useState({
+    classId: turmaId,
+    alunos: false,
+    horario: false,
+    avaliacoes: false,
+  });
+  const expanded =
+    expandedLists.classId === turmaId
+      ? expandedLists
+      : { classId: turmaId, alunos: false, horario: false, avaliacoes: false };
+  const toggleList = (section: "alunos" | "horario" | "avaliacoes") =>
+    setExpandedLists((current) => {
+      const base =
+        current.classId === turmaId
+          ? current
+          : { classId: turmaId, alunos: false, horario: false, avaliacoes: false };
+      return { ...base, [section]: !base[section] };
+    });
   const searchValue = studentSearch.classId === turmaId ? studentSearch.value : "";
+  const [scheduleDayFilter, setScheduleDayFilter] = useState<{
+    classId: string;
+    day: TimetableDay;
+  }>({ classId: turmaId, day: "todos" });
   const [editOpen, setEditOpen] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -184,6 +234,7 @@ function TurmaDetail() {
       })
       .sort((a, b) => a.student_name.localeCompare(b.student_name, "pt"));
   }, [alunos, searchValue]);
+  const visibleStudents = expanded.alunos ? filteredStudents : filteredStudents.slice(0, 10);
   const disciplinas = useMemo(
     () => (workspace?.classSubjects ?? []).filter((row) => row.class_group_id === turmaId),
     [workspace?.classSubjects, turmaId],
@@ -195,6 +246,14 @@ function TurmaDetail() {
         .sort((a, b) => a.weekday - b.weekday || a.starts_at.localeCompare(b.starts_at)),
     [workspace?.scheduleSlots, turmaId],
   );
+  const availableDays = timetableDays(horario);
+  const requestedDay = scheduleDayFilter.classId === turmaId ? scheduleDayFilter.day : "todos";
+  const selectedDay =
+    typeof requestedDay === "number" && !availableDays.includes(requestedDay)
+      ? "todos"
+      : requestedDay;
+  const scheduleSelection = visibleTimetableSlots(horario, selectedDay, expanded.horario);
+  const visibleSchedule = scheduleSelection.items;
   const avaliacoes = useMemo(() => {
     const alunoIds = new Set(alunos.map((a) => a.student_id).filter(Boolean));
     return (workspace?.termGrades ?? []).filter(
@@ -202,6 +261,7 @@ function TurmaDetail() {
     );
   }, [workspace?.termGrades, alunos]);
 
+  const visibleGrades = expanded.avaliacoes ? avaliacoes : avaliacoes.slice(0, 8);
   const classRelationsSnapshot = useMemo(
     () =>
       turma ? mapClassGroupToSnapshot(turma, disciplinas, horario.length, avaliacoes.length) : null,
@@ -277,14 +337,14 @@ function TurmaDetail() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <Button asChild variant="ghost" size="sm" className="-ml-2 gap-2">
           <Link to="/pedagogica" search={{ tab: "turmas" }}>
             <ArrowLeft className="size-4" /> Turmas
           </Link>
         </Button>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-gradient-to-r from-card via-card to-secondary/30 p-5 shadow-soft">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate font-display text-xl font-extrabold text-foreground">
@@ -317,27 +377,50 @@ function TurmaDetail() {
               >
                 <UserPlus className="size-3.5" /> Professor
               </Button>
-              {turma.course_id ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  disabled={applyingCurriculum}
-                  onClick={handleApplyCurriculum}
-                >
-                  <BookOpen className="size-3.5" /> Aplicar currículo do curso
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={() => setEditOpen(true)}
-              >
-                <Pencil className="size-3.5" /> Editar
-              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5">
+                    <MoreHorizontal className="size-4" /> Mais opções
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuLabel>Gestão da turma</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                    <Pencil className="size-4" /> Editar dados da turma
+                  </DropdownMenuItem>
+                  {turma.course_id ? (
+                    <DropdownMenuItem
+                      disabled={applyingCurriculum}
+                      onSelect={() => void handleApplyCurriculum()}
+                    >
+                      <BookOpen className="size-4" /> Aplicar currículo do curso
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem
+                    disabled={!alunos.length}
+                    onSelect={() =>
+                      exportCsv(
+                        `alunos-turma-${turma.code}`,
+                        [
+                          {
+                            label: "Nome",
+                            value: (row: (typeof alunos)[number]) => row.student_name,
+                          },
+                          {
+                            label: "N.º de processo",
+                            value: (row: (typeof alunos)[number]) =>
+                              String(row.registration_number ?? ""),
+                          },
+                        ],
+                        alunos,
+                      )
+                    }
+                  >
+                    <Download className="size-4" /> Exportar alunos (CSV)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {turma.status !== "active" ? (
                 <Button
                   type="button"
@@ -407,8 +490,8 @@ function TurmaDetail() {
         <div
           className={
             account.role === "Professor"
-              ? "grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]"
-              : "grid grid-cols-1 gap-6 lg:grid-cols-2"
+              ? "grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]"
+              : "space-y-4"
           }
         >
           <section
@@ -416,8 +499,8 @@ function TurmaDetail() {
             aria-labelledby={`${sectionId("resumo")}-titulo`}
             className={
               account.role === "Professor"
-                ? "scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
-                : "scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2"
+                ? "scroll-mt-[88px] rounded-xl border border-border bg-card p-4 xl:col-start-1"
+                : "scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
             }
           >
             <div className="flex items-center gap-2.5">
@@ -430,8 +513,8 @@ function TurmaDetail() {
                 Resumo
               </h2>
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-xl border border-border bg-secondary/10 p-4">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-border bg-secondary/10 p-3">
                 <span className="text-xs font-semibold text-muted-foreground">Ocupação</span>
                 <p className="mt-2 text-2xl font-extrabold tabular-nums">
                   {turma.enrolled_count}
@@ -447,20 +530,20 @@ function TurmaDetail() {
                   />
                 </div>
               </div>
-              <div className="rounded-xl border border-border bg-secondary/10 p-4">
+              <div className="rounded-lg border border-border bg-secondary/10 p-3">
                 <span className="text-xs font-semibold text-muted-foreground">Média Geral</span>
                 <p className="mt-2 text-2xl font-extrabold tabular-nums">
                   {turma.average_score != null ? turma.average_score.toFixed(1) : "—"}
                 </p>
               </div>
-              <div className="rounded-xl border border-border bg-secondary/10 p-4">
+              <div className="rounded-lg border border-border bg-secondary/10 p-3">
                 <span className="text-xs font-semibold text-muted-foreground">Assiduidade</span>
                 <p className="mt-2 text-2xl font-extrabold tabular-nums">
                   {turma.attendance_rate != null ? `${Math.round(turma.attendance_rate)}%` : "—"}
                 </p>
               </div>
             </div>
-            <dl className="mt-4 grid grid-cols-1 gap-4 text-xs sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="mt-3 grid grid-cols-2 gap-3 text-xs lg:grid-cols-4">
               <Field label="Código" value={turma.code} />
               <Field
                 label="Sala"
@@ -486,9 +569,11 @@ function TurmaDetail() {
               ) : null}
             </dl>
             {classRelations.length > 0 || classSuggestions.length > 0 ? (
-              <div className="mt-4 rounded-xl border border-border bg-secondary/10 p-5">
-                <p className="mb-3 text-xs font-semibold text-muted-foreground">Relacionado</p>
-                <div className="mb-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              <details className="mt-3 rounded-lg border border-border bg-secondary/10 p-3">
+                <summary className="cursor-pointer text-xs font-semibold text-foreground focus-visible:outline-2">
+                  Relações e próximas acções
+                </summary>
+                <div className="mb-3 mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                   {classRelations.map((relation) => (
                     <div key={relation.key} className="flex items-center gap-2 text-xs">
                       <span
@@ -530,205 +615,415 @@ function TurmaDetail() {
                     </div>
                   </>
                 ) : null}
-              </div>
+              </details>
             ) : null}
           </section>
 
-          <section
-            id={sectionId("alunos")}
-            aria-labelledby={`${sectionId("alunos")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
+          <div
+            className={
+              account.role === "Professor"
+                ? "grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 xl:col-start-1 xl:grid-cols-1 2xl:grid-cols-2"
+                : "grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-2"
+            }
           >
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={Users} size="sm" label="Alunos" />
-              <h2
-                id={`${sectionId("alunos")}-titulo`}
-                tabIndex={-1}
-                className="font-display text-base font-bold"
+            <div className="min-w-0 space-y-4">
+              <section
+                id={sectionId("alunos")}
+                aria-labelledby={`${sectionId("alunos")}-titulo`}
+                className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
               >
-                Alunos ({alunos.length})
-              </h2>
-            </div>
-            <div className="mt-4">
-              {alunos.length > 0 ? (
-                <div className="mb-3 space-y-2">
-                  <label htmlFor="turma-alunos-pesquisa" className="text-xs font-medium">
-                    Procurar aluno nesta turma
-                  </label>
-                  <Input
-                    id="turma-alunos-pesquisa"
-                    type="search"
-                    placeholder="Nome ou número de processo"
-                    value={searchValue}
-                    onChange={(event) =>
-                      setStudentSearch({ classId: turmaId, value: event.target.value })
-                    }
-                    aria-describedby="turma-alunos-resultados"
-                  />
-                  <p
-                    id="turma-alunos-resultados"
-                    role="status"
-                    className="text-xs text-muted-foreground"
+                <div className="flex items-center gap-2.5">
+                  <IconChip icon={Users} size="sm" label="Alunos" />
+                  <h2
+                    id={`${sectionId("alunos")}-titulo`}
+                    tabIndex={-1}
+                    className="font-display text-base font-bold"
                   >
-                    {filteredStudents.length} de {alunos.length} alunos
-                  </p>
+                    Alunos ({alunos.length})
+                  </h2>
                 </div>
-              ) : null}
-              {filteredStudents.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {filteredStudents.map((aluno) => (
-                    <Link
-                      key={aluno.id}
-                      to="/alunos/$studentId"
-                      params={{ studentId: aluno.student_id ?? "" }}
-                      className="flex items-center justify-between gap-2 p-3 text-xs hover:bg-secondary/40"
-                    >
-                      <span className="min-w-0 truncate font-medium text-foreground">
-                        {aluno.student_name}
-                      </span>
-                      <span className="shrink-0 text-muted-foreground">
-                        {aluno.registration_number || "—"}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  {alunos.length
-                    ? "Nenhum aluno corresponde à pesquisa nesta turma."
-                    : "Nenhum aluno matriculado nesta turma ainda."}
+                <div className="mt-4">
                   {alunos.length > 0 ? (
+                    <div className="mb-3 space-y-2">
+                      <label htmlFor="turma-alunos-pesquisa" className="text-xs font-medium">
+                        Procurar aluno nesta turma
+                      </label>
+                      <Input
+                        id="turma-alunos-pesquisa"
+                        type="search"
+                        placeholder="Nome ou número de processo"
+                        value={searchValue}
+                        onChange={(event) =>
+                          setStudentSearch({ classId: turmaId, value: event.target.value })
+                        }
+                        aria-describedby="turma-alunos-resultados"
+                      />
+                      <p
+                        id="turma-alunos-resultados"
+                        role="status"
+                        className="text-xs text-muted-foreground"
+                      >
+                        {filteredStudents.length} de {alunos.length} alunos
+                      </p>
+                    </div>
+                  ) : null}
+                  {filteredStudents.length ? (
+                    <div className="rounded-lg border border-border bg-card">
+                      {visibleStudents.map((aluno) => (
+                        <div
+                          key={aluno.id}
+                          className="flex min-w-0 items-center gap-1 border-b border-border last:border-b-0 hover:bg-secondary/40"
+                        >
+                          {aluno.student_id && canOpenStudentProfile ? (
+                            <Link
+                              to="/alunos/$studentId"
+                              params={{ studentId: aluno.student_id }}
+                              className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-xs focus-visible:outline-2"
+                            >
+                              <span className="min-w-0 truncate font-medium text-foreground">
+                                {aluno.student_name}
+                              </span>
+                              <span className="shrink-0 text-muted-foreground">
+                                {aluno.registration_number || "—"}
+                              </span>
+                            </Link>
+                          ) : (
+                            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-xs">
+                              <span className="truncate font-medium">{aluno.student_name}</span>
+                              <span className="text-muted-foreground">
+                                {aluno.registration_number || "—"}
+                              </span>
+                            </div>
+                          )}
+                          {aluno.student_id && canOpenStudentProfile ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="mr-1 shrink-0"
+                                  aria-label={`Acções de ${aluno.student_name}`}
+                                >
+                                  <MoreHorizontal className="size-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuLabel className="truncate">
+                                  {aluno.student_name}
+                                </DropdownMenuLabel>
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    to="/alunos/$studentId"
+                                    params={{ studentId: aluno.student_id }}
+                                  >
+                                    <Users className="size-4" /> Ver ficha do aluno
+                                  </Link>
+                                </DropdownMenuItem>
+                                {canReadStudentSection(
+                                  "academico",
+                                  account.role,
+                                  account.grants,
+                                ) ? (
+                                  <DropdownMenuItem asChild>
+                                    <Link
+                                      to="/alunos/$studentId"
+                                      params={{ studentId: aluno.student_id }}
+                                      search={{ secao: "academico" }}
+                                    >
+                                      <GraduationCap className="size-4" /> Dados académicos
+                                    </Link>
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {canReadStudentSection(
+                                  "financeiro",
+                                  account.role,
+                                  account.grants,
+                                ) ? (
+                                  <DropdownMenuItem asChild>
+                                    <Link
+                                      to="/alunos/$studentId"
+                                      params={{ studentId: aluno.student_id }}
+                                      search={{ secao: "financeiro" }}
+                                    >
+                                      <BookOpen className="size-4" /> Propinas e finanças
+                                    </Link>
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {canReadStudentSection(
+                                  "documentos",
+                                  account.role,
+                                  account.grants,
+                                ) ? (
+                                  <DropdownMenuItem asChild>
+                                    <Link
+                                      to="/alunos/$studentId"
+                                      params={{ studentId: aluno.student_id }}
+                                      search={{ secao: "documentos" }}
+                                    >
+                                      <BookOpen className="size-4" /> Documentos do aluno
+                                    </Link>
+                                  </DropdownMenuItem>
+                                ) : null}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                      {alunos.length
+                        ? "Nenhum aluno corresponde à pesquisa nesta turma."
+                        : "Nenhum aluno matriculado nesta turma ainda."}
+                      {alunos.length > 0 ? (
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="mt-2 block w-full"
+                          onClick={() => setStudentSearch({ classId: turmaId, value: "" })}
+                        >
+                          Limpar pesquisa
+                        </Button>
+                      ) : null}
+                    </div>
+                  )}
+                  {filteredStudents.length > 10 ? (
                     <Button
                       type="button"
-                      variant="link"
-                      className="mt-2 block w-full"
-                      onClick={() => setStudentSearch({ classId: turmaId, value: "" })}
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2 w-full gap-1.5"
+                      aria-expanded={expanded.alunos}
+                      onClick={() => toggleList("alunos")}
                     >
-                      Limpar pesquisa
+                      {expanded.alunos ? (
+                        <ChevronUp className="size-4" />
+                      ) : (
+                        <ChevronDown className="size-4" />
+                      )}
+                      {expanded.alunos
+                        ? "Mostrar menos"
+                        : `Mostrar todos os ${filteredStudents.length} alunos`}
                     </Button>
                   ) : null}
                 </div>
-              )}
-            </div>
-          </section>
+              </section>
 
-          <section
-            id={sectionId("disciplinas")}
-            aria-labelledby={`${sectionId("disciplinas")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
-          >
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={BookOpen} size="sm" label="Professores e disciplinas" />
-              <h2
-                id={`${sectionId("disciplinas")}-titulo`}
-                tabIndex={-1}
-                className="font-display text-base font-bold"
+              <section
+                id={sectionId("horario")}
+                aria-labelledby={`${sectionId("horario")}-titulo`}
+                className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
               >
-                Professores &amp; Disciplinas ({disciplinas.length})
-              </h2>
-            </div>
-            <div className="mt-4">
-              {disciplinas.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {disciplinas.map((row) => (
-                    <div
-                      key={`${row.subject_id}-${row.teacher_id ?? "sem-professor"}`}
-                      className="flex items-center justify-between gap-2 p-3 text-xs"
-                    >
-                      <span className="font-medium text-foreground">{row.subject_name}</span>
-                      <span className={row.teacher_name ? "text-muted-foreground" : "text-warning"}>
-                        {row.teacher_name || "Sem professor atribuído"}
-                      </span>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2.5">
+                  <IconChip icon={Calendar} size="sm" label="Horário" />
+                  <h2
+                    id={`${sectionId("horario")}-titulo`}
+                    tabIndex={-1}
+                    className="font-display text-base font-bold"
+                  >
+                    Horário ({horario.length})
+                  </h2>
                 </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Nenhuma disciplina associada a esta turma ainda.
-                </p>
-              )}
+                {availableDays.length > 1 ? (
+                  <div className="mt-3 max-w-56">
+                    <Select
+                      value={String(selectedDay)}
+                      onValueChange={(value) => {
+                        setScheduleDayFilter({
+                          classId: turmaId,
+                          day: value === "todos" ? "todos" : Number(value),
+                        });
+                        setExpandedLists((current) => ({
+                          ...(current.classId === turmaId
+                            ? current
+                            : {
+                                classId: turmaId,
+                                alunos: false,
+                                horario: false,
+                                avaliacoes: false,
+                              }),
+                          horario: false,
+                        }));
+                      }}
+                    >
+                      <SelectTrigger aria-label="Filtrar horário por dia" className="h-10">
+                        <SelectValue placeholder="Todos os dias" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos os dias</SelectItem>
+                        {availableDays.map((day) => (
+                          <SelectItem key={day} value={String(day)}>
+                            {weekdayLabels[day]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+                <div className="mt-3">
+                  {horario.length ? (
+                    <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                      {visibleSchedule.map((slot) => (
+                        <div
+                          key={slot.id}
+                          className="flex items-center justify-between gap-2 p-3 text-xs"
+                        >
+                          <span className="font-medium text-foreground">
+                            {weekdayLabels[slot.weekday] ?? slot.weekday}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {slot.starts_at}–{slot.ends_at} ·{" "}
+                            {slot.subject_name || slot.label || "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                      Sem horário definido para esta turma.
+                    </p>
+                  )}
+                  {scheduleSelection.total > 8 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2 w-full gap-1.5"
+                      aria-expanded={expanded.horario}
+                      onClick={() => toggleList("horario")}
+                    >
+                      {expanded.horario ? (
+                        <ChevronUp className="size-4" />
+                      ) : (
+                        <ChevronDown className="size-4" />
+                      )}
+                      {expanded.horario
+                        ? "Mostrar menos"
+                        : `Ver todos os ${scheduleSelection.total} tempos`}
+                    </Button>
+                  ) : null}
+                  {horario.length ? (
+                    <p role="status" className="mt-2 text-xs text-muted-foreground">
+                      {visibleSchedule.length} de {scheduleSelection.total} tempos no filtro
+                    </p>
+                  ) : null}
+                </div>
+              </section>
             </div>
-          </section>
+            <div className="min-w-0 space-y-4">
+              <section
+                id={sectionId("disciplinas")}
+                aria-labelledby={`${sectionId("disciplinas")}-titulo`}
+                className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
+              >
+                <div className="flex items-center gap-2.5">
+                  <IconChip icon={BookOpen} size="sm" label="Professores e disciplinas" />
+                  <h2
+                    id={`${sectionId("disciplinas")}-titulo`}
+                    tabIndex={-1}
+                    className="font-display text-base font-bold"
+                  >
+                    Professores &amp; Disciplinas ({disciplinas.length})
+                  </h2>
+                </div>
+                <div className="mt-4">
+                  {disciplinas.length ? (
+                    <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                      {disciplinas.map((row) => (
+                        <div
+                          key={`${row.subject_id}-${row.teacher_id ?? "sem-professor"}`}
+                          className="flex items-center justify-between gap-2 p-3 text-xs"
+                        >
+                          <Link
+                            to="/pedagogica"
+                            search={{ tab: "notas", turma: turma.id, disciplina: row.subject_id }}
+                            className="min-w-0 font-medium text-foreground hover:text-primary hover:underline"
+                          >
+                            {row.subject_name}
+                          </Link>
+                          {row.teacher_id && row.teacher_name ? (
+                            <Link
+                              to="/professores/$teacherId"
+                              params={{ teacherId: row.teacher_id }}
+                              className="min-w-0 truncate text-right text-muted-foreground hover:text-primary hover:underline"
+                            >
+                              {row.teacher_name}
+                            </Link>
+                          ) : (
+                            <span className="text-warning">Sem professor atribuído</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                      Nenhuma disciplina associada a esta turma ainda.
+                    </p>
+                  )}
+                </div>
+              </section>
 
-          <section
-            id={sectionId("horario")}
-            aria-labelledby={`${sectionId("horario")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
-          >
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={Calendar} size="sm" label="Horário" />
-              <h2
-                id={`${sectionId("horario")}-titulo`}
-                tabIndex={-1}
-                className="font-display text-base font-bold"
+              <section
+                id={sectionId("avaliacoes")}
+                aria-labelledby={`${sectionId("avaliacoes")}-titulo`}
+                className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
               >
-                Horário ({horario.length})
-              </h2>
-            </div>
-            <div className="mt-4">
-              {horario.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {horario.map((slot) => (
-                    <div
-                      key={slot.id}
-                      className="flex items-center justify-between gap-2 p-3 text-xs"
-                    >
-                      <span className="font-medium text-foreground">
-                        {weekdayLabels[slot.weekday] ?? slot.weekday}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {slot.starts_at}–{slot.ends_at} · {slot.subject_name || slot.label || "—"}
-                      </span>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2.5">
+                  <IconChip icon={GraduationCap} size="sm" label="Avaliações" />
+                  <h2
+                    id={`${sectionId("avaliacoes")}-titulo`}
+                    tabIndex={-1}
+                    className="font-display text-base font-bold"
+                  >
+                    Avaliações
+                  </h2>
                 </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Sem horário definido para esta turma.
-                </p>
-              )}
-            </div>
-          </section>
-
-          <section
-            id={sectionId("avaliacoes")}
-            aria-labelledby={`${sectionId("avaliacoes")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
-          >
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={GraduationCap} size="sm" label="Avaliações" />
-              <h2
-                id={`${sectionId("avaliacoes")}-titulo`}
-                tabIndex={-1}
-                className="font-display text-base font-bold"
-              >
-                Avaliações
-              </h2>
-            </div>
-            <div className="mt-4">
-              {avaliacoes.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {avaliacoes.map((grade) => (
-                    <div
-                      key={grade.id}
-                      className="flex items-center justify-between gap-2 p-3 text-xs"
-                    >
-                      <span className="min-w-0 truncate font-medium text-foreground">
-                        {grade.student_name} · {grade.term}º trimestre
-                      </span>
-                      <span className="shrink-0 tabular-nums text-muted-foreground">
-                        Média: {grade.average?.toFixed(1) ?? "—"}
-                      </span>
+                <div className="mt-4">
+                  {avaliacoes.length ? (
+                    <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                      {visibleGrades.map((grade) => (
+                        <div
+                          key={grade.id}
+                          className="flex items-center justify-between gap-2 p-3 text-xs"
+                        >
+                          <span className="min-w-0 truncate font-medium text-foreground">
+                            {grade.student_name} · {grade.term}º trimestre
+                          </span>
+                          <span className="shrink-0 tabular-nums text-muted-foreground">
+                            Média: {grade.average?.toFixed(1) ?? "—"}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                      Ainda sem avaliações lançadas para os alunos desta turma.
+                    </p>
+                  )}
+                  {avaliacoes.length > 8 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2 w-full gap-1.5"
+                      aria-expanded={expanded.avaliacoes}
+                      onClick={() => toggleList("avaliacoes")}
+                    >
+                      {expanded.avaliacoes ? (
+                        <ChevronUp className="size-4" />
+                      ) : (
+                        <ChevronDown className="size-4" />
+                      )}
+                      {expanded.avaliacoes
+                        ? "Mostrar menos"
+                        : `Ver todas as ${avaliacoes.length} avaliações`}
+                    </Button>
+                  ) : null}
                 </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Ainda sem avaliações lançadas para os alunos desta turma.
-                </p>
-              )}
+              </section>
             </div>
-          </section>
+          </div>
           {account.role === "Professor" ? (
             <TurmaTeacherContextPanel classGroupId={turma.id} weeklySlots={horario.length} />
           ) : null}
