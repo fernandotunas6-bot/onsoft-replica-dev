@@ -87,6 +87,42 @@ jobs:
           done
           exit $missing
 
+      # O token pode existir e não servir (revogado, colado com espaços, Global API Key
+      # em vez de API Token): a 29–30/10 o deploy falhou três vezes com «Invalid access
+      # token» só dito pelo wrangler, a meio da publicação. Pergunta-se à Cloudflare logo
+      # aqui e diz-se porquê. Mostra só o tipo, o comprimento e o estado; nunca o valor.
+      - name: Confirmar o token da Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          token="$CLOUDFLARE_API_TOKEN"
+          where="Settings → Environments → production → CLOUDFLARE_API_TOKEN"
+          if [ "$token" != "$(printf '%s' "$token" | tr -d '[:space:]')" ]; then
+            echo "::error::O token tem espaços ou quebras de linha. Volte a colá-lo em $where."
+            exit 1
+          fi
+          case "$token" in
+            cfut_*) kind="API Token de utilizador (cfut_)"; verify="user/tokens/verify" ;;
+            cfat_*) kind="API Token de conta (cfat_)"; verify="accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify" ;;
+            cfk_*) echo "::error::Está guardada a Global API Key (cfk_), que o wrangler não usa. Crie um API Token e guarde-o em $where."; exit 1 ;;
+            *) kind="API Token sem prefixo"; verify="user/tokens/verify" ;;
+          esac
+          echo "Token guardado: $kind, ${#token} caracteres."
+          body="$(curl -sS --max-time 20 -H "Authorization: Bearer $token" "https://api.cloudflare.com/client/v4/$verify" || true)"
+          status="$(printf '%s' "$body" | jq -r '.result.status // empty' 2>/dev/null || true)"
+          errors="$(printf '%s' "$body" | jq -r '[.errors[]? | "\(.code) \(.message)"] | join("; ")' 2>/dev/null || true)"
+          if [ "$status" != "active" ]; then
+            echo "::error::A Cloudflare não aceita este token (estado: ${status:-desconhecido}; ${errors:-sem resposta}). Crie um token novo em Cloudflare → My Profile → API Tokens e guarde-o em $where."
+            exit 1
+          fi
+          account="$(curl -sS --max-time 20 -H "Authorization: Bearer $token" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID" | jq -r '.success' 2>/dev/null || true)"
+          if [ "$account" != "true" ]; then
+            echo "::error::O token está activo mas não tem acesso à conta CLOUDFLARE_ACCOUNT_ID. Em Account Resources do token, escolha a conta do SIGA."
+            exit 1
+          fi
+          echo "Token activo e com acesso à conta."
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
