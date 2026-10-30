@@ -89,8 +89,8 @@ export function ReceiptRegisterPanel() {
         rows.push(...result.rows);
         setExportProgress(rows.length);
       }
-      if (rows.length !== initialTotal) {
-        throw new Error("A exportação ficou incompleta; nenhum ficheiro foi criado.");
+      if (rows.length !== initialTotal || new Set(rows.map((row) => row.id)).size !== rows.length) {
+        throw new Error("A lista de recibos mudou durante a exportação. Actualize e repita sem gerar um ficheiro incompleto.");
       }
       await downloadReceiptWorkbook(rows, {
         schoolName: school?.name ?? "Escola",
