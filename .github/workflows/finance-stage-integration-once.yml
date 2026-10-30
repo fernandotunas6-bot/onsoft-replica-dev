@@ -1,0 +1,54 @@
+name: Finance staged integration validation (one-time)
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/finance-stage-integration-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  candidate:
+    if: github.event.pull_request.number == 424 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: integration/finance-ledger-receipts-20261030
+          fetch-depth: 0
+      - name: Merge finance branch into isolated candidate (fail closed on unexpected conflicts)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin feat/finance-excel-receipts-20261030
+          git merge --no-commit --no-ff origin/feat/finance-excel-receipts-20261030 || true
+          python3 scripts/qa/resolve-finance-merge-once.py
+          git diff --name-only --diff-filter=U | grep . && { echo "Unresolved conflict"; exit 1; } || true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install exact dependency lock
+        run: bun install --frozen-lockfile
+      - name: Reformat conflict resolutions
+        run: |
+          bunx prettier --write src/features/finance/server.ts src/features/finance/schemas.ts tests/finance/tuition-batch.test.ts tests/security/rls-client-migration.test.ts
+          git diff --check
+      - name: Verify lint
+        run: bun run lint
+      - name: Verify TypeScript
+        run: bun run typecheck
+      - name: Verify build
+        run: bun run build
+      - name: Verify finance and tenant regression tests
+        run: |
+          bun run test tests/finance/tuition-batch.test.ts tests/finance/student-ledger-panel.test.tsx tests/finance/student-ledger-server.test.ts tests/finance/student-ledger.test.ts tests/finance/student-ledger-excel.test.ts tests/finance/receipt-register-excel.test.ts tests/finance/receipt-register-filter.test.ts tests/security/rls-client-migration.test.ts
+      - name: Commit only to isolated integration branch
+        run: |
+          git rm -f --ignore-unmatch .github/workflows/finance-main-merge-audit.yml .github/workflows/finance-stage-integration-once.yml scripts/qa/resolve-finance-merge-once.py
+          git add -A
+          git diff --cached --check
+          git commit -m "integration(finance): reconcile student ledger and receipts with current main"
+          git push origin HEAD:integration/finance-ledger-receipts-20261030
