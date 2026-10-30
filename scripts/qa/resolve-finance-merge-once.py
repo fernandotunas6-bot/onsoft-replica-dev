@@ -117,14 +117,14 @@ server = once(server,
 server = once(server,
     '''    if (studentIds.length > TUITION_BATCH_LIMIT) {
       throw new Error(
-        \`O lote excede \${TUITION_BATCH_LIMIT} alunos. Divida a selecção em lotes menores.\`,
+        `O lote excede ${TUITION_BATCH_LIMIT} alunos. Divida a selecção em lotes menores.`,
       );
     }
 
     const result: TuitionBatchResult''',
     '''    if (studentIds.length > TUITION_BATCH_LIMIT) {
       throw new Error(
-        \`O lote excede \${TUITION_BATCH_LIMIT} alunos. Divida a selecção em lotes menores.\`,
+        `O lote excede ${TUITION_BATCH_LIMIT} alunos. Divida a selecção em lotes menores.`,
       );
     }
     if (selectedIds) {
