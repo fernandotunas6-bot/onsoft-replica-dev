@@ -476,14 +476,10 @@ function FaturasPage() {
             )}
           />
         ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              void downloadReceipt(f, `RC-${f.numero.replace(/^FT-?/i, "")}`, f.recebido || f.valor)
-            }
-          >
-            <FileDown className="size-3.5" /> Recibo
+          <Button size="sm" variant="outline" asChild>
+            <Link to="/faturas/$invoiceId" params={{ invoiceId: f.id }}>
+              <FileDown className="size-3.5" /> Ver recibos
+            </Link>
           </Button>
         )}
         {resendInvoices ? (
