@@ -1,0 +1,58 @@
+{
+  "medido_em": "2026-10-30",
+  "fonte": "src/styles.css:253-265 (html font-size em percentagem do 16px do browser)",
+  "nota": "valores em px com a predefinicao de 16px do browser; escalam se o utilizador alterar a predefinicao",
+  "raizes": [
+    {
+      "largura": "<1024px",
+      "raiz_pct": 75,
+      "raiz_px": 12
+    },
+    {
+      "largura": "1024-1535px",
+      "raiz_pct": 68.75,
+      "raiz_px": 11
+    },
+    {
+      "largura": ">=1536px",
+      "raiz_pct": 71.875,
+      "raiz_px": 11.5
+    }
+  ],
+  "escala_rem": {
+    "text-xs": 0.75,
+    "text-sm": 0.875,
+    "text-base": 1,
+    "text-lg": 1.125
+  },
+  "render_px": [
+    {
+      "largura": "<1024px",
+      "raiz_px": 12,
+      "text-xs": 9,
+      "text-sm": 10.5,
+      "text-base": 12,
+      "text-lg": 13.5
+    },
+    {
+      "largura": "1024-1535px",
+      "raiz_px": 11,
+      "text-xs": 8.25,
+      "text-sm": 9.63,
+      "text-base": 11,
+      "text-lg": 12.38
+    },
+    {
+      "largura": ">=1536px",
+      "raiz_px": 11.5,
+      "text-xs": 8.63,
+      "text-sm": 10.06,
+      "text-base": 11.5,
+      "text-lg": 12.94
+    }
+  ],
+  "consumidores_notaveis": {
+    "badge.tsx:7": "text-xs font-semibold",
+    "input.tsx:15": "text-[16px] lg:text-sm"
+  }
+}
