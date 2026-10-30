@@ -108,6 +108,7 @@ function Ledger({
   ];
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const selectedRows = filtered.filter((row) => selectedSet.has(row.studentId));
+  const reportRows = selectedRows.length > 0 ? selectedRows : filtered;
   const allFilteredSelected = filtered.length > 0 && selectedRows.length === filtered.length;
   const selectedClass = selectedRows[0]?.classGroupId;
   const canIssue =
@@ -237,7 +238,7 @@ function Ledger({
             <Button
               variant="outline"
               size="sm"
-              disabled={!filtered.length}
+              disabled={!reportRows.length || query.isFetching}
               onClick={() =>
                 exportCsv(
                   "situacao-financeira-alunos",
@@ -254,11 +255,13 @@ function Ledger({
                     { label: "Vencida (Kz)", value: (r: Row) => r.overdue },
                     { label: "Situação", value: (r: Row) => studentBalanceState(r).label },
                   ],
-                  filtered,
+                  reportRows,
                 )
               }
             >
-              Exportar lista CSV
+              {selectedRows.length
+                ? `CSV seleccionados (${selectedRows.length})`
+                : "Exportar CSV filtrados"}
             </Button>
             <Button
               variant="outline"
@@ -266,7 +269,7 @@ function Ledger({
               disabled={!filtered.length || query.isFetching || exportingExcel}
               onClick={() => {
                 setExportingExcel(true);
-                void exportStudentLedgerExcel(selectedRows.length ? selectedRows : filtered, {
+                void exportStudentLedgerExcel(reportRows, {
                   schoolName,
                   academicYear: yearLabel,
                   checkedOn: schoolTodayIso(),
@@ -391,7 +394,7 @@ function Ledger({
             />
           </div>
           <p className="px-3 pb-3 text-xs text-muted-foreground">
-            Pode seleccionar até 5 000 alunos para relatórios, inclusive entre páginas. Para emitir
+            Pode seleccionar até 5 000 alunos para relatórios CSV/Excel, inclusive entre páginas. Para emitir
             propinas, escolha no máximo 60 alunos activos da mesma turma. A exportação de cobranças
             inclui apenas os seleccionados com dívida e não envia mensagens. Para receber, abra as
             facturas do aluno. Sem facturas não significa pago.
