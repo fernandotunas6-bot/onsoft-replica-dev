@@ -726,7 +726,7 @@ sem `<Outlet />`.
 | ------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1 — auditoria integral          | parcial     | Branch/HEAD/estado inicial limpos, arquitectura e handoff lidos; 18 módulos/186 ficheiros do inventário verificados. Falta auditoria runtime completa de todos os módulos.                                                                                                  |
 | 2.1 — superfícies               | parcial     | Definições em página, coluna menor; PremiumModal mais discreto; rever cartões, bordas, sombras, composição e alinhamentos em cada módulo.                                                                                                                                   |
-| 2.2 — tipografia/nitidez        | parcial     | **Medido em 30/10/2026:** 78 pares de contraste, 16 falhas, 10 corrigidas; restam 6 isenções com razão escrita (bordas decorativas). Raiz tipográfica do portátil alinhada com a do monitor por decisão do proprietário. Regressão em `tests/ui/theme-token-contrast.test.ts`. Faltam imagens, nitidez de SVG, pesos e hierarquia página a página. [Relatório](VISUAL_2026-10-30_FASE_2-2.md). |
+| 2.2 — tipografia/nitidez        | parcial     | **Medido em 30/10/2026:** 78 pares de contraste, 16 falhas, 10 corrigidas; restam 6 isenções com razão escrita (bordas decorativas). Raiz do portátil alinhada com a do monitor por decisão do proprietário — **sem efeito no texto**: a escala tem piso em px (`max(11px, 0.75rem)`), pelo que `text-xs` mede 11px e não 8,25px; medição corrigida em 30/10. Regressão em `tests/ui/theme-token-contrast.test.ts`. Faltam imagens, nitidez de SVG, pesos e hierarquia página a página. [Relatório](VISUAL_2026-10-30_FASE_2-2.md). |
 | 2.3 — componentes universais    | parcial     | Modais refinados. **Alvo de toque e foco medidos em 30/10/2026:** 3 controlos falhavam a SC 2.5.8 (caixa de verificação e rádio a 12px, interruptor a 15px) e foram corrigidos com área de toque em pseudo-elemento, sem mudar tamanho visual; geometria verificada no browser. Divergência campo/selector no desktop por decidir. Regressão em `tests/ui/target-size-contract.test.ts`. Faltam listas, filtros, notificações, estados e dashboards. [Relatório](VISUAL_2026-10-30_FASE_2-3.md). |
 | 3 — navegação contextual        | parcial     | Menu compacto, sem expansão automática; preferências institucionais; guardas de acesso mantidas. Falta validar todos os contextos, cabeçalhos, escola activa, rotas e teclado virtual.                                                                                      |
 | 4.1 — interacções               | parcial     | Pendência local e bloqueio de envios em três formulários; faltam estados, skeletons, scroll, cache de filtros e feedback dos outros consumidores.                                                                                                                           |
@@ -995,12 +995,16 @@ componentes, layout, rotas, dados nem permissões: só nove valores de token em
   `border-input` está em 71 ficheiros, pelo que a mudança atravessa todos os
   formulários: foi a escolha explícita. `--input` deixa de ser igual a
   `--border`, que fica subtil como estava.
-- **Decidido e aplicado:** a raiz tipográfica de 1024–1535px subiu de 68,75%
-  para os 71,875% que já vigoravam acima de 1536px, unificando as duas consultas
-  numa só. O portátil deixa de ser a largura mais apertada das três: 11px → 11,5px,
-  +4,5% de texto, sem tocar no telemóvel nem no monitor. Não torna o `text-xs`
-  confortável (8,25px → 8,63px); subir os consumidores de `text-xs` para
-  `text-sm` continua disponível e não foi escolhido.
+- **Decidido e aplicado, com a medição depois corrigida:** a raiz tipográfica de
+  1024–1535px subiu de 68,75% para os 71,875% que já vigoravam acima de 1536px,
+  unificando as duas consultas numa só. **Correcção de 30/10:** esta alteração
+  **não mexeu em nenhum tamanho de letra**. O tema trava a escala de texto com
+  piso em píxeis (`--text-xs: max(11px, 0.75rem)` e irmãos), pelo que o `text-xs`
+  mede 11px e não os 8,25px que foram reportados — esse valor era a aritmética do
+  `rem` sem contar o `max()`. O que subiu ~4,5% foram os espaçamentos e as caixas
+  declaradas em `rem`. A alteração é inócua e ficou. Subir os consumidores de
+  `text-xs` a `text-sm` move-os de 11px para 12px, um píxel, e continua
+  disponível.
 - **Prova:** `evidence/2026-10-30/contrast-tokens.json` (76 pares, antes e
   depois) e `evidence/2026-10-30/typography-scale.json`. Teste verificado a
   falhar com os valores antigos antes de se dar por bom.
@@ -1032,11 +1036,14 @@ nem permissões.
   projecto com `document.elementFromPoint`: acerta a 11px fora da caixa visual,
   falha a 14px. A medição apanhou um defeito na primeira tentativa, em que
   `before:w-full` deixava o interruptor a 23px por causa das bordas de 2px.
-- **Por decidir:** no desktop o campo de texto tem 25,9px (`lg:h-9`) e o
-  selector 44px (sem override), 18px de diferença entre dois campos adjacentes.
-  Alinhar pelo campo preserva a densidade e reduz o alvo do selector; alinhar
-  pelo selector respeita os 44px do contrato e aumenta a densidade. As duas
-  instruções são do proprietário, pelo que a escolha é dele.
+- **Decidido pelo proprietário e aplicado:** o selector alinha pelo campo de
+  texto. Divergiam em quatro propriedades, não numa — altura, espaçamento, letra
+  e altura da linha — e só a altura teria cortado o texto, porque 14px com
+  `leading-[20px]` e `py-2` somam 34px e não cabem em 25,9px. Aplicado
+  `lg:h-9 lg:py-1 lg:text-sm lg:leading-5` e medido no browser: ambos a 25,88px,
+  12px de letra, sem corte; abaixo do `lg` ambos continuam a 44px. Custo
+  explícito: a letra do selector desce de 14px para 12px e o seu alvo de 44px
+  para 25,9px, acima do mínimo AA por 1,9px.
 - **Foco visível, medido:** o `select` usa `focus:` em vez de `focus-visible:`
   (anel também ao rato). Menus e paleta de comandos indicam o foco por cor de
   texto: o realce de fundo mede 1,16:1 no claro e 1,26:1 no escuro, não
