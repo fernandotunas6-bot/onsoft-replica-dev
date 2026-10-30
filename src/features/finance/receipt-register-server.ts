@@ -225,9 +225,9 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
         const person = personById.get(student?.person_id ?? "");
         return {
           id: receipt.id,
-          invoiceId: invoice?.id ?? receipt.invoice_id,
+          invoiceId: invoice?.id ?? receipt.invoice_id ?? "",
           invoiceNumber: invoice?.invoice_number ?? "",
-          receiptNumber: receipt.receipt_number,
+          receiptNumber: receipt.receipt_number ?? "Sem número",
           amount: Number(receipt.amount ?? 0),
           paidOn: receipt.paid_on ?? "",
           method: receipt.payment_method ?? "",
