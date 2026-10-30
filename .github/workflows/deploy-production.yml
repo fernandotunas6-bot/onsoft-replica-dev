@@ -66,8 +66,14 @@ jobs:
     name: Publicar na Cloudflare
     needs: verify
     runs-on: ubuntu-latest
+    # Qual o ambiente GitHub de onde saem os segredos. Por omissão `production`,
+    # como sempre foi. A variável do repositório `DEPLOY_ENVIRONMENT` permite
+    # apontar para outro sem mexer neste ficheiro — foi preciso a 30/10, quando o
+    # `production` ficou sem um único segredo (a publicação falhou 4 vezes) e as
+    # credenciais válidas estavam noutro ambiente. Apagar a variável em
+    # Settings → Secrets and variables → Actions → Variables devolve o `production`.
     environment:
-      name: production
+      name: ${{ vars.DEPLOY_ENVIRONMENT || 'production' }}
       url: https://portal-siga.com
     timeout-minutes: 45
     steps:
@@ -77,10 +83,10 @@ jobs:
       # nunca valores. URL e chave publicável são públicas (as mesmas por omissão
       # de src/integrations/supabase/client.ts); a chave de serviço aceita a
       # SUPABASE_SECRET_KEY, que o servidor já prefere (client.server.ts).
-      - name: Confirmar segredos obrigatórios do ambiente production
+      - name: Confirmar segredos obrigatórios do ambiente de publicação
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.ID || vars.CLOUDFLARE_ACCOUNT_ID }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || secrets.SUPABASE_URL || 'https://xodgfmxiaunpamctfeea.supabase.co' }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SECRET_KEY }}
@@ -88,7 +94,7 @@ jobs:
           missing=0
           for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY; do
             if [ -z "${!name}" ]; then
-              echo "::error::Falta o segredo $name no ambiente GitHub 'production' (Settings → Environments → production)."
+              echo "::error::Falta o segredo $name no ambiente GitHub '${{ vars.DEPLOY_ENVIRONMENT || 'production' }}' (Settings → Environments)."
               missing=1
             fi
           done
@@ -101,10 +107,10 @@ jobs:
       - name: Confirmar o token da Cloudflare
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.ID || vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           token="$CLOUDFLARE_API_TOKEN"
-          where="Settings → Environments → production → CLOUDFLARE_API_TOKEN"
+          where="Settings → Environments → ${{ vars.DEPLOY_ENVIRONMENT || 'production' }} → CLOUDFLARE_API_TOKEN"
           if [ "$token" != "$(printf '%s' "$token" | tr -d '[:space:]')" ]; then
             echo "::error::O token tem espaços ou quebras de linha. Volte a colá-lo em $where."
             exit 1
@@ -154,7 +160,7 @@ jobs:
           # Push para a main publica tudo; o «Run workflow» pode escolher apps.
           SIGA_DEPLOY_APPS: ${{ inputs.apps || 'all' }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.ID || vars.CLOUDFLARE_ACCOUNT_ID }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || secrets.SUPABASE_URL || 'https://xodgfmxiaunpamctfeea.supabase.co' }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SECRET_KEY }}
