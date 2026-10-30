@@ -116,7 +116,8 @@ const PARES: Array<[string, string, number, string]> = [
   ["--chart-3", "--card", 3, "série 3 do gráfico"],
   ["--chart-4", "--card", 3, "série 4 do gráfico"],
   ["--chart-5", "--card", 3, "série 5 do gráfico"],
-  ["--input", "--background", 3, "contorno de campo de formulário"],
+  ["--input", "--background", 3, "contorno de campo sobre a página"],
+  ["--input", "--card", 3, "contorno de campo sobre cartão"],
   ["--border", "--background", 3, "borda sobre a página"],
   ["--border", "--card", 3, "borda sobre cartão"],
   ["--sidebar-border", "--sidebar", 3, "separador da sidebar"],
@@ -134,12 +135,6 @@ const PARES_ISENTOS: Record<string, string> = {
     "idem — borda subtil de cartão exigida pelo contrato («bordas finas e separadores subtis»).",
   "--sidebar-border/--sidebar":
     "idem — separador interno da sidebar, não delimita componente accionável.",
-  "--input/--background":
-    "FALHA RECONHECIDA, aguarda decisão do proprietário: o campo usa bg-card " +
-    "sobre --background (1,04:1), pelo que o contorno é o único identificador " +
-    "e 1.4.11 exige 3:1. Corrigi-lo custa ΔL -26% em --input (contorno cinzento " +
-    "médio em todos os formulários) ou um fundo de campo distinto. Medição em " +
-    "docs/design/evidence/2026-10-30/.",
 };
 
 describe("contraste dos tokens de tema", () => {
