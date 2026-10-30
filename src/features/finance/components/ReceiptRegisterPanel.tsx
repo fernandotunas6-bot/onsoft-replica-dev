@@ -21,7 +21,7 @@ import { buildFinancePrintSchool } from "@/lib/finance-print";
 import { exportCsv } from "@/lib/export-csv";
 import { kwanza } from "@/lib/currency";
 import { toast } from "@/lib/toast";
-import { listReceiptRegister } from "../receipt-register-server";
+import { getReceiptPrintState, listReceiptRegister } from "../receipt-register-server";
 import { AccountantExportDialog } from "./AccountantExportDialog";
 import { downloadReceiptWorkbook, type ExportReceiptRow } from "../receipt-register-excel";
 import { schoolTodayIso } from "@/lib/school-date";
@@ -159,43 +159,57 @@ export function ReceiptRegisterPanel() {
     if (printing) return;
     setPrinting(receipt.id);
     try {
+      const live = await getReceiptPrintState({ data: { receiptId: receipt.id } });
+      if (live.invoiceId !== receipt.invoiceId) {
+        throw new Error("O vínculo da fatura mudou. Actualize a pesquisa antes de imprimir.");
+      }
+      if (
+        live.status !== receipt.status ||
+        live.amount !== receipt.amount ||
+        live.receiptNumber !== receipt.receiptNumber
+      ) {
+        await queryClient.invalidateQueries({ queryKey: ["finance", "receipt-register"] });
+      }
+      // A reimpressão usa o valor e estado actuais do servidor, nunca os da cache.
+      const confirmed = { ...receipt, ...live };
       await issuePrintDocument({
         tipo: "Recibo de pagamento",
+        amountLabel: kwanza(confirmed.amount),
         school: printSchool,
         student: {
-          fullName: receipt.studentName,
-          academicNumber: receipt.studentNumber || "—",
-          documentTitle: receipt.receiptNumber,
+          fullName: confirmed.studentName,
+          academicNumber: confirmed.studentNumber || "—",
+          documentTitle: confirmed.receiptNumber,
           validationCode: stableDocumentCode("recibo", receipt.id),
         },
         overlay: overlayServico({
           name: "Recibo de pagamento",
-          reference: receipt.receiptNumber,
-          status: receipt.status === "reversed" ? "Anulado" : "Emitido",
+          reference: confirmed.receiptNumber,
+          status: confirmed.status === "reversed" ? "Anulado" : "Emitido",
           parties: [
             { label: "Escola", value: school?.name ?? "Escola" },
-            { label: "Aluno", value: receipt.studentName },
-            { label: "Processo", value: receipt.studentNumber || "—" },
+            { label: "Aluno", value: confirmed.studentName },
+            { label: "Processo", value: confirmed.studentNumber || "—" },
           ],
           sections: [{
             title: "Liquidação",
             rows: [
               { label: "Fatura", value: receipt.invoiceNumber },
-              { label: "Recibo", value: receipt.receiptNumber },
-              { label: "Valor", value: kwanza(receipt.amount) },
-              { label: "Data", value: receipt.paidOn.slice(0, 10) || "—" },
-              { label: "Método", value: paymentMethodLabel(receipt.method) },
-              ...(receipt.reversalReason
-                ? [{ label: "Motivo da anulação", value: receipt.reversalReason }]
+              { label: "Recibo", value: confirmed.receiptNumber },
+              { label: "Valor", value: kwanza(confirmed.amount) },
+              { label: "Data", value: confirmed.paidOn.slice(0, 10) || "—" },
+              { label: "Método", value: paymentMethodLabel(confirmed.method) },
+              ...(confirmed.reversalReason
+                ? [{ label: "Motivo da anulação", value: confirmed.reversalReason }]
                 : []),
             ],
           }],
-          term: receipt.status === "reversed" ? "Recibo anulado — não comprova liquidação." : officialReceiptBody({
+          term: confirmed.status === "reversed" ? "Recibo anulado — não comprova liquidação." : officialReceiptBody({
             schoolName: school?.name ?? "Escola",
-            studentName: receipt.studentName,
+            studentName: confirmed.studentName,
             invoiceNumber: receipt.invoiceNumber,
-            receiptNumber: receipt.receiptNumber,
-            amountLabel: kwanza(receipt.amount),
+            receiptNumber: confirmed.receiptNumber,
+            amountLabel: kwanza(confirmed.amount),
           }),
         }),
       });
