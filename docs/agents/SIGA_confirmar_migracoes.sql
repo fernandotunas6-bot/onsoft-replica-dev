@@ -171,6 +171,10 @@ from (values
      to_regclass('public.class_subject_teacher_periods') is not null
      and exists (select 1 from pg_trigger
                  where tgname = 'class_subjects_track_teacher_period' and not tgisinternal)),
+  -- Depois de 20261029220000: arquivar a turma fecha a vigência dos professores.
+  ('20261030030000_teacher_periods_follow_class_archive',
+     exists (select 1 from pg_trigger
+             where tgname = 'class_groups_track_teacher_periods' and not tgisinternal)),
   ('20261029220100_audit_logs_force_rls',
      coalesce((select relforcerowsecurity from pg_class
                where oid = to_regclass('public.audit_logs')), false)
