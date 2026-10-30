@@ -6,7 +6,7 @@ const { PGlite } = await import(process.env["SIGA_SQL_TEST_MODULE_PATH"] || "@el
 
 const migration = readFileSync(
   new URL(
-    "../../supabase/migrations/20261029210000_hr_employments_one_current_per_person.sql",
+    "../../supabase/migrations/20261030000000_hr_employments_one_current_per_person.sql",
     import.meta.url,
   ),
   "utf8",
