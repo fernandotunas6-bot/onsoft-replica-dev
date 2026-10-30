@@ -115,19 +115,8 @@ server = once(server,
           .limit(TUITION_BATCH_LIMIT + 1)
       : await scopedQuery.limit(TUITION_BATCH_LIMIT + 1);''', "server-query")
 server = once(server,
-    '''    if (studentIds.length > TUITION_BATCH_LIMIT) {
-      throw new Error(
-        `O lote excede ${TUITION_BATCH_LIMIT} alunos. Divida a selecção em lotes menores.`,
-      );
-    }
-
-    const result: TuitionBatchResult''',
-    '''    if (studentIds.length > TUITION_BATCH_LIMIT) {
-      throw new Error(
-        `O lote excede ${TUITION_BATCH_LIMIT} alunos. Divida a selecção em lotes menores.`,
-      );
-    }
-    if (selectedIds) {
+    '    const result: TuitionBatchResult = { issued: [], skipped: [], failed: [] };',
+    '''    if (selectedIds) {
       // A emissão individual procura a matrícula activa: a ambiguidade é
       // perigosa mesmo que a lista filtrada pela turma tenha só uma linha.
       const active = await readAllPages((from, to) =>
@@ -151,7 +140,8 @@ server = once(server,
       }
     }
 
-    const result: TuitionBatchResult''', "server-ambiguity")
+    const result: TuitionBatchResult = { issued: [], skipped: [], failed: [] };''',
+    "server-ambiguity")
 server_path.write_text(server, encoding="utf-8")
 
 # The shared validation schema is also imported by frontend and tests.
