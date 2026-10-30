@@ -34,7 +34,8 @@ vi.setConfig({ testTimeout: 35_000 });
  *
  * Valida:
  * 1. Transição de loading para carregado com os indicadores derivados de
- *    `getDashboardOverview` (total de estudantes, masculino/feminino %).
+ *    `getDashboardOverview` (total de estudantes), e que a repartição por
+ *    género já não é repetida em mosaico — vive só no gráfico.
  * 2. Capacidades negadas (`capabilities.students: false`) mostram "—" em
  *    vez de zero — um zero seria lido como "a escola não tem alunos".
  * 3. Subscrições realtime nas quatro tabelas que invalidam o overview
@@ -204,8 +205,10 @@ describe("/ (painel principal)", () => {
     await waitFor(() => {
       expect(screen.getByText("240")).toBeDefined();
     });
-    // 130/240 ≈ 54% masculino.
-    expect(screen.getByText(/54% do total/)).toBeDefined();
+    // A repartição por género saiu dos mosaicos em 30/10/2026: dizia o mesmo que
+    // o gráfico «Distribuição por género» logo abaixo, que usa os mesmos
+    // male/female e ainda acrescenta «Não indicado». O total continua em mosaico.
+    expect(screen.queryByText(/% do total/)).toBeNull();
   });
 
   it("mostra '—' em vez de zero quando a conta não tem capacidade de leitura académica", async () => {
