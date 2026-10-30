@@ -99,7 +99,7 @@ export async function buildStudentLedgerWorkbook(
     ["Escola", safeExcelText(options.schoolName)],
     ["Ano lectivo", safeExcelText(options.academicYear)],
     ["Conferido em", options.checkedOn],
-    ["Alunos no filtro", rows.length],
+    ["Alunos exportados", rows.length],
     ["Alunos com dívida", rows.filter((row) => row.outstanding > 0).length],
     ["Total facturado (Kz)", totals.billed / 100],
     ["Total pago (Kz)", totals.paid / 100],
