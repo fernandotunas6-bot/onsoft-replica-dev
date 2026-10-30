@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applicationRoles } from "@/features/auth/access-policy";
 import {
+  canOpenStudentAccounts,
   canReadStudentFinance,
   canReadStudentHistory,
   canReadStudentSection,
@@ -111,5 +112,26 @@ describe("resolveStudentSection", () => {
       section: null,
       refused: "financeiro",
     });
+  });
+});
+
+describe("canOpenStudentAccounts (menu «Recuperar senha» do aluno)", () => {
+  it("segue listStudentAccounts: Administração e Secretaria, salvo «Nenhum» em Pessoas", () => {
+    expect(canOpenStudentAccounts("Administrador")).toBe(true);
+    expect(canOpenStudentAccounts("Secretaria")).toBe(true);
+    expect(canOpenStudentAccounts("Secretaria", { pessoas: "Nenhum" })).toBe(false);
+  });
+
+  it("encarregados, alunos e cargos sem permissão de Pessoas não vêem a opção", () => {
+    expect(canOpenStudentAccounts("Encarregado")).toBe(false);
+    expect(canOpenStudentAccounts("Aluno")).toBe(false);
+    expect(canOpenStudentAccounts("Professor")).toBe(false);
+    expect(canOpenStudentAccounts("Tesouraria")).toBe(false);
+  });
+
+  it("cargo elevável com permissão de Pessoas abre a página, como no servidor", () => {
+    expect(canOpenStudentAccounts("Tesouraria", { pessoas: "Leitura" })).toBe(true);
+    expect(canOpenStudentAccounts("Professor", { pessoas: "Escrita" })).toBe(true);
+    expect(canOpenStudentAccounts("Encarregado", { pessoas: "Total" })).toBe(false);
   });
 });

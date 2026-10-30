@@ -5,6 +5,8 @@ let tables: Record<string, Row[]> = {};
 let claims: Record<string, unknown> = { aal: "aal2" };
 let users: Map<string, { id: string; email: string; app_metadata: Row; password?: string }>;
 let failLinking = false;
+/** Corre entre a leitura e a escrita de uma linha: simula outra sessão a mexer-lhe. */
+let beforeUpdate: ((table: string) => void) | null = null;
 const deleted: string[] = [];
 const S = "00000000-0000-0000-0000-00000000000a";
 
@@ -20,6 +22,7 @@ function memoryDb() {
           (tables[table] ??= []).push(row);
           return { data: [row], error: null };
         }
+        if (patch && beforeUpdate) beforeUpdate(table);
         let found = (tables[table] ?? []).filter((row) => filters.every((f) => f(row)));
         if (patch) {
           if (table === "people" && failLinking) found = [];
@@ -140,6 +143,7 @@ beforeEach(() => {
   claims = { aal: "aal2" };
   users = new Map();
   failLinking = false;
+  beforeUpdate = null;
   deleted.length = 0;
   tables = {
     schools: [{ id: S, public_code: "SIGA-AO-000001" }],
@@ -282,5 +286,25 @@ describe("contas de acesso dos alunos", () => {
       app_metadata: { must_change_password: false, account_kind: "student" },
     });
     await expect(call("OutraSenha2026")).rejects.toThrow("já tem senha própria");
+  });
+
+  it("bloquear o login muda só o vínculo desta escola e pode ser revertido", async () => {
+    await server.createStudentAccounts({ data: { studentIds: [ST1] } });
+    await server.setStudentAccountDisabled({ data: { studentId: ST1, disabled: true } });
+    expect(tables.school_memberships).toMatchObject([{ school_id: S, status: "suspended" }]);
+    await server.setStudentAccountDisabled({ data: { studentId: ST1, disabled: false } });
+    expect(tables.school_memberships).toMatchObject([{ school_id: S, status: "active" }]);
+  });
+
+  it("se o vínculo mudar entre a leitura e a escrita, não anuncia um bloqueio que não fez", async () => {
+    await server.createStudentAccounts({ data: { studentIds: [ST1] } });
+    tables.school_memberships![0]!.status = "active";
+    beforeUpdate = (table) => {
+      if (table === "school_memberships") tables.school_memberships![0]!.status = "revoked";
+    };
+    await expect(
+      server.setStudentAccountDisabled({ data: { studentId: ST1, disabled: true } }),
+    ).rejects.toThrow("mudou entretanto");
+    expect(tables.school_memberships![0]!.status).toBe("revoked");
   });
 });
