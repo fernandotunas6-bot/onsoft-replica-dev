@@ -16,7 +16,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TeacherWorkspacePanel } from "@/features/academic/TeacherWorkspacePanel";
@@ -260,438 +260,447 @@ export function TeacherProfile360({
         </div>
       </section>
 
-      <Tabs value={tab} onValueChange={(value) => setTab(value as TabId)} className="space-y-4">
-        <TabsList
-          aria-label="Áreas do perfil do professor"
-          className="flex h-auto flex-wrap justify-start gap-1 bg-transparent p-0"
-        >
+      <Tabs
+        layout="sidebar"
+        value={tab}
+        onValueChange={(value) => setTab(value as TabId)}
+        className="space-y-4"
+      >
+        <TabsList aria-label="Áreas do perfil do professor">
           {tabs
             .filter((item) => !item.hr || hrVisible)
             .map(({ id, label, icon: Icon }) => (
-              <TabsTrigger
-                key={id}
-                value={id}
-                className="min-h-10 gap-2 rounded-lg border border-border px-3 py-2 text-xs data-[state=active]:border-primary/40 data-[state=active]:bg-primary/10"
-              >
+              <TabsTrigger key={id} value={id} className="gap-2 [&>svg]:shrink-0">
                 <Icon className="size-4" aria-hidden /> {label}
               </TabsTrigger>
             ))}
         </TabsList>
-
-        <TabsContent value="resumo" className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Section title="Identificação profissional">
-              <dl className="grid grid-cols-2 gap-4">
-                <Fact label="Nome">{teacher.full_name}</Fact>
-                <Fact label="N.º de funcionário">{teacher.employee_number}</Fact>
-                <Fact label="Correio electrónico">{teacher.email}</Fact>
-                <Fact label="Telefone">{teacher.phone}</Fact>
-              </dl>
-              <p className="text-xs text-muted-foreground">
-                A identidade e os dados pessoais completos permanecem no cadastro único de Pessoas.
-              </p>
+        <TabsPanels>
+          <TabsContent value="resumo" className="space-y-4">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Section title="Identificação profissional">
+                <dl className="grid grid-cols-2 gap-4">
+                  <Fact label="Nome">{teacher.full_name}</Fact>
+                  <Fact label="N.º de funcionário">{teacher.employee_number}</Fact>
+                  <Fact label="Correio electrónico">{teacher.email}</Fact>
+                  <Fact label="Telefone">{teacher.phone}</Fact>
+                </dl>
+                <p className="text-xs text-muted-foreground">
+                  A identidade e os dados pessoais completos permanecem no cadastro único de
+                  Pessoas.
+                </p>
+              </Section>
+              <Section title="Agenda e acesso rápido">
+                {today.length ? (
+                  <ul className="space-y-2">
+                    {today.slice(0, 3).map((slot) => (
+                      <li
+                        key={slot.id}
+                        className="flex flex-wrap justify-between gap-2 border-b border-border pb-2 text-sm"
+                      >
+                        <span>
+                          {slot.subject_name} · {slot.class_group_name}
+                        </span>
+                        <span className="tabular-nums text-muted-foreground">
+                          {slot.starts_at}–{slot.ends_at}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <EmptyMessage>Sem aulas previstas para hoje no horário carregado.</EmptyMessage>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/planos-aula" search={{ professor: teacher.id }}>
+                      Planos de aula
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/pedagogica" search={{ tab: "notas" }}>
+                      Avaliações
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/pedagogica" search={{ tab: "horarios" }}>
+                      Horários
+                    </Link>
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Horários previstos não confirmam realização, presenças ou pagamentos.
+                </p>
+              </Section>
+            </div>
+            <Section title="Ferramentas contextuais">
+              <TeacherContextHub
+                compact
+                teacherId={teacher.id}
+                personId={teacher.person_id}
+                assignedLevels={levels.assigned}
+                schoolLevels={levels.school}
+                isSelf={isSelf}
+                canManage={canManage}
+                canReadHr={hrVisible}
+                role={role}
+                grants={grants}
+                onSelectTab={setTab}
+              />
             </Section>
-            <Section title="Agenda e acesso rápido">
-              {today.length ? (
-                <ul className="space-y-2">
-                  {today.slice(0, 3).map((slot) => (
-                    <li
-                      key={slot.id}
-                      className="flex flex-wrap justify-between gap-2 border-b border-border pb-2 text-sm"
-                    >
-                      <span>
-                        {slot.subject_name} · {slot.class_group_name}
+            <InstalledModuleTools module="pedagogica" />
+          </TabsContent>
+
+          <TabsContent value="hoje" className="space-y-4">
+            {isSelf ? (
+              <TeacherTodayLessonsPanel />
+            ) : (
+              <Section title="Aulas previstas hoje">
+                {today.length ? (
+                  <ul className="divide-y divide-border">
+                    {today.map((slot) => (
+                      <li
+                        key={slot.id}
+                        className="flex flex-wrap justify-between gap-2 py-3 text-sm"
+                      >
+                        <span className="font-medium">
+                          {slot.subject_name} · {slot.class_group_name}
+                        </span>
+                        <span className="tabular-nums text-muted-foreground">
+                          {slot.starts_at}–{slot.ends_at}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <EmptyMessage>
+                    Sem tempos previstos hoje. Consulte o horário semanal.
+                  </EmptyMessage>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  A chamada e a confirmação das aulas pertencem ao próprio professor ou aos gestores
+                  autorizados na Área Pedagógica.
+                </p>
+              </Section>
+            )}
+            {canManage ? (
+              <Button asChild variant="outline" size="sm">
+                <Link to="/pedagogica" search={{ tab: "presencas", professor: teacher.id }}>
+                  Consultar presenças deste professor
+                </Link>
+              </Button>
+            ) : null}
+          </TabsContent>
+
+          <TabsContent value="disciplinas" className="space-y-4">
+            <Section title="Turmas, disciplinas e horário">
+              <p className="text-xs text-muted-foreground">
+                Atribuições activas da escola seleccionada. A filtragem completa por ano lectivo
+                será aplicada quando o serviço de horários a disponibilizar.
+              </p>
+              {courses.length ? (
+                courses.map(([course, items]) => (
+                  <div key={course} className="space-y-2">
+                    <h3 className="text-sm font-semibold">
+                      {course}{" "}
+                      <span className="text-xs font-normal text-muted-foreground">
+                        · {items.length} atribuições
                       </span>
-                      <span className="tabular-nums text-muted-foreground">
-                        {slot.starts_at}–{slot.ends_at}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                    </h3>
+                    <ul className="grid gap-2 md:grid-cols-2">
+                      {items.map((item) => (
+                        <li
+                          key={`${item.id}:${item.subject_id ?? item.subject_name}`}
+                          className="rounded-lg border border-border p-3"
+                        >
+                          <p className="text-sm font-semibold">{item.subject_name}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {item.grade_name || "Classe por definir"} · {item.name}
+                          </p>
+                          <Button
+                            asChild
+                            variant="link"
+                            size="sm"
+                            className="mt-1 h-auto p-0 text-xs"
+                          >
+                            <Link
+                              to="/pedagogica"
+                              search={{
+                                tab: "notas",
+                                turma: item.id,
+                                disciplina: item.subject_id ?? undefined,
+                              }}
+                            >
+                              Abrir disciplina
+                            </Link>
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
               ) : (
-                <EmptyMessage>Sem aulas previstas para hoje no horário carregado.</EmptyMessage>
+                <EmptyMessage>
+                  Ainda não existem disciplinas atribuídas a este professor na escola activa.
+                </EmptyMessage>
               )}
+            </Section>
+            <TeacherWorkspacePanel
+              teacherId={teacher.id}
+              title="Área lectiva"
+              canManage={canManage}
+              showInstalledTools={false}
+            />
+          </TabsContent>
+
+          <TabsContent value="avaliacao" className="space-y-4">
+            <Section title="Avaliações, tarefas e plano de aula">
+              <p className="text-sm text-muted-foreground">
+                Abra os módulos existentes para trabalhar em segurança, com as validações, estados e
+                permissões originais.
+              </p>
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline">
-                  <Link to="/planos-aula" search={{ professor: teacher.id }}>
+                  <Link to="/pedagogica" search={{ tab: "notas" }}>
+                    <GraduationCap className="mr-2 size-4" />
+                    Lançamento de notas
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/planos-aula">
+                    <FileText className="mr-2 size-4" />
                     Planos de aula
                   </Link>
                 </Button>
                 <Button asChild size="sm" variant="outline">
-                  <Link to="/pedagogica" search={{ tab: "notas" }}>
-                    Avaliações
+                  <Link to="/pedagogica/trabalhos" search={{ professor: teacher.id }}>
+                    <ClipboardCheck className="mr-2 size-4" />
+                    Trabalhos
                   </Link>
                 </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link to="/pedagogica" search={{ tab: "horarios" }}>
-                    Horários
-                  </Link>
-                </Button>
+                {canUseSuperior ? (
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/pedagogica/pautas-superior">
+                      <Landmark className="mr-2 size-4" />
+                      Pautas do Superior
+                    </Link>
+                  </Button>
+                ) : null}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Horários previstos não confirmam realização, presenças ou pagamentos.
-              </p>
             </Section>
-          </div>
-          <Section title="Ferramentas contextuais">
-            <TeacherContextHub
-              compact
+          </TabsContent>
+
+          <TabsContent value="ferramentas" className="space-y-4">
+            <Section title="Todos os contextos do professor">
+              <TeacherContextHub
+                teacherId={teacher.id}
+                personId={teacher.person_id}
+                assignedLevels={levels.assigned}
+                schoolLevels={levels.school}
+                isSelf={isSelf}
+                canManage={canManage}
+                canReadHr={hrVisible}
+                role={role}
+                grants={grants}
+                onSelectTab={setTab}
+              />
+            </Section>
+          </TabsContent>
+
+          <TabsContent value="documentos" className="space-y-4">
+            <TeacherDocumentsPanel
               teacherId={teacher.id}
               personId={teacher.person_id}
-              assignedLevels={levels.assigned}
-              schoolLevels={levels.school}
-              isSelf={isSelf}
-              canManage={canManage}
-              canReadHr={hrVisible}
-              role={role}
-              grants={grants}
-              onSelectTab={setTab}
+              schoolId={schoolId}
+              canManage={canManageDocuments}
             />
-          </Section>
-          <InstalledModuleTools module="pedagogica" />
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="hoje" className="space-y-4">
-          {isSelf ? (
-            <TeacherTodayLessonsPanel />
-          ) : (
-            <Section title="Aulas previstas hoje">
-              {today.length ? (
-                <ul className="divide-y divide-border">
-                  {today.map((slot) => (
-                    <li key={slot.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm">
-                      <span className="font-medium">
-                        {slot.subject_name} · {slot.class_group_name}
-                      </span>
-                      <span className="tabular-nums text-muted-foreground">
-                        {slot.starts_at}–{slot.ends_at}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <EmptyMessage>Sem tempos previstos hoje. Consulte o horário semanal.</EmptyMessage>
-              )}
+          <TabsContent value="contratos" className="space-y-4">
+            {hrVisible ? (
+              <HrState loading={hrQuery.isLoading} error={hrQuery.isError} employee={hr}>
+                {(employee) => (
+                  <>
+                    <Section title="Cargo e vínculo laboral">
+                      <dl className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                        <Fact label="Cargo">{employee.position}</Fact>
+                        <Fact label="Departamento">{employee.department}</Fact>
+                        <Fact label="Tipo de vínculo">
+                          {employmentTypeLabel(employee.employmentType)}
+                        </Fact>
+                        <Fact label="Admissão">{employee.hireDate}</Fact>
+                        <Fact label="Carga semanal">
+                          {employee.weeklyHours == null ? "—" : `${employee.weeklyHours} horas`}
+                        </Fact>
+                        <Fact label="Local de trabalho">{employee.workLocation}</Fact>
+                        <Fact label="Estado">{employee.status}</Fact>
+                        <Fact label="Cessação">{employee.terminationDate}</Fact>
+                      </dl>
+                    </Section>
+                    <Section title="Contratos associados">
+                      {employee.contracts.length ? (
+                        <ul className="divide-y divide-border">
+                          {employee.contracts.map((contract) => (
+                            <li key={contract.id} className="space-y-2 py-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <strong className="text-sm">
+                                  {contract.number || "Contrato sem número"}
+                                </strong>
+                                <Badge variant="outline">
+                                  {contractState(contract.status).label}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {contract.type} · {salaryTypeLabel(contract.salaryType)} ·{" "}
+                                {contract.startsOn || "—"} a{" "}
+                                {contract.endsOn || "sem termo registado"}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <EmptyMessage>Nenhum contrato registado no módulo de RH.</EmptyMessage>
+                      )}
+                      <Button asChild variant="outline" size="sm">
+                        <Link
+                          to="/financeiro/rh/funcionarios/$employmentId"
+                          params={{ employmentId: employee.id }}
+                        >
+                          Abrir ficha completa no RH
+                        </Link>
+                      </Button>
+                    </Section>
+                  </>
+                )}
+              </HrState>
+            ) : null}
+          </TabsContent>
+
+          <TabsContent value="vencimentos" className="space-y-4">
+            {hrVisible ? (
+              <HrState loading={hrQuery.isLoading} error={hrQuery.isError} employee={hr}>
+                {(employee) => (
+                  <>
+                    <Section title="Remuneração contratual">
+                      {employee.contracts.length ? (
+                        <ul className="divide-y divide-border">
+                          {employee.contracts.map((contract) => (
+                            <li
+                              key={contract.id}
+                              className="flex flex-wrap justify-between gap-2 py-3 text-sm"
+                            >
+                              <div>
+                                <p className="font-semibold">{contract.number || "Contrato"}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {salaryTypeLabel(contract.salaryType)}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p>{kwanza(contract.baseSalaryKz)} base</p>
+                                {contract.hourlyRateKz != null ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    {kwanza(contract.hourlyRateKz)} / hora
+                                  </p>
+                                ) : null}
+                                {contract.lessonHourRateKz != null ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    {kwanza(contract.lessonHourRateKz)} / tempo lectivo
+                                  </p>
+                                ) : null}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <EmptyMessage>Não existe contrato remuneratório associado.</EmptyMessage>
+                      )}
+                    </Section>
+                    <Section title="Histórico da folha salarial">
+                      {employee.payslips.length ? (
+                        <ul className="divide-y divide-border">
+                          {employee.payslips.map((slip) => (
+                            <li
+                              key={slip.id}
+                              className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
+                            >
+                              <div>
+                                <strong>
+                                  {competenceLabel(slip.competenceYear, slip.competenceMonth)}
+                                </strong>
+                                <p className="text-xs text-muted-foreground">
+                                  Bruto {kwanza(slip.grossKz)} · Descontos{" "}
+                                  {kwanza(slip.deductionsKz)}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <Badge variant="outline">
+                                  {payrollState(slip.runStatus).label}
+                                </Badge>
+                                <p className="mt-1 font-semibold tabular-nums">
+                                  {kwanza(slip.netKz)}
+                                </p>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <EmptyMessage>
+                          Não existem lançamentos de folha salarial para este professor.
+                        </EmptyMessage>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Uma folha em rascunho ou aprovada não significa pagamento efectuado. O
+                        estado é o registado no RH.
+                      </p>
+                    </Section>
+                  </>
+                )}
+              </HrState>
+            ) : null}
+          </TabsContent>
+
+          <TabsContent value="historico" className="space-y-4">
+            <Section title="Histórico académico na escola">
+              <dl className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                <Fact label="Registos de matrícula nas turmas">
+                  {workspace?.enrollments.length ?? 0}
+                </Fact>
+                <Fact label="Atribuições de disciplinas">{classes.length}</Fact>
+                <Fact label="Tempos do horário actual">{schedule.length}</Fact>
+              </dl>
               <p className="text-xs text-muted-foreground">
-                A chamada e a confirmação das aulas pertencem ao próprio professor ou aos gestores
-                autorizados na Área Pedagógica.
+                Este é o retrato actual das atribuições, não um histórico completo de anos
+                anteriores.
               </p>
             </Section>
-          )}
-          {canManage ? (
-            <Button asChild variant="outline" size="sm">
-              <Link to="/pedagogica" search={{ tab: "presencas", professor: teacher.id }}>
-                Consultar presenças deste professor
-              </Link>
-            </Button>
-          ) : null}
-        </TabsContent>
-
-        <TabsContent value="disciplinas" className="space-y-4">
-          <Section title="Turmas, disciplinas e horário">
-            <p className="text-xs text-muted-foreground">
-              Atribuições activas da escola seleccionada. A filtragem completa por ano lectivo será
-              aplicada quando o serviço de horários a disponibilizar.
-            </p>
-            {courses.length ? (
-              courses.map(([course, items]) => (
-                <div key={course} className="space-y-2">
-                  <h3 className="text-sm font-semibold">
-                    {course}{" "}
-                    <span className="text-xs font-normal text-muted-foreground">
-                      · {items.length} atribuições
-                    </span>
-                  </h3>
-                  <ul className="grid gap-2 md:grid-cols-2">
-                    {items.map((item) => (
-                      <li
-                        key={`${item.id}:${item.subject_id ?? item.subject_name}`}
-                        className="rounded-lg border border-border p-3"
-                      >
-                        <p className="text-sm font-semibold">{item.subject_name}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {item.grade_name || "Classe por definir"} · {item.name}
-                        </p>
-                        <Button
-                          asChild
-                          variant="link"
-                          size="sm"
-                          className="mt-1 h-auto p-0 text-xs"
-                        >
-                          <Link
-                            to="/pedagogica"
-                            search={{
-                              tab: "notas",
-                              turma: item.id,
-                              disciplina: item.subject_id ?? undefined,
-                            }}
-                          >
-                            Abrir disciplina
-                          </Link>
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))
-            ) : (
-              <EmptyMessage>
-                Ainda não existem disciplinas atribuídas a este professor na escola activa.
-              </EmptyMessage>
-            )}
-          </Section>
-          <TeacherWorkspacePanel
-            teacherId={teacher.id}
-            title="Área lectiva"
-            canManage={canManage}
-            showInstalledTools={false}
-          />
-        </TabsContent>
-
-        <TabsContent value="avaliacao" className="space-y-4">
-          <Section title="Avaliações, tarefas e plano de aula">
-            <p className="text-sm text-muted-foreground">
-              Abra os módulos existentes para trabalhar em segurança, com as validações, estados e
-              permissões originais.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild size="sm" variant="outline">
-                <Link to="/pedagogica" search={{ tab: "notas" }}>
-                  <GraduationCap className="mr-2 size-4" />
-                  Lançamento de notas
-                </Link>
-              </Button>
-              <Button asChild size="sm" variant="outline">
-                <Link to="/planos-aula">
-                  <FileText className="mr-2 size-4" />
-                  Planos de aula
-                </Link>
-              </Button>
-              <Button asChild size="sm" variant="outline">
-                <Link to="/pedagogica/trabalhos" search={{ professor: teacher.id }}>
-                  <ClipboardCheck className="mr-2 size-4" />
-                  Trabalhos
-                </Link>
-              </Button>
-              {canUseSuperior ? (
-                <Button asChild size="sm" variant="outline">
-                  <Link to="/pedagogica/pautas-superior">
-                    <Landmark className="mr-2 size-4" />
-                    Pautas do Superior
-                  </Link>
-                </Button>
-              ) : null}
-            </div>
-          </Section>
-        </TabsContent>
-
-        <TabsContent value="ferramentas" className="space-y-4">
-          <Section title="Todos os contextos do professor">
-            <TeacherContextHub
-              teacherId={teacher.id}
-              personId={teacher.person_id}
-              assignedLevels={levels.assigned}
-              schoolLevels={levels.school}
-              isSelf={isSelf}
-              canManage={canManage}
-              canReadHr={hrVisible}
-              role={role}
-              grants={grants}
-              onSelectTab={setTab}
-            />
-          </Section>
-        </TabsContent>
-
-        <TabsContent value="documentos" className="space-y-4">
-          <TeacherDocumentsPanel
-            teacherId={teacher.id}
-            personId={teacher.person_id}
-            schoolId={schoolId}
-            canManage={canManageDocuments}
-          />
-        </TabsContent>
-
-        <TabsContent value="contratos" className="space-y-4">
-          {hrVisible ? (
-            <HrState loading={hrQuery.isLoading} error={hrQuery.isError} employee={hr}>
-              {(employee) => (
-                <>
-                  <Section title="Cargo e vínculo laboral">
-                    <dl className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                      <Fact label="Cargo">{employee.position}</Fact>
-                      <Fact label="Departamento">{employee.department}</Fact>
-                      <Fact label="Tipo de vínculo">
-                        {employmentTypeLabel(employee.employmentType)}
-                      </Fact>
-                      <Fact label="Admissão">{employee.hireDate}</Fact>
-                      <Fact label="Carga semanal">
-                        {employee.weeklyHours == null ? "—" : `${employee.weeklyHours} horas`}
-                      </Fact>
-                      <Fact label="Local de trabalho">{employee.workLocation}</Fact>
-                      <Fact label="Estado">{employee.status}</Fact>
-                      <Fact label="Cessação">{employee.terminationDate}</Fact>
-                    </dl>
-                  </Section>
-                  <Section title="Contratos associados">
-                    {employee.contracts.length ? (
+            {hrVisible ? (
+              <HrState loading={hrQuery.isLoading} error={hrQuery.isError} employee={hr}>
+                {(employee) => (
+                  <Section title="Histórico de ausências registadas no RH">
+                    {employee.absences.length ? (
                       <ul className="divide-y divide-border">
-                        {employee.contracts.map((contract) => (
-                          <li key={contract.id} className="space-y-2 py-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <strong className="text-sm">
-                                {contract.number || "Contrato sem número"}
-                              </strong>
-                              <Badge variant="outline">
-                                {contractState(contract.status).label}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              {contract.type} · {salaryTypeLabel(contract.salaryType)} ·{" "}
-                              {contract.startsOn || "—"} a{" "}
-                              {contract.endsOn || "sem termo registado"}
-                            </p>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <EmptyMessage>Nenhum contrato registado no módulo de RH.</EmptyMessage>
-                    )}
-                    <Button asChild variant="outline" size="sm">
-                      <Link
-                        to="/financeiro/rh/funcionarios/$employmentId"
-                        params={{ employmentId: employee.id }}
-                      >
-                        Abrir ficha completa no RH
-                      </Link>
-                    </Button>
-                  </Section>
-                </>
-              )}
-            </HrState>
-          ) : null}
-        </TabsContent>
-
-        <TabsContent value="vencimentos" className="space-y-4">
-          {hrVisible ? (
-            <HrState loading={hrQuery.isLoading} error={hrQuery.isError} employee={hr}>
-              {(employee) => (
-                <>
-                  <Section title="Remuneração contratual">
-                    {employee.contracts.length ? (
-                      <ul className="divide-y divide-border">
-                        {employee.contracts.map((contract) => (
+                        {employee.absences.map((absence) => (
                           <li
-                            key={contract.id}
-                            className="flex flex-wrap justify-between gap-2 py-3 text-sm"
+                            key={absence.id}
+                            className="flex flex-wrap justify-between gap-3 py-3 text-sm"
                           >
-                            <div>
-                              <p className="font-semibold">{contract.number || "Contrato"}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {salaryTypeLabel(contract.salaryType)}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p>{kwanza(contract.baseSalaryKz)} base</p>
-                              {contract.hourlyRateKz != null ? (
-                                <p className="text-xs text-muted-foreground">
-                                  {kwanza(contract.hourlyRateKz)} / hora
-                                </p>
-                              ) : null}
-                              {contract.lessonHourRateKz != null ? (
-                                <p className="text-xs text-muted-foreground">
-                                  {kwanza(contract.lessonHourRateKz)} / tempo lectivo
-                                </p>
-                              ) : null}
-                            </div>
+                            <span>
+                              {absence.date} · {ABSENCE_TYPE_LABELS[absence.type] ?? absence.type}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {absence.validationStatus}
+                            </span>
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <EmptyMessage>Não existe contrato remuneratório associado.</EmptyMessage>
+                      <EmptyMessage>Sem ausências registadas.</EmptyMessage>
                     )}
                   </Section>
-                  <Section title="Histórico da folha salarial">
-                    {employee.payslips.length ? (
-                      <ul className="divide-y divide-border">
-                        {employee.payslips.map((slip) => (
-                          <li
-                            key={slip.id}
-                            className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
-                          >
-                            <div>
-                              <strong>
-                                {competenceLabel(slip.competenceYear, slip.competenceMonth)}
-                              </strong>
-                              <p className="text-xs text-muted-foreground">
-                                Bruto {kwanza(slip.grossKz)} · Descontos {kwanza(slip.deductionsKz)}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <Badge variant="outline">{payrollState(slip.runStatus).label}</Badge>
-                              <p className="mt-1 font-semibold tabular-nums">
-                                {kwanza(slip.netKz)}
-                              </p>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <EmptyMessage>
-                        Não existem lançamentos de folha salarial para este professor.
-                      </EmptyMessage>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      Uma folha em rascunho ou aprovada não significa pagamento efectuado. O estado
-                      é o registado no RH.
-                    </p>
-                  </Section>
-                </>
-              )}
-            </HrState>
-          ) : null}
-        </TabsContent>
-
-        <TabsContent value="historico" className="space-y-4">
-          <Section title="Histórico académico na escola">
-            <dl className="grid grid-cols-2 gap-4 md:grid-cols-3">
-              <Fact label="Registos de matrícula nas turmas">
-                {workspace?.enrollments.length ?? 0}
-              </Fact>
-              <Fact label="Atribuições de disciplinas">{classes.length}</Fact>
-              <Fact label="Tempos do horário actual">{schedule.length}</Fact>
-            </dl>
-            <p className="text-xs text-muted-foreground">
-              Este é o retrato actual das atribuições, não um histórico completo de anos anteriores.
-            </p>
-          </Section>
-          {hrVisible ? (
-            <HrState loading={hrQuery.isLoading} error={hrQuery.isError} employee={hr}>
-              {(employee) => (
-                <Section title="Histórico de ausências registadas no RH">
-                  {employee.absences.length ? (
-                    <ul className="divide-y divide-border">
-                      {employee.absences.map((absence) => (
-                        <li
-                          key={absence.id}
-                          className="flex flex-wrap justify-between gap-3 py-3 text-sm"
-                        >
-                          <span>
-                            {absence.date} · {ABSENCE_TYPE_LABELS[absence.type] ?? absence.type}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {absence.validationStatus}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <EmptyMessage>Sem ausências registadas.</EmptyMessage>
-                  )}
-                </Section>
-              )}
-            </HrState>
-          ) : null}
-        </TabsContent>
+                )}
+              </HrState>
+            ) : null}
+          </TabsContent>
+        </TabsPanels>
       </Tabs>
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <Mail className="size-3.5" aria-hidden /> Contactos e contratos seguem as permissões da
