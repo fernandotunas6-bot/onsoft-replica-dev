@@ -1,0 +1,30 @@
+name: Finance PR validation (one-time)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/finance-one-time-validate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  finance:
+    if: github.event.pull_request.number == 424
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies with locked versions
+        run: bun install --frozen-lockfile
+      - name: Build and generate TanStack routes
+        run: bun run build
+      - name: TypeScript diagnostics
+        run: bun run typecheck
+      - name: Targeted financial regression tests
+        run: bun run test tests/finance/student-ledger-excel.test.ts tests/finance/receipt-register-excel.test.ts tests/finance/receipt-register-filter.test.ts tests/documents/finance-print-identity.test.ts
