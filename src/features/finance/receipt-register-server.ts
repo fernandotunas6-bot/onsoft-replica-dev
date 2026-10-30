@@ -8,6 +8,104 @@ function nonEmptyIds(values: (string | null | undefined)[]): string[] {
   return [...new Set(values.filter((value): value is string => Boolean(value)))];
 }
 
+const MAX_STUDENT_MATCHES = 20;
+const MAX_INVOICES_FOR_STUDENT_SEARCH = 150;
+
+export function receiptLikeTerm(text: string): string {
+  return "%" + text.replace(/[%_\\]/g, "\\const day = z.string()") + "%";
+}
+
+/**
+ * Resolve a pesquisa antes da paginação de recibos; filtrar nomes no cliente
+ * mostraria totais errados e deixaria de encontrar recibos noutras páginas.
+ * Limites explícitos recusam pesquisas demasiado amplas sem cortar os resultados.
+ */
+async function matchingStudentInvoiceIds(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  studentQuery: string,
+): Promise<string[]> {
+  const pattern = receiptLikeTerm(studentQuery);
+  const [numberMatches, peopleMatches] = await Promise.all([
+    db.from("students")
+      .select("id")
+      .eq("school_id", schoolId)
+      .ilike("student_number", pattern)
+      .limit(MAX_STUDENT_MATCHES + 1),
+    db.from("people")
+      .select("id")
+      .eq("school_id", schoolId)
+      .ilike("full_name", pattern)
+      .limit(MAX_STUDENT_MATCHES + 1),
+  ]);
+  if (numberMatches.error || peopleMatches.error) {
+    throw publicDatabaseError(
+      numberMatches.error ?? peopleMatches.error!,
+      "Não foi possível pesquisar os estudantes.",
+    );
+  }
+  if (
+    (numberMatches.data?.length ?? 0) > MAX_STUDENT_MATCHES ||
+    (peopleMatches.data?.length ?? 0) > MAX_STUDENT_MATCHES
+  ) {
+    throw new Error("Há demasiados estudantes com esse nome. Escreva mais caracteres ou use o processo.");
+  }
+
+  const peopleIds = nonEmptyIds((peopleMatches.data ?? []).map((row) => row.id));
+  const byPeople = peopleIds.length
+    ? await db.from("students")
+      .select("id")
+      .eq("school_id", schoolId)
+      .in("person_id", peopleIds)
+      .limit(MAX_STUDENT_MATCHES + 1)
+    : { data: [], error: null };
+  if (byPeople.error) throw publicDatabaseError(byPeople.error, "Não foi possível pesquisar os estudantes.");
+  const studentIds = nonEmptyIds([
+    ...(numberMatches.data ?? []).map((row) => row.id),
+    ...(byPeople.data ?? []).map((row) => row.id),
+  ]);
+  if (studentIds.length > MAX_STUDENT_MATCHES) {
+    throw new Error("A pesquisa abrange demasiados estudantes. Refine o nome ou processo.");
+  }
+  if (!studentIds.length) return [];
+
+  const limit = MAX_INVOICES_FOR_STUDENT_SEARCH + 1;
+  const enrollments = await db.from("enrollments")
+    .select("id")
+    .eq("school_id", schoolId)
+    .in("student_id", studentIds)
+    .limit(limit);
+  if (enrollments.error) throw publicDatabaseError(enrollments.error, "Não foi possível procurar as matrículas.");
+  if ((enrollments.data?.length ?? 0) >= limit) {
+    throw new Error("Pesquisa demasiado ampla. Use o processo do estudante.");
+  }
+  const enrollmentIds = nonEmptyIds((enrollments.data ?? []).map((row) => row.id));
+  if (!enrollmentIds.length) return [];
+
+  const contracts = await db.from("finance_contracts")
+    .select("id")
+    .eq("school_id", schoolId)
+    .in("enrollment_id", enrollmentIds)
+    .limit(limit);
+  if (contracts.error) throw publicDatabaseError(contracts.error, "Não foi possível procurar os contratos.");
+  if ((contracts.data?.length ?? 0) >= limit) {
+    throw new Error("Pesquisa demasiado ampla. Use o processo do estudante.");
+  }
+  const contractIds = nonEmptyIds((contracts.data ?? []).map((row) => row.id));
+  if (!contractIds.length) return [];
+
+  const invoices = await db.from("finance_invoices")
+    .select("id")
+    .eq("school_id", schoolId)
+    .in("contract_id", contractIds)
+    .limit(limit);
+  if (invoices.error) throw publicDatabaseError(invoices.error, "Não foi possível procurar as faturas.");
+  if ((invoices.data?.length ?? 0) >= limit) {
+    throw new Error("Existem demasiadas faturas para esta pesquisa. Indique um número de fatura.");
+  }
+  return nonEmptyIds((invoices.data ?? []).map((row) => row.id));
+}
+
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal(""));
 
 /** Consulta paginada dos recibos da escola autenticada. Nunca grava pagamentos. */
@@ -15,6 +113,7 @@ export const receiptRegisterInputSchema = z
   .object({
     receiptNumber: z.string().trim().max(100).default(""),
     invoiceNumber: z.string().trim().max(100).default(""),
+    studentQuery: z.string().trim().max(90).default(""),
     status: z.enum(["all", "issued", "reversed"]).default("all"),
     method: z.string().trim().max(40).default("all"),
     from: day.default(""),
@@ -49,12 +148,18 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
         .from("finance_invoices")
         .select("id")
         .eq("school_id", schoolId)
-        .ilike("invoice_number", data.invoiceNumber)
+        .eq("invoice_number", data.invoiceNumber)
         .maybeSingle();
       if (error) throw publicDatabaseError(error, "Não foi possível procurar a fatura.");
       if (!invoice) return empty;
       invoiceId = invoice.id;
     }
+
+    const matchingIds = data.studentQuery
+      ? await matchingStudentInvoiceIds(db, schoolId, data.studentQuery)
+      : null;
+    if (matchingIds !== null && matchingIds.length === 0) return empty;
+    if (invoiceId && matchingIds !== null && !matchingIds.includes(invoiceId)) return empty;
 
     let query = db
       .from("finance_receipts")
@@ -65,10 +170,10 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
       .eq("school_id", schoolId);
 
     if (invoiceId) query = query.eq("invoice_id", invoiceId);
+    else if (matchingIds !== null) query = query.in("invoice_id", matchingIds);
     if (data.receiptNumber) {
       // Escapar os caracteres especiais de LIKE para não ampliar uma pesquisa.
-      const term = data.receiptNumber.replace(/[%_\\]/g, "\\$&");
-      query = query.ilike("receipt_number", "%" + term + "%");
+      query = query.ilike("receipt_number", receiptLikeTerm(data.receiptNumber));
     }
     if (data.status !== "all") query = query.eq("status", data.status);
     if (data.method !== "all") query = query.eq("payment_method", data.method);
