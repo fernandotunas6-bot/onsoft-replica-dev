@@ -145,6 +145,7 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
       )
       .eq("school_id", schoolId);
 
+    if (data.paymentReference) query = query.eq("external_id", data.paymentReference);
     if (invoiceId) query = query.eq("invoice_id", invoiceId);
     else if (matchingIds !== null) query = query.in("invoice_id", matchingIds);
     if (data.receiptNumber) {
