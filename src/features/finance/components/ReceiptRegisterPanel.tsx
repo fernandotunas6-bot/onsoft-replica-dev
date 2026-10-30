@@ -158,7 +158,7 @@ export function ReceiptRegisterPanel() {
           toast.success("Recibo anulado. O histórico foi preservado.");
         }}
         trigger={(open) => (
-          <Button size="sm" variant="outline" onClick={open}>
+          <Button size="sm" variant="outline" disabled={Boolean(printing) || exporting || query.isFetching} onClick={open}>
             Anular
           </Button>
         )}
@@ -170,6 +170,9 @@ export function ReceiptRegisterPanel() {
     setPrinting(receipt.id);
     try {
       const live = await getReceiptPrintState({ data: { receiptId: receipt.id } });
+      if (live.receiptNumber === "Sem número") {
+        throw new Error("O recibo ainda não tem numeração confirmada. Não é possível reimprimir.");
+      }
       if (!school?.id || live.schoolId !== school.id) {
         throw new Error("A escola activa mudou. Actualize os recibos antes de imprimir.");
       }
@@ -213,6 +216,9 @@ export function ReceiptRegisterPanel() {
                 { label: "Valor", value: kwanza(confirmed.amount) },
                 { label: "Data", value: confirmed.paidOn.slice(0, 10) || "—" },
                 { label: "Método", value: paymentMethodLabel(confirmed.method) },
+              ...(confirmed.externalId
+                ? [{ label: "Referência de pagamento", value: confirmed.externalId }]
+                : []),
                 ...(confirmed.reversalReason
                   ? [{ label: "Motivo da anulação", value: confirmed.reversalReason }]
                   : []),
@@ -333,6 +339,7 @@ export function ReceiptRegisterPanel() {
                     { label: "Processo", value: (r: Receipt) => r.studentNumber },
                     { label: "Data", value: (r: Receipt) => r.paidOn },
                     { label: "Método", value: (r: Receipt) => paymentMethodLabel(r.method) },
+                  { label: "Referência de pagamento", value: (r: Receipt) => r.externalId },
                     { label: "Valor (Kz)", value: (r: Receipt) => r.amount },
                     {
                       label: "Estado",
