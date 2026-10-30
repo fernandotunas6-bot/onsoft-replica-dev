@@ -12,7 +12,7 @@ import { ExternalLink, Search } from "lucide-react";
 import { Panel, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
 import { moduleIcons } from "@/lib/app-icons";
 import { cn } from "@/lib/utils";
@@ -57,21 +57,23 @@ function stageTitle(id: string) {
 
 export function CatalogExplorer() {
   return (
-    <Tabs defaultValue="pesquisar" className="space-y-4">
-      <TabsList>
+    <Tabs layout="sidebar" defaultValue="pesquisar" className="space-y-4">
+      <TabsList aria-label="Secções do catálogo educativo">
         <TabsTrigger value="pesquisar">Pesquisar</TabsTrigger>
         <TabsTrigger value="cobertura">Cobertura</TabsTrigger>
         <TabsTrigger value="fontes">Fontes</TabsTrigger>
       </TabsList>
-      <TabsContent value="pesquisar">
-        <SearchTab />
-      </TabsContent>
-      <TabsContent value="cobertura">
-        <CoverageTab />
-      </TabsContent>
-      <TabsContent value="fontes">
-        <SourcesTab />
-      </TabsContent>
+      <TabsPanels>
+        <TabsContent value="pesquisar">
+          <SearchTab />
+        </TabsContent>
+        <TabsContent value="cobertura">
+          <CoverageTab />
+        </TabsContent>
+        <TabsContent value="fontes">
+          <SourcesTab />
+        </TabsContent>
+      </TabsPanels>
     </Tabs>
   );
 }

@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import type { EnrollmentStatus, ExamSeason } from "@/features/higher-ed/engine";
 import {
@@ -152,29 +152,31 @@ function HigherEdPage() {
                 onSaved={setProgramId}
               />
             ) : null}
-            <Tabs defaultValue="plano">
-              <TabsList>
+            <Tabs layout="sidebar" defaultValue="plano">
+              <TabsList aria-label="Secções do ensino superior">
                 <TabsTrigger value="plano">Cursos e plano</TabsTrigger>
                 <TabsTrigger value="estudantes">Estudantes</TabsTrigger>
                 <TabsTrigger value="regulamento">Regulamento</TabsTrigger>
                 <TabsTrigger value="acesso">Acesso</TabsTrigger>
                 <TabsTrigger value="emolumentos">Emolumentos</TabsTrigger>
               </TabsList>
-              <TabsContent value="plano" className="mt-4">
-                <PlanTab programId={selected} />
-              </TabsContent>
-              <TabsContent value="estudantes" className="mt-4">
-                <StudentsTab programId={selected} />
-              </TabsContent>
-              <TabsContent value="regulamento" className="mt-4">
-                <RegulationTab canEdit={isAdmin} />
-              </TabsContent>
-              <TabsContent value="acesso" className="mt-4">
-                <AccessTab programId={selected} />
-              </TabsContent>
-              <TabsContent value="emolumentos" className="mt-4">
-                <FeesTab canEdit={isAdmin} />
-              </TabsContent>
+              <TabsPanels>
+                <TabsContent value="plano" className="mt-4">
+                  <PlanTab programId={selected} />
+                </TabsContent>
+                <TabsContent value="estudantes" className="mt-4">
+                  <StudentsTab programId={selected} />
+                </TabsContent>
+                <TabsContent value="regulamento" className="mt-4">
+                  <RegulationTab canEdit={isAdmin} />
+                </TabsContent>
+                <TabsContent value="acesso" className="mt-4">
+                  <AccessTab programId={selected} />
+                </TabsContent>
+                <TabsContent value="emolumentos" className="mt-4">
+                  <FeesTab canEdit={isAdmin} />
+                </TabsContent>
+              </TabsPanels>
             </Tabs>
           </>
         )}
