@@ -65,7 +65,9 @@ describe("Entrega segura Kursinha — ISPAB no domínio escolar existente", () =
       admissions: null,
     });
     expect(page).not.toBeNull();
-    expect(page).toContain('href="https://ispab.portal-siga.com/portal?escola=ispab"');
+    expect(page).toContain(
+      'href="https://ispab.portal-siga.com/portal?escola=ispab&amp;vista=estudante&amp;seccao=financeiro"',
+    );
     expect(page).toContain('href="/site/propinas/"');
     expect(page).toMatch(/não cria recibos, não altera saldos e não confirma pagamentos/);
     expect(page).toContain("A abrir automaticamente a sua área financeira");
@@ -88,7 +90,9 @@ describe("Entrega segura Kursinha — ISPAB no domínio escolar existente", () =
         admissions: null,
       },
     );
-    expect(alternate).toContain('href="https://ispab.example.ao/portal?escola=ispab"');
+    expect(alternate).toContain(
+      'href="https://ispab.example.ao/portal?escola=ispab&amp;vista=estudante&amp;seccao=financeiro"',
+    );
     expect(alternate).not.toContain('href="https://ispab.portal-siga.com/portal?escola=ispab"');
   });
 });
