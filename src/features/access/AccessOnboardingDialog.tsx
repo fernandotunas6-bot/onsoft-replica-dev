@@ -83,8 +83,15 @@ export function AccessOnboardingDialog({
     (mode === "existing" || name.trim().length >= 2) &&
     (mode !== "invite" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
 
+  // Fechar a meio do pedido perdia o que foi escrito se a gravação falhasse
+  // (o erro chegava com o diálogo já fechado). Como no QuickFormModal.
   const closeDialog = () => {
+    if (inflight.current) return;
     if (confirmDiscardChanges(dirty)) setOpen(false);
+  };
+  const handleOpenChange = (next: boolean) => {
+    if (!next && inflight.current) return;
+    setOpen(next);
   };
 
   const openDialog = () => {
@@ -144,7 +151,7 @@ export function AccessOnboardingDialog({
           Director: "diretor",
           Coordenador: "coordenador",
         };
-        await createPerson({
+        const created = await createPerson({
           data: {
             person: {
               full_name: name.trim(),
@@ -157,6 +164,12 @@ export function AccessOnboardingDialog({
           },
         });
         toast.success("Pessoa adicionada ao registo escolar.");
+        if (created.hrRegistration === "pending") {
+          toast.warning("A ficha de Funcionários/RH ainda está pendente de sincronização.", {
+            description:
+              "A pessoa foi criada e não deve ser registada novamente. Conclua em Funcionários.",
+          });
+        }
       }
       try {
         await onChanged();
@@ -184,7 +197,7 @@ export function AccessOnboardingDialog({
       <Button type="button" className="gap-2" onClick={openDialog}>
         <UserPlus className="size-4" /> Adicionar
       </Button>
-      <ModalShell open={open} onOpenChange={setOpen} size="lg" hasUnsavedChanges={dirty}>
+      <ModalShell open={open} onOpenChange={handleOpenChange} size="lg" hasUnsavedChanges={dirty}>
         <ModalHeader
           title="Adicionar à equipa"
           subtitle="Escolha uma conta da escola, convide um funcionário ou registe uma pessoa sem login."
@@ -275,8 +288,9 @@ export function AccessOnboardingDialog({
                     <option value="">Seleccione uma conta…</option>
                     {candidates.map((account) => (
                       <option key={account.id} value={account.id}>
-                        {account.full_name} — {account.email || "Sem e-mail"} ({" "}
-                        {account.cargo || "Sem cargo"})
+                        {`${account.full_name} — ${account.email || "Sem e-mail"} (${
+                          account.cargo || "Sem cargo"
+                        })`}
                       </option>
                     ))}
                   </select>
