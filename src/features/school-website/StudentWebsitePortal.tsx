@@ -35,7 +35,7 @@ export function StudentWebsitePortal({ initialSection = "" }: { initialSection?:
       ? studentPortalFramePath(origin, account.schoolSlug || "", getSigaLoginUrl(), initialSection)
       : null;
   useEffect(() => {
-    if (!eligible || !source) return;
+    if (!eligible || !source || initialSection === "financeiro") return;
     let active = true;
     setReady(false);
     setFrameError(false);
@@ -131,6 +131,7 @@ export function StudentWebsitePortal({ initialSection = "" }: { initialSection?:
     account.schoolName,
     selectedYearLabel,
     queryClient,
+    initialSection,
   ]);
   if (account.profile.isPending)
     return (
