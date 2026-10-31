@@ -77,8 +77,8 @@ export function renderSchoolWebsite(
   html = applyWebsiteValues(html, publication.values);
   // A mesma página de orientação não pode enviar um estudante para o portal
   // de outro tenant, mesmo quando há mais de um hostname oficial para o ISPAB.
-  html = html.replace(/<a\\b[^>]*data-school-portal-link[^>]*>/g, (tag) =>
-    tag.replace(/\\bhref="[^"]*"/, () => `href="${esc(site.portalUrl)}"`),
+  html = html.replace(/<a\b[^>]*data-school-portal-link[^>]*>/g, (tag) =>
+    tag.replace(/\bhref="[^"]*"/, () => `href="${esc(site.portalUrl)}"`),
   );
   if (site.logoUrl?.startsWith("https://") && safePublicUrl(site.logoUrl, true))
     html = html.replace(
