@@ -159,9 +159,7 @@ export function readWebsiteState(value: unknown): WebsiteState {
         // Versão do ISPAB publicada antes das páginas de propinas.
         // Modelo aditivo: preservar os campos antigos, sem mudar a publicação.
         "96cb157ddf38b2059299",
-      ].includes(
-        content.templateVersion,
-      )
+      ].includes(content.templateVersion)
     )
       content.templateVersion = websiteTemplate.version;
   };
