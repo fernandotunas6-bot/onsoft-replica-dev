@@ -36,6 +36,9 @@ describe("ligação do portal de estudante", () => {
       studentPortalFramePath("https://central.example", "school-a", "https://central.example"),
     ).toBe("/escolas/school-a/portal/?connected=1");
     expect(studentPortalFramePath(origin, "../school-b", "https://central.example")).toBeNull();
+    expect(studentPortalFramePath(origin, "school-a", "https://central.example", "financeiro")).toBe(
+      "/site/portal/financeiro/?connected=1",
+    );
   });
   it("regressa do Google ao portal escolhido sem copiar parâmetros de redireccionamento", () => {
     expect(
@@ -43,6 +46,12 @@ describe("ligação do portal de estudante", () => {
         origin + "/portal?escola=school-a&vista=estudante&next=https://evil.example#token=x",
       ),
     ).toBe(origin + "/portal?escola=school-a&vista=estudante");
+    expect(
+      portalLoginReturn(origin + "/portal?escola=school-a&vista=estudante&seccao=financeiro"),
+    ).toBe(origin + "/portal?escola=school-a&vista=estudante&seccao=financeiro");
+    expect(portalLoginReturn(origin + "/portal?escola=school-a&seccao=financeiro")).toBe(
+      origin + "/portal?escola=school-a",
+    );
     expect(portalLoginReturn(origin + "/portal?escola=school-a")).toBe(
       origin + "/portal?escola=school-a",
     );
