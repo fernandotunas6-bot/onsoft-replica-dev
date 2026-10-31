@@ -16,7 +16,7 @@ test('reuses existing ISPAB academic domain and Pages website',()=>{
 
 test('offers a real, unprivileged destination for the Kursinha delivery field',()=>{
  const html=generated('propinas/confirmacao/index.html');
- assert.match(html,/<title>Acompanhar pagamento — ISPAB \| ISPAB<\/title>/);
+ assert.match(html,/<title(?:\s[^>]*)?>Acompanhar pagamento — ISPAB \| ISPAB<\/title>/);
  assert.ok(html.includes(target.replace(/&/g,'&amp;')) || html.includes(target));
  assert.match(html,/A abertura desta página não confirma por si só o recebimento/);
  assert.match(html,/não cria recibos, não altera saldos e não confirma pagamentos/);
