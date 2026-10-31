@@ -8,7 +8,7 @@ import { getSigaLoginUrl } from "@/lib/ecosystem-urls";
 import { isStudentPortalRequest, studentPortalFramePath } from "./student-portal-bridge";
 
 /** The school website owns its presentation; SIGA owns authentication, membership and data. */
-export function StudentWebsitePortal() {
+export function StudentWebsitePortal({ initialSection = "" }: { initialSection?: "" | "financeiro" }) {
   const account = useCurrentAccount();
   const { selectedYearLabel } = useSchoolSettings();
   const queryClient = useQueryClient();
@@ -24,7 +24,7 @@ export function StudentWebsitePortal() {
     account.role === "Aluno" && Boolean(account.schoolId && account.schoolSlug && account.id);
   const source =
     origin && eligible
-      ? studentPortalFramePath(origin, account.schoolSlug || "", getSigaLoginUrl())
+      ? studentPortalFramePath(origin, account.schoolSlug || "", getSigaLoginUrl(), initialSection)
       : null;
   useEffect(() => {
     if (!eligible || !source) return;
