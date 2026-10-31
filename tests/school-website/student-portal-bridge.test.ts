@@ -36,9 +36,9 @@ describe("ligação do portal de estudante", () => {
       studentPortalFramePath("https://central.example", "school-a", "https://central.example"),
     ).toBe("/escolas/school-a/portal/?connected=1");
     expect(studentPortalFramePath(origin, "../school-b", "https://central.example")).toBeNull();
-    expect(studentPortalFramePath(origin, "school-a", "https://central.example", "financeiro")).toBe(
-      "/site/portal/financeiro/?connected=1",
-    );
+    expect(
+      studentPortalFramePath(origin, "school-a", "https://central.example", "financeiro"),
+    ).toBe("/site/portal/financeiro/?connected=1");
   });
   it("regressa do Google ao portal escolhido sem copiar parâmetros de redireccionamento", () => {
     expect(

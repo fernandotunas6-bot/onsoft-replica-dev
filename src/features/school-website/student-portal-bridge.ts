@@ -58,6 +58,8 @@ export function studentPortalFramePath(
     "localhost",
     "127.0.0.1",
   ]);
-  return (central.has(host) ? `/escolas/${slug}` : "/site") +
-    (section === "financeiro" ? "/portal/financeiro/?connected=1" : "/portal/?connected=1");
+  return (
+    (central.has(host) ? `/escolas/${slug}` : "/site") +
+    (section === "financeiro" ? "/portal/financeiro/?connected=1" : "/portal/?connected=1")
+  );
 }
