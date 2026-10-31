@@ -24,13 +24,17 @@ export async function handleSchoolWebsite(request: Request): Promise<Response | 
         404,
       );
     const page = site.page.endsWith("/") ? site.page : site.page + "/";
+    // A entrega Kursinha pertence apenas ao ISPAB. O modelo HTML é partilhado
+    // por todas as escolas: nunca servir links financeiros do ISPAB a outro tenant.
+    if (["/propinas/", "/propinas/confirmacao/"].includes(page) && site.slug !== "ispab")
+      return reply("<h1>Página não disponível nesta instituição.</h1>", 404);
     if (page.startsWith("/noticias/"))
       return Response.redirect(site.origin + site.basePath + "/blog/", 302);
     // Âmbito: uma escola que ainda não publicou mostra só as páginas que
     // dependem da sua identidade. O catálogo do modelo — 18 cursos, notícias e
     // eventos inventados — não sai sob o nome dela. Ver `site-scope`.
     const scope = siteScope(site.state);
-    if (scope && !isPageInScope(page, scope))
+    if (scope && !isPageInScope(page, scope, site.slug))
       return reply(
         '<!doctype html><html lang="pt"><title>Página não publicada</title><main><h1>Esta página ainda não foi publicada.</h1><p>A instituição ainda não publicou este conteúdo.</p></main></html>',
         404,
@@ -62,7 +66,7 @@ export async function handleSchoolWebsite(request: Request): Promise<Response | 
     }
     const html = renderSchoolWebsite(site, page, publication, blog, recent?.posts);
     if (!html) return reply("<h1>Página não encontrada.</h1>", 404);
-    return reply(scope ? narrowToScope(html, scope) : html);
+    return reply(scope ? narrowToScope(html, scope, site.slug) : html);
   } catch {
     return reply(
       '<!doctype html><html lang="pt"><title>Website temporariamente indisponível</title><main><h1>Não foi possível carregar esta página agora.</h1><p>Tente novamente dentro de instantes.</p></main></html>',
