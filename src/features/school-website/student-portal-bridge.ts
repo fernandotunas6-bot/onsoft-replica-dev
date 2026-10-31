@@ -41,7 +41,12 @@ export function isStudentPortalRequest(
     (value.action === undefined || value.action === "signout"),
   );
 }
-export function studentPortalFramePath(origin: string, slug: string, loginOrigin: string) {
+export function studentPortalFramePath(
+  origin: string,
+  slug: string,
+  loginOrigin: string,
+  section: "" | "financeiro" = "",
+) {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
   const host = new URL(origin).hostname;
   const central = new Set([
@@ -53,5 +58,6 @@ export function studentPortalFramePath(origin: string, slug: string, loginOrigin
     "localhost",
     "127.0.0.1",
   ]);
-  return (central.has(host) ? `/escolas/${slug}` : "/site") + "/portal/?connected=1";
+  return (central.has(host) ? `/escolas/${slug}` : "/site") +
+    (section === "financeiro" ? "/portal/financeiro/?connected=1" : "/portal/?connected=1");
 }
