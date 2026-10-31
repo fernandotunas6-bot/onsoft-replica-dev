@@ -203,6 +203,8 @@ describe("lançar notas de avaliação", () => {
   it("só aceita alunos da turma da avaliação, também para a Administração e a Secretaria", () => {
     expect(fn).toMatch(/\.eq\("class_group_id", String\(item\.class_group_id\)\)/);
     expect(fn).toMatch(/Há alunos que não são da turma desta avaliação/);
-    expect(fn.indexOf("Há alunos que não são da turma")).toBeLessThan(fn.indexOf(".insert("));
+    expect(fn.indexOf("Há alunos que não são da turma")).toBeLessThan(
+      fn.indexOf('"siga_write_assessment_scores_atomic"'),
+    );
   });
 });
