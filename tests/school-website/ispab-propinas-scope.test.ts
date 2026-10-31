@@ -29,7 +29,9 @@ describe("Entrega segura Kursinha — ISPAB no domínio escolar existente", () =
       basePath: "/site",
       page: "/propinas/confirmacao/",
     });
-    expect(schoolSiteRequest(new URL("https://ispab.portal-siga.com/portal?escola=ispab"))).toBeNull();
+    expect(
+      schoolSiteRequest(new URL("https://ispab.portal-siga.com/portal?escola=ispab")),
+    ).toBeNull();
   });
 
   it("permite só páginas financeiras informativas mesmo antes da publicação editorial", () => {
@@ -42,7 +44,8 @@ describe("Entrega segura Kursinha — ISPAB no domínio escolar existente", () =
   });
 
   it("mantém links do website gerido e remove outros links ilustrativos", () => {
-    const html = '<main><a href="/site/propinas/">Propinas</a><a href="/site/propinas/confirmacao/">Entrega</a><a href="/site/cursos/">Cursos fictícios</a><a href="/escolas/ispab/propinas/">Propinas na origem</a></main>';
+    const html =
+      '<main><a href="/site/propinas/">Propinas</a><a href="/site/propinas/confirmacao/">Entrega</a><a href="/site/cursos/">Cursos fictícios</a><a href="/escolas/ispab/propinas/">Propinas na origem</a></main>';
     const safe = narrowToScope(html, [], "ispab");
     const otherSchool = narrowToScope(html, [], "escola-b");
     expect(otherSchool).not.toContain('href="/site/propinas/"');
@@ -65,17 +68,21 @@ describe("Entrega segura Kursinha — ISPAB no domínio escolar existente", () =
     expect(page).toContain('href="https://ispab.portal-siga.com/portal?escola=ispab"');
     expect(page).toContain('href="/site/propinas/"');
     expect(page).toMatch(/não cria recibos, não altera saldos e não confirma pagamentos/);
-    const alternate = renderSchoolWebsite({
-      ...site,
-      origin: "https://ispab.example.ao",
-      portalUrl: "https://ispab.example.ao/portal?escola=ispab",
-    }, "/propinas/confirmacao/", {
-      apiVersion: 1,
-      templateVersion: websiteTemplate.version,
-      values: {},
-      unavailablePrograms: [],
-      admissions: null,
-    });
+    const alternate = renderSchoolWebsite(
+      {
+        ...site,
+        origin: "https://ispab.example.ao",
+        portalUrl: "https://ispab.example.ao/portal?escola=ispab",
+      },
+      "/propinas/confirmacao/",
+      {
+        apiVersion: 1,
+        templateVersion: websiteTemplate.version,
+        values: {},
+        unavailablePrograms: [],
+        admissions: null,
+      },
+    );
     expect(alternate).toContain('href="https://ispab.example.ao/portal?escola=ispab"');
     expect(alternate).not.toContain('href="https://ispab.portal-siga.com/portal?escola=ispab"');
   });
