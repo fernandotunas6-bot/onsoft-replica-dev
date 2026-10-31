@@ -150,7 +150,8 @@ describe("temas instaláveis por escola", () => {
     expect(
       doc.querySelector('link[rel=stylesheet][href$="/style.css"]')?.getAttribute("href"),
     ).toBe("https://portal.example/_school-website/style.css");
-    expect(websiteTemplate.fields).toHaveLength(4653);
+    // As duas páginas públicas de propinas são editáveis no mesmo modelo de escola.
+    expect(websiteTemplate.fields).toHaveLength(4710);
   });
   it("respeita o logótipo próprio da escola na pré-visualização", () => {
     const html = websiteDraftPreview(
