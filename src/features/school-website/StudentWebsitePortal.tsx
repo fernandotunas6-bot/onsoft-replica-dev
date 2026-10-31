@@ -8,7 +8,11 @@ import { getSigaLoginUrl } from "@/lib/ecosystem-urls";
 import { isStudentPortalRequest, studentPortalFramePath } from "./student-portal-bridge";
 
 /** The school website owns its presentation; SIGA owns authentication, membership and data. */
-export function StudentWebsitePortal({ initialSection = "" }: { initialSection?: "" | "financeiro" }) {
+export function StudentWebsitePortal({
+  initialSection = "",
+}: {
+  initialSection?: "" | "financeiro";
+}) {
   const account = useCurrentAccount();
   const { selectedYearLabel } = useSchoolSettings();
   const queryClient = useQueryClient();
@@ -174,7 +178,10 @@ export function StudentWebsitePortal({ initialSection = "" }: { initialSection?:
               Consulte propinas, saldos e recibos oficiais do SIGA Plus.
             </p>
           </div>
-          <a className="rounded-lg border px-4 py-2 text-sm" href={`/portal?escola=${encodeURIComponent(account.schoolSlug!)}&vista=estudante`}>
+          <a
+            className="rounded-lg border px-4 py-2 text-sm"
+            href={`/portal?escola=${encodeURIComponent(account.schoolSlug!)}&vista=estudante`}
+          >
             Portal académico
           </a>
         </header>
@@ -200,38 +207,69 @@ export function StudentWebsitePortal({ initialSection = "" }: { initialSection?:
               <h2 className="mb-3 font-semibold">Facturas e propinas</h2>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[620px] text-left text-sm">
-                  <thead><tr className="border-b"><th className="py-2">Factura</th><th>Competência</th><th>Total</th><th>Pago</th><th>Dívida</th><th>Estado</th></tr></thead>
-                  <tbody>{data.invoices.map((row) => (
-                    <tr key={row.number} className="border-b last:border-0">
-                      <td className="py-3">{row.number}</td>
-                      <td>{row.competenceMonth ?? "—"}</td>
-                      <td>{money(row.total)}</td><td>{money(row.paid)}</td>
-                      <td>{money(row.outstanding)}</td>
-                      <td>{row.status === "paid" ? "Liquidada" : row.status === "partially_paid" ? "Parcial" : "Em aberto"}</td>
+                  <thead>
+                    <tr className="border-b">
+                      <th className="py-2">Factura</th>
+                      <th>Competência</th>
+                      <th>Total</th>
+                      <th>Pago</th>
+                      <th>Dívida</th>
+                      <th>Estado</th>
                     </tr>
-                  ))}</tbody>
+                  </thead>
+                  <tbody>
+                    {data.invoices.map((row) => (
+                      <tr key={row.number} className="border-b last:border-0">
+                        <td className="py-3">{row.number}</td>
+                        <td>{row.competenceMonth ?? "—"}</td>
+                        <td>{money(row.total)}</td>
+                        <td>{money(row.paid)}</td>
+                        <td>{money(row.outstanding)}</td>
+                        <td>
+                          {row.status === "paid"
+                            ? "Liquidada"
+                            : row.status === "partially_paid"
+                              ? "Parcial"
+                              : "Em aberto"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
               </div>
-              {!data.invoices.length && <p className="mt-3 text-sm">Ainda não existem facturas registadas na sua conta.</p>}
-              {data.moreInvoices && <p className="mt-3 text-sm">Mostram-se as 50 facturas mais recentes.</p>}
+              {!data.invoices.length && (
+                <p className="mt-3 text-sm">Ainda não existem facturas registadas na sua conta.</p>
+              )}
+              {data.moreInvoices && (
+                <p className="mt-3 text-sm">Mostram-se as 50 facturas mais recentes.</p>
+              )}
             </section>
             <section className="rounded-xl border bg-card p-5">
               <h2 className="mb-3 font-semibold">Recibos emitidos</h2>
               <div className="space-y-2">
                 {data.receipts.map((row) => (
-                  <div key={row.number} className="flex flex-wrap justify-between gap-2 border-b py-2 text-sm">
-                    <span>{row.number} · {row.paidOn ?? "—"}</span>
+                  <div
+                    key={row.number}
+                    className="flex flex-wrap justify-between gap-2 border-b py-2 text-sm"
+                  >
+                    <span>
+                      {row.number} · {row.paidOn ?? "—"}
+                    </span>
                     <strong>{money(row.amount)}</strong>
                   </div>
                 ))}
               </div>
-              {!data.receipts.length && <p className="mt-3 text-sm">Ainda não existem recibos emitidos.</p>}
-              {data.moreReceipts && <p className="mt-3 text-sm">Mostram-se os 50 recibos mais recentes.</p>}
+              {!data.receipts.length && (
+                <p className="mt-3 text-sm">Ainda não existem recibos emitidos.</p>
+              )}
+              {data.moreReceipts && (
+                <p className="mt-3 text-sm">Mostram-se os 50 recibos mais recentes.</p>
+              )}
             </section>
             <p className="text-sm text-muted-foreground">
-              O regresso da plataforma de pagamento não confirma a liquidação. Se pagou e
-              ainda não existir recibo, conserve o comprovativo e contacte a tesouraria,
-              sem repetir o pagamento.
+              O regresso da plataforma de pagamento não confirma a liquidação. Se pagou e ainda não
+              existir recibo, conserve o comprovativo e contacte a tesouraria, sem repetir o
+              pagamento.
             </p>
           </>
         )}

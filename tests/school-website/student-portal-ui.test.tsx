@@ -106,7 +106,14 @@ describe("dados do estudante no visual do website", () => {
         paid: 3000,
         outstanding: 7000,
         invoices: [
-          { number: "INV-01", competenceMonth: "2026-10-01", total: 10000, paid: 3000, outstanding: 7000, status: "partially_paid" },
+          {
+            number: "INV-01",
+            competenceMonth: "2026-10-01",
+            total: 10000,
+            paid: 3000,
+            outstanding: 7000,
+            status: "partially_paid",
+          },
         ],
         receipts: [{ number: "REC-01", paidOn: "2026-10-20", amount: 3000 }],
         moreInvoices: false,
@@ -117,7 +124,9 @@ describe("dados do estudante no visual do website", () => {
     await waitFor(() => expect(screen.getByText("INV-01")).toBeTruthy());
     expect(document.querySelector("iframe")).toBeNull();
     expect(screen.getByText("REC-01 · 2026-10-20")).toBeTruthy();
-    expect(mocks.agenda).toHaveBeenCalledWith({ data: { schoolId: "school-a", section: "financeiro" } });
+    expect(mocks.agenda).toHaveBeenCalledWith({
+      data: { schoolId: "school-a", section: "financeiro" },
+    });
   });
 
   it("uma falha da API produz erro e nunca um perfil ou dados fictícios", async () => {

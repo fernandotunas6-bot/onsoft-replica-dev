@@ -17,19 +17,36 @@ const rows: Record<string, Array<Record<string, unknown>>> = {
   finance_contracts: [{ id: "contract-1", school_id: schoolId, enrollment_id: "enr-1" }],
   finance_invoices: [
     {
-      id: "invoice-1", school_id: schoolId, contract_id: "contract-1",
-      invoice_number: "ISPAB-001", amount: 10000, discount_amount: 0, penalty_amount: 0,
-      status: "partially_paid", competence_month: "2026-10-01", due_date: "2026-10-10",
+      id: "invoice-1",
+      school_id: schoolId,
+      contract_id: "contract-1",
+      invoice_number: "ISPAB-001",
+      amount: 10000,
+      discount_amount: 0,
+      penalty_amount: 0,
+      status: "partially_paid",
+      competence_month: "2026-10-01",
+      due_date: "2026-10-10",
     },
   ],
   finance_receipts: [
     {
-      id: "receipt-1", invoice_id: "invoice-1", school_id: schoolId,
-      receipt_number: "REC-01", amount: 3000, paid_on: "2026-10-18", status: "issued",
+      id: "receipt-1",
+      invoice_id: "invoice-1",
+      school_id: schoolId,
+      receipt_number: "REC-01",
+      amount: 3000,
+      paid_on: "2026-10-18",
+      status: "issued",
     },
     {
-      id: "receipt-2", invoice_id: "invoice-1", school_id: schoolId,
-      receipt_number: "REC-02", amount: 7000, paid_on: "2026-10-19", status: "reversed",
+      id: "receipt-2",
+      invoice_id: "invoice-1",
+      school_id: schoolId,
+      receipt_number: "REC-02",
+      amount: 7000,
+      paid_on: "2026-10-19",
+      status: "reversed",
     },
   ],
 };
@@ -41,13 +58,19 @@ function fakeDb() {
       const filters: Record<string, unknown> = {};
       const chain = {
         select: (_cols: string) => chain,
-        eq: (field: string, value: unknown) => { filters[field] = value; return chain; },
-        in: (field: string, values: unknown[]) => { filters[field] = values; return chain; },
+        eq: (field: string, value: unknown) => {
+          filters[field] = value;
+          return chain;
+        },
+        in: (field: string, values: unknown[]) => {
+          filters[field] = values;
+          return chain;
+        },
         order: (_field: string) => chain,
         range: (from: number, to: number) => {
           calls.push({ table, filters: { ...filters } });
           const found = (rows[table] ?? []).filter((row) =>
-            Object.entries(filters).every(([k,v]) =>
+            Object.entries(filters).every(([k, v]) =>
               Array.isArray(v) ? v.includes(row[k]) : row[k] === v,
             ),
           );
@@ -75,7 +98,9 @@ describe("financeiro escolar sem registos duplicados", () => {
     mocks.resolve.mockResolvedValue({ db, schoolId, studentId: "student-1" });
     const ledger = await loadMyStudentFinance("user-1", schoolId);
     expect(ledger).toMatchObject({
-      billed: 10000, paid: 3000, outstanding: 7000,
+      billed: 10000,
+      paid: 3000,
+      outstanding: 7000,
       invoices: [{ number: "ISPAB-001", status: "partially_paid", outstanding: 7000 }],
       receipts: [{ number: "REC-01", amount: 3000 }],
     });

@@ -74,14 +74,15 @@ export async function loadMyStudentFinance(userId: string, schoolId: string) {
     const page = await readAllPages((from, to) =>
       db
         .from("finance_invoices")
-        .select("id, invoice_number, competence_month, due_date, status, amount, discount_amount, penalty_amount")
+        .select(
+          "id, invoice_number, competence_month, due_date, status, amount, discount_amount, penalty_amount",
+        )
         .eq("school_id", schoolId)
         .in("contract_id", ids)
         .order("id")
         .range(from, to),
     );
-    if (page.error)
-      throw publicDatabaseError(page.error, "Não foi possível consultar faturas.");
+    if (page.error) throw publicDatabaseError(page.error, "Não foi possível consultar faturas.");
     invoices.push(...page.data.filter((r) => r.status !== "cancelled"));
   }
   if (!invoices.length) return result;
@@ -99,8 +100,7 @@ export async function loadMyStudentFinance(userId: string, schoolId: string) {
         .order("id")
         .range(from, to),
     );
-    if (page.error)
-      throw publicDatabaseError(page.error, "Não foi possível consultar recibos.");
+    if (page.error) throw publicDatabaseError(page.error, "Não foi possível consultar recibos.");
     receipts.push(...page.data);
   }
 
@@ -125,9 +125,7 @@ export async function loadMyStudentFinance(userId: string, schoolId: string) {
       competenceMonth: invoice.competence_month ?? null,
       dueDate: invoice.due_date ?? null,
       status: (outstanding === 0 ? "paid" : received > 0 ? "partially_paid" : "open") as
-        | "paid"
-        | "partially_paid"
-        | "open",
+        "paid" | "partially_paid" | "open",
       total: kz(total),
       paid: kz(received),
       outstanding: kz(outstanding),
