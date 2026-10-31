@@ -6,6 +6,7 @@ import { getMyStudentAgenda, getMyStudentTimetable } from "@/features/dashboard/
 import { getMyStudentGrades } from "@/features/academic/student-grades";
 import { getStudentAttendanceHistory } from "@/features/pedagogica/attendance-server";
 import { studentPortalSections } from "./student-portal-bridge";
+import { loadMyStudentFinance } from "@/features/finance/student-portal-ledger";
 
 export const studentWebsitePageInput = z
   .object({ schoolId: z.string().guid(), section: z.enum(studentPortalSections) })
@@ -30,6 +31,9 @@ export const getStudentWebsitePage = createServerFn({ method: "GET" })
       return { agenda, attendance: { stats: attendance.stats } };
     }
     if (data.section === "horarios") return { timetable: await getMyStudentTimetable() };
+    if (data.section === "financeiro") {
+      return { finance: await loadMyStudentFinance(context.userId, data.schoolId) };
+    }
     if (data.section === "notas" || data.section === "disciplinas") {
       const [grades, attendance] = await Promise.all([
         getMyStudentGrades(),
