@@ -68,6 +68,11 @@ describe("Entrega segura Kursinha — ISPAB no domínio escolar existente", () =
     expect(page).toContain('href="https://ispab.portal-siga.com/portal?escola=ispab"');
     expect(page).toContain('href="/site/propinas/"');
     expect(page).toMatch(/não cria recibos, não altera saldos e não confirma pagamentos/);
+    expect(page).toContain("A abrir automaticamente a sua área financeira");
+    expect(page).toContain("vista=estudante");
+    expect(page).toContain("seccao=financeiro");
+    expect(page).toContain('http-equiv="refresh"');
+    expect(page).not.toContain("Pagamento confirmado pela Kursinha");
     const alternate = renderSchoolWebsite(
       {
         ...site,
