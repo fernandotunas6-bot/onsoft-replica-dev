@@ -221,7 +221,13 @@ class _SigaAppState extends State<SigaApp> {
         school = role = factor = null;
       } else {
         final aal = auth.mfa.getAuthenticatorAssuranceLevel();
-        if (aal.currentLevel != AuthenticatorAssuranceLevels.aal2 &&
+        // O código só é pedido ao entrar se a conta ligou a opção no portal
+        // (app_metadata.siga_login_mfa_enabled, por omissão desligada). O portal
+        // aplica a mesma regra (src/features/auth/login-mfa-policy.ts).
+        final askCode =
+            auth.currentUser?.appMetadata['siga_login_mfa_enabled'] == true;
+        if (askCode &&
+            aal.currentLevel != AuthenticatorAssuranceLevels.aal2 &&
             aal.nextLevel == AuthenticatorAssuranceLevels.aal2) {
           final factors = await auth.mfa.listFactors();
           if (revision != generation || !mounted) return;

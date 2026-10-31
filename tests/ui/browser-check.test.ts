@@ -6,9 +6,9 @@ const SOURCE = readFileSync("public/browser-check.js", "utf8");
 const MAC_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)";
 
-/** Corre o script como o navegador, com `CSS.supports` a dizer se há color-mix(). */
-function run({ colorMix = true, ua = MAC_UA, tauri = false } = {}) {
-  vi.stubGlobal("CSS", { supports: () => colorMix });
+/** Corre o script como o navegador; `layers` diz se o motor tem `@layer` (Safari 15.4+). */
+function run({ layers = true, ua = MAC_UA, tauri = false } = {}) {
+  vi.stubGlobal("CSSLayerBlockRule", layers ? class CSSLayerBlockRule {} : undefined);
   vi.spyOn(navigator, "userAgent", "get").mockReturnValue(ua);
   if (tauri) vi.stubGlobal("isTauri", true);
   new Function(SOURCE)();
@@ -30,7 +30,7 @@ describe("verificação do navegador (motores antigos)", () => {
   });
 
   it("num Mac com o Safari antigo explica como actualizar o Safari", () => {
-    const overlay = run({ colorMix: false });
+    const overlay = run({ layers: false });
     expect(overlay?.getAttribute("role")).toBe("alertdialog");
     expect(overlay?.textContent).toContain("É preciso actualizar o Safari deste Mac");
     expect(overlay?.textContent).toContain("Actualização de Software");
@@ -39,43 +39,56 @@ describe("verificação do navegador (motores antigos)", () => {
   });
 
   it("na app desktop do Mac diz que a app usa o Safari do sistema", () => {
-    const overlay = run({ colorMix: false, tauri: true });
+    const overlay = run({ layers: false, tauri: true });
     expect(overlay?.textContent).toContain("A app SIGA Desktop usa o motor do Safari do Mac");
   });
 
   it("diz que motor encontrou e, na app do Mac, a versão do macOS", () => {
     vi.stubGlobal("__TAURI_OS_PLUGIN_INTERNALS__", { version: "11.7.10" });
-    const overlay = run({ colorMix: false, tauri: true });
+    const overlay = run({ layers: false, tauri: true });
     const detail = overlay?.querySelector("#siga-browser-check-detail")?.textContent ?? "";
-    expect(detail).toMatch(/^Motor encontrado: /);
+    expect(detail).toMatch(/^Falta: camadas de CSS \(@layer\)/);
     expect(detail).toContain("macOS 11.7.10");
     expect(overlay?.textContent).toContain("portal-siga.com");
   });
 
   it("diz o que falta e a versão que o Safari anuncia", () => {
     const overlay = run({
-      colorMix: false,
+      layers: false,
       ua: `${MAC_UA} Version/17.0 Safari/605.1.15`,
     });
     const detail = overlay?.querySelector("#siga-browser-check-detail")?.textContent ?? "";
-    expect(detail).toContain("Falta: cores com color-mix()");
+    expect(detail).toContain("Falta: camadas de CSS (@layer)");
     expect(detail).toContain("Safari 17.0");
   });
 
   it("«Continuar mesmo assim» fecha o aviso e não volta nesta sessão", () => {
-    const overlay = run({ colorMix: false });
+    const overlay = run({ layers: false });
     overlay?.querySelector<HTMLButtonElement>("#siga-browser-check-continue")?.click();
     expect(document.getElementById("siga-browser-check")).toBeNull();
     expect(document.documentElement.hasAttribute("data-siga-browser")).toBe(false);
-    expect(run({ colorMix: false })).toBeNull();
+    expect(run({ layers: false })).toBeNull();
   });
 
   it("noutro navegador antigo sugere actualizar ou usar outro", () => {
     const overlay = run({
-      colorMix: false,
+      layers: false,
       ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/100.0",
     });
     expect(overlay?.textContent).toContain("Este navegador é antigo demais");
+  });
+
+  it("sem Array.prototype.at diz que o motor é anterior ao Safari 15.4", () => {
+    const at = Object.getOwnPropertyDescriptor(Array.prototype, "at");
+    // @ts-expect-error simula um motor sem Array.prototype.at
+    delete Array.prototype.at;
+    try {
+      const detail = run()?.querySelector("#siga-browser-check-detail")?.textContent ?? "";
+      expect(detail).toContain("Motor encontrado: anterior ao Safari 15.4");
+      expect(detail).toContain("Falta: Array.prototype.at()");
+    } finally {
+      if (at) Object.defineProperty(Array.prototype, "at", at);
+    }
   });
 
   it("a app desktop leva uma cópia igual", () => {
