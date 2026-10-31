@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - run: bunx prettier --write src/features/finance/student-portal-ledger.ts src/features/school-website/StudentWebsitePortal.tsx src/routes/portal.tsx tests/finance/student-portal-ledger.test.ts tests/school-website/student-portal-ui.test.tsx
+      - run: bunx prettier --write src/features/finance/student-portal-ledger.ts src/features/school-website/StudentWebsitePortal.tsx src/features/school-website/student-portal-bridge.ts src/features/school-website/student-portal-server.ts src/features/school-website/render-site.ts src/features/auth/portal-login-return.ts src/routes/portal.tsx tests/finance/student-portal-ledger.test.ts tests/school-website/student-portal-ui.test.tsx tests/school-website/student-portal-server.test.ts tests/school-website/student-portal-bridge.test.ts tests/school-website/ispab-propinas-scope.test.ts
       - run: |
           git add src tests
           git config user.name github-actions
