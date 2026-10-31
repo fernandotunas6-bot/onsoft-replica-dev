@@ -50,6 +50,11 @@ export default defineConfig({
     environments: {
       client: {
         build: {
+          // Mínimo: Safari 15.4 (o primeiro com `@layer`, de que o Tailwind 4 precisa). A app
+          // SIGA Desktop usa o motor do sistema, e há Mac que ficam no 15.4–16.3 mesmo com o
+          // Safari actualizado: sem isto, os blocos `static {}` das classes partiam páginas
+          // com «Unexpected token '{'». O public/browser-check.js avisa abaixo deste mínimo.
+          target: ["chrome99", "edge99", "firefox97", "safari15.4"],
           rolldownOptions: {
             output: {
               codeSplitting: {

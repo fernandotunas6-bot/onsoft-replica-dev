@@ -46,6 +46,10 @@ npm run siga:scaffold -- <modulo> [--route=/caminho] [--with-page]
 
 No SGA não aplicar migrações Lovable. SQL correcto: `npm run siga:sql`.
 
+**Publicação (deploy):** contínua a cada merge na `main`, com vigilância que repete publicações
+falhadas e abre a issue «Deploy de produção parado». Vias alternativas, segredos e diagnóstico:
+[docs/releases/DEPLOY_VIAS.md](docs/releases/DEPLOY_VIAS.md).
+
 **Base de dados — ler antes de qualquer SQL:** [docs/agents/DATABASE_RULES.md](docs/agents/DATABASE_RULES.md).
 O Lovable está ligado à base de **produção**: uma migração aprovada corre nas escolas reais.
 Em resumo: confirmar colunas em `supabase/PRODUCTION_SNAPSHOT.json`; triggers com

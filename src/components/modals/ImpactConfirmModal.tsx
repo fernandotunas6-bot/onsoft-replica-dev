@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { DeleteConfirmModal } from "@/components/ui/modal-system";
+import { toast } from "@/lib/toast";
 import type { DeletionImpact } from "@/features/school/deletion-impact";
 
 /**
@@ -71,7 +72,16 @@ export function ImpactConfirmModal({
         warningMessage={impact?.warning ?? undefined}
         cannotDeleteReason={loadError ?? impact?.blocker ?? undefined}
         onConfirm={async () => {
-          await onConfirm();
+          try {
+            await onConfirm();
+          } catch (error) {
+            // O diálogo só mostra um texto genérico; a razão do servidor (p. ex. uma
+            // disciplina atribuída entretanto, ou falta de escrita) chega por aviso.
+            toast.error("Não foi possível concluir", {
+              description: error instanceof Error && error.message ? error.message : undefined,
+            });
+            throw error;
+          }
           setOpen(false);
         }}
       />

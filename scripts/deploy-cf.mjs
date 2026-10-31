@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { collectWorkerSecrets, collectWorkerVars } from "./worker-secrets.mjs";
+import { assertWranglerLoginAllowed, usesWranglerLogin } from "./siga/deploy-apps.mjs";
 execSync("node scripts/siga/check-release-contracts.mjs", { stdio: "inherit" });
 
 // Load .env file
@@ -37,8 +38,33 @@ const SUPABASE_URL = requireEnv("VITE_SUPABASE_URL");
 const SUPABASE_PUBLISHABLE_KEY = requireEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
 // Obrigatória; vai como segredo (collectWorkerSecrets), nunca em vars.
 requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-const CLOUDFLARE_API_TOKEN = requireEnv("CLOUDFLARE_API_TOKEN");
-const CLOUDFLARE_ACCOUNT_ID = requireEnv("CLOUDFLARE_ACCOUNT_ID");
+// Publicação à mão sem API token (`npx wrangler login`): ver scripts/siga/deploy-apps.mjs.
+assertWranglerLoginAllowed({ ...envVars, ...process.env });
+const WRANGLER_LOGIN = usesWranglerLogin({ ...envVars, ...process.env });
+const CLOUDFLARE_API_TOKEN = WRANGLER_LOGIN ? "" : requireEnv("CLOUDFLARE_API_TOKEN");
+const CLOUDFLARE_ACCOUNT_ID = WRANGLER_LOGIN
+  ? envVars["CLOUDFLARE_ACCOUNT_ID"] || process.env.CLOUDFLARE_ACCOUNT_ID || ""
+  : requireEnv("CLOUDFLARE_ACCOUNT_ID");
+
+/**
+ * Versão publicada: o commit deste deploy. O servidor devolve-a no cabeçalho
+ * `x-siga-release` e a vigilância (`.github/workflows/deploy-watchdog.yml`) compara-a
+ * com a `main` para saber se a produção ficou para trás. Com alterações por gravar na
+ * árvore (deploy manual), leva `-dirty`: a produção não corresponde a nenhum commit.
+ */
+function releaseSha() {
+  const fromEnv = (process.env.GITHUB_SHA || "").trim().toLowerCase();
+  if (/^[0-9a-f]{40}$/.test(fromEnv)) return fromEnv;
+  try {
+    const sha = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim().toLowerCase();
+    if (!/^[0-9a-f]{40}$/.test(sha)) return "";
+    const dirty = execSync("git status --porcelain", { encoding: "utf8" }).trim() !== "";
+    return dirty ? `${sha}-dirty` : sha;
+  } catch {
+    return "";
+  }
+}
+const RELEASE_SHA = releaseSha();
 
 console.log("==> Building for Cloudflare (production)...");
 const WEB_URL = envVars["VITE_WEB_URL"] || "https://siga-web.pages.dev";
@@ -92,6 +118,7 @@ if (fs.existsSync(wranglerPath)) {
     VITE_DOCS_URL: DOCS_URL,
     VITE_SIGA_URL: SIGA_URL,
     VITE_PAYFLOW_URL: PAYFLOW_URL,
+    ...(RELEASE_SHA ? { SIGA_RELEASE_SHA: RELEASE_SHA } : {}),
     ...Object.fromEntries(collectWorkerVars(envVars, process.env)),
   };
   // Sem isto, `wrangler deploy` substitui todas as variáveis do Worker pelas deste
@@ -102,7 +129,11 @@ if (fs.existsSync(wranglerPath)) {
   console.log("==> Attached production Supabase & App environment variables to wrangler.json");
 }
 
-const cfEnv = { ...process.env, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID };
+const cfEnv = { ...process.env };
+// Com a sessão do `wrangler login`, um token velho no ambiente teria prioridade sobre ela.
+if (CLOUDFLARE_API_TOKEN) cfEnv.CLOUDFLARE_API_TOKEN = CLOUDFLARE_API_TOKEN;
+else delete cfEnv.CLOUDFLARE_API_TOKEN;
+if (CLOUDFLARE_ACCOUNT_ID) cfEnv.CLOUDFLARE_ACCOUNT_ID = CLOUDFLARE_ACCOUNT_ID;
 const workerCwd = path.resolve(".output/server");
 
 /**

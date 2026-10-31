@@ -69,11 +69,17 @@ export function TeacherDocumentsPanel({
     }
     setSaving(true);
     try {
-      await attachTeacherDocument({
+      const result = await attachTeacherDocument({
         data: { teacherId, documentCode: selectedCode, fileId: file.id },
       });
       await queryClient.invalidateQueries({ queryKey });
-      toast.success("Documento recebido e associado ao processo do professor.");
+      if (!result.alreadyLinked) {
+        toast.success("Documento recebido e associado ao processo do professor.");
+      } else if (result.state === "rejeitado") {
+        toast.warning("Este ficheiro já foi rejeitado. Carregue um documento substituto.");
+      } else {
+        toast.info("Este ficheiro já faz parte do processo do professor.");
+      }
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Não foi possível associar o documento.",
@@ -202,6 +208,7 @@ export function TeacherDocumentsPanel({
                   <Button
                     size="sm"
                     variant="outline"
+                    disabled={saving || file.validationStatus === "verified"}
                     onClick={() => {
                       setReviewReason("");
                       setReviewTarget({ entryId: file.entryId, decision: "verified" });
@@ -212,6 +219,7 @@ export function TeacherDocumentsPanel({
                   <Button
                     size="sm"
                     variant="outline"
+                    disabled={saving || file.validationStatus === "rejected"}
                     onClick={() => {
                       setReviewReason("");
                       setReviewTarget({ entryId: file.entryId, decision: "rejected" });

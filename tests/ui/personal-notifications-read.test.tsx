@@ -172,6 +172,40 @@ describe("centro de notificações pessoais", () => {
     expect(screen.getByText("Por ler (2)")).toBeTruthy();
   });
 
+  it("uma leitura antiga ainda em curso não repõe o aviso clicado como por ler", async () => {
+    mount();
+    await screen.findByText("Trabalho de Matemática");
+    let resolveStale: (value: unknown) => void = () => {};
+    mocks.list.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveStale = resolve;
+        }),
+    );
+    const stale = { items: server.items.map((n) => ({ ...n })), unread: 2 };
+    await act(async () => {
+      events[0]();
+    });
+    let finishRead: () => void = () => {};
+    mocks.read.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishRead = () => resolve({ ok: true });
+        }),
+    );
+    fireEvent.click(screen.getByText("Trabalho de Matemática"));
+    await waitFor(() => expect(screen.queryByText("Trabalho de Matemática")).toBeNull());
+    await act(async () => {
+      resolveStale(stale);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(screen.queryByText("Trabalho de Matemática")).toBeNull();
+    expect(screen.getByText("Por ler (1)")).toBeTruthy();
+    await act(async () => {
+      finishRead();
+    });
+  });
+
   it("eventos de inserção/actualização refrescam o sino e a lista", async () => {
     mount();
     await screen.findByText("Trabalho de Matemática");
