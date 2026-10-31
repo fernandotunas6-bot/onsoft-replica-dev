@@ -60,7 +60,11 @@ export function servedPages(adopted: readonly string[] = [], schoolSlug?: string
   ]);
 }
 
-export function isPageInScope(page: string, adopted: readonly string[] = [], schoolSlug?: string): boolean {
+export function isPageInScope(
+  page: string,
+  adopted: readonly string[] = [],
+  schoolSlug?: string,
+): boolean {
   const path = page.endsWith("/") ? page : page + "/";
   // O blog tem artigos por baixo de `/blog/`: o âmbito é o ramo, não a folha.
   if (path.startsWith("/blog/")) return true;
@@ -165,7 +169,11 @@ function isEmptyShell(block: string): boolean {
  * Corta do HTML servido tudo o que pertence ao catálogo do modelo ou aponta
  * para uma página fora do âmbito desta escola.
  */
-export function narrowToScope(html: string, adopted: readonly string[] = [], schoolSlug?: string): string {
+export function narrowToScope(
+  html: string,
+  adopted: readonly string[] = [],
+  schoolSlug?: string,
+): string {
   const served = servedPages(adopted, schoolSlug);
   let out = dropBlocks(html, ["section"], containsModelBlock);
   out = dropBlocks(out, BLOCK_TAGS, isModelBlock);
