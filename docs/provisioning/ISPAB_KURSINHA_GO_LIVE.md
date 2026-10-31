@@ -2,18 +2,18 @@
 
 ## Destinos existentes (não criar outra escola ou outro domínio)
 
-- Website institucional (Cloudflare Pages, projecto `siga-ispab`): `https://siga-ispab.pages.dev/`
-- Portal SIGA por escola (tenant existente, domínio validado): `https://ispab.portal-siga.com/portal?escola=ispab`
-- Página de propinas (mesmo website Pages): `https://siga-ispab.pages.dev/propinas/`
+- Domínio principal do website e do portal escolar, já activo: `https://ispab.portal-siga.com/`
+- Portal SIGA autenticado: `https://ispab.portal-siga.com/portal?escola=ispab`
+- Página de propinas no website integrado: `https://ispab.portal-siga.com/site/propinas/`
 - **URL para colar no campo “Entrega → Link de acesso” da Kursinha**:
-  `https://siga-ispab.pages.dev/propinas/confirmacao/`
+  `https://ispab.portal-siga.com/site/propinas/confirmacao/`
 
-A página de entrega é informativa, **não confirma pagamentos**. Não recolhe dados privados nem credenciais e não muda saldos ou emite recibos. Não publicar outra cópia do site; a publicação do painel `painel/escolas` usa o projecto Pages existente `siga-ispab`.
+A página de entrega é informativa, **não confirma pagamentos**. Não recolhe dados privados nem credenciais e não muda saldos ou emite recibos. Não criar outro tenant ou domínio. O website integrado é servido pelo Worker SIGA em `/site/...`, no hostname escolar já validado. O projecto Pages `siga-ispab` é uma cópia adicional existente, mas **não será o destino público da Kursinha**.
 
 ## Limites operacionais confirmados em 31/10/2026
 
 - O tenant ISPAB existe, mas está cadastrado como **ISPAB (Demonstração)**, com NIF fictício, e-mail `.invalid`, campo `school_settings.demo.isDemo=true` e facturação da plataforma pausada.
-- A workflow `.github/workflows/siga-ispab-cloudflare.yml` publica o website existente em `siga-ispab.pages.dev`.
+- A publicação da aplicação SIGA pela workflow `.github/workflows/deploy-production.yml` serve o website integrado em `ispab.portal-siga.com/site/...`. A workflow `.github/workflows/siga-ispab-cloudflare.yml` continua a manter a cópia Pages `siga-ispab`.
 - O website contém catálogo, dados editoriais e funcionalidades de simulação, que **não podem ser apresentados como dados académicos verdadeiros**.
 - O PayFlow não pode liquidar automaticamente cobranças EMIS em produção: o adaptador de produção continua indisponível até à homologação.
 - O material público da Kursinha anuncia webhooks, mas é indispensável obter **especificação autenticada de eventos, assinatura, política de reenvio e API de verificação** do fornecedor antes de habilitar liquidação de propinas.
@@ -32,5 +32,5 @@ A página de entrega é informativa, **não confirma pagamentos**. Não recolhe 
 
 - `cd painel/escolas && npm run build && npm run check && npm test`
 - Inspeccionar `dist/propinas/index.html`, `dist/propinas/confirmacao/index.html` e `dist/school-runtime.json`.
-- Após publicar, confirmar respostas HTTP 200 e links no host actual do Pages; não assumir que um commit no GitHub significa publicação.
+- Após publicar, confirmar respostas HTTP 200 e links em `ispab.portal-siga.com/site/propinas/` e `/site/propinas/confirmacao/`; não assumir que um commit no GitHub significa publicação.
 - No campo da Kursinha introduzir o URL acima **apenas depois da confirmação do deployment**. Usar compra de teste sem valor real para validar navegação antes de vender.
