@@ -1,0 +1,26 @@
+name: Format ISPAB
+
+on:
+  push:
+    branches:
+      - feat/ispab-propinas-entrega-segura-20261031
+    paths:
+      - .github/workflows/format-ispab.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx prettier --write src/features/finance/student-portal-ledger.ts src/features/school-website/StudentWebsitePortal.tsx src/routes/portal.tsx tests/finance/student-portal-ledger.test.ts tests/school-website/student-portal-ui.test.tsx
+      - run: |
+          git add src tests
+          git config user.name github-actions
+          git config user.email github-actions@users.noreply.github.com
+          git commit -m "style: format ISPAB flow"
+          git push
