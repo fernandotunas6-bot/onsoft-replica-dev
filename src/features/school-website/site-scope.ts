@@ -16,7 +16,7 @@
  */
 
 /** Páginas que só precisam da identidade da escola. Servidas desde o nascimento. */
-export const IDENTITY_PAGES = ["/", "/contactos/", "/login/", "/blog/"] as const;
+export const IDENTITY_PAGES = ["/", "/contactos/", "/login/", "/blog/", "/propinas/", "/propinas/confirmacao/"] as const;
 
 /**
  * Classes dos blocos que anunciam o catálogo do modelo: grelhas de curso,
@@ -129,7 +129,11 @@ function containsModelBlock(block: string): boolean {
  */
 function internalPath(href: string): string | null {
   if (!href.startsWith("/") || href.startsWith("//")) return null;
-  const path = href.split(/[?#]/)[0];
+  let path = href.split(/[?#]/)[0];
+  // O website integrado vive em /site/ (ou /escolas/{slug}/ na origem central).
+  // Comparar sempre com os caminhos de template usados pelo âmbito da escola.
+  if (path.startsWith("/site/")) path = path.slice("/site".length);
+  else path = path.replace(/^\/escolas\/[a-z0-9-]+(?=\/)/, "");
   return path.endsWith("/") ? path : null;
 }
 
