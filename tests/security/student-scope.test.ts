@@ -133,7 +133,7 @@ describe("leituras da escola inteira só para o pessoal", () => {
   it("writeAssessmentScores deixa rasto de cada nota mudada", () => {
     const write = read("src/features/academic/assessment-score-write.ts");
     expect(write).toContain('"siga_write_assessment_scores_atomic"');
-    const sql = read("supabase/migrations/20261030020000_academic_write_integrity.sql");
+    const sql = read("supabase/migrations/20261031000000_academic_write_integrity.sql");
     expect(sql).toContain("'grades.assessment_score_changed'");
     expect(sql).toContain("v_old.score IS DISTINCT FROM v_row.score");
     expect(sql).toContain("INSERT INTO public.audit_logs");

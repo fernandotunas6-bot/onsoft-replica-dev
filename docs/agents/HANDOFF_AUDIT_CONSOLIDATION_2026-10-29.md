@@ -17,7 +17,7 @@ Ramo: `fix/audit-consolidation-integrity-20261029`.
 ## Migração e contribuições preservadas
 
 Recuperados da PR #345, sem a fundir integralmente: contrato das RPCs,
-`20261030020000_academic_write_integrity.sql`, ensaio SQL e adaptação dos testes
+`20261031000000_academic_write_integrity.sql`, ensaio SQL e adaptação dos testes
 da devolução. O pacote mantém também a RPC de organização etária, ainda sem
 consumidor novo neste ramo. Não criar outra migração com as mesmas funções.
 
@@ -106,7 +106,9 @@ corrigida e o lint integral repetido; não se desactivou nenhum controlo.
   depois da última já aplicada na produção (`20261029190000_teacher_document_entries`)
   e das da #410 (`20261029220000_class_subject_teacher_periods`,
   `20261029220100_audit_logs_force_rls`). Um primeiro nome, `20261029220000`, repetia
-  a versão da #410 e foi trocado (30/10).
+  a versão da #410 e foi trocado (30/10). A 31/10 passou de `20261030020000` para
+  `20261031000000`: a #426 levou para o `main` `20261030030000_teacher_periods_follow_class_archive`,
+  e a versão anterior ficaria atrás dela; o `supabase db push` recusa migrações fora de ordem.
 - **Bloqueios:** a escola passa de `FOR UPDATE` a `FOR SHARE` nas três funções
   (deixa de travar as inserções com FK para `schools` em toda a escola e de pôr
   todos os lançamentos de notas da escola em fila). A serialização passa a ser por
