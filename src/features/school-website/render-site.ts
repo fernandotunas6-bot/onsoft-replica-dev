@@ -75,6 +75,16 @@ export function renderSchoolWebsite(
   const displayName = site.name.slice(0, 40);
   html = html.replaceAll("ISPAB", () => esc(displayName));
   html = applyWebsiteValues(html, publication.values);
+  // Nunca usar parâmetros de retorno do comprador para decidir a conta.
+  // Todas as ligações de aluno são construídas a partir do domínio escolar verificado.
+  const studentPortalUrl = new URL(site.portalUrl);
+  if (site.slug === "ispab" && path === "/propinas/confirmacao/") {
+    studentPortalUrl.searchParams.set("vista", "estudante");
+    studentPortalUrl.searchParams.set("seccao", "financeiro");
+  }
+  html = html.replace(/<a\b[^>]*data-school-portal-link[^>]*>/g, (tag) =>
+    tag.replace(/\bhref="[^"]*"/, () => `href="${esc(studentPortalUrl.href)}"`),
+  );
   if (site.logoUrl?.startsWith("https://") && safePublicUrl(site.logoUrl, true))
     html = html.replace(
       /(<a\b[^>]*class="brand"[^>]*>)<svg[\s\S]*?<\/svg>/g,
@@ -115,6 +125,20 @@ export function renderSchoolWebsite(
     /\b(href|src|action)="(\/[^"]*)"/g,
     (_whole, attr, raw) => `${attr}="${schoolWebsiteHref(raw, site)}"`,
   );
+  // O link da Kursinha serve apenas como retorno de navegação: não comprova
+  // pagamento. Depois da mensagem informativa, abre o portal autenticado e a
+  // secção financeira, onde os recibos reais são lidos do SIGA.
+  if (site.slug === "ispab" && path === "/propinas/confirmacao/") {
+    html = html.replace(
+      "</head>",
+      () => `<meta http-equiv="refresh" content="12;url=${esc(studentPortalUrl.href)}"></head>`,
+    );
+    html = html.replace(
+      "</main>",
+      () =>
+        '<p role="status" class="wrap quiet-note">A abrir automaticamente a sua área financeira no portal do estudante. Este encaminhamento não confirma a liquidação do pagamento.</p></main>',
+    );
+  }
   const bootstrap = JSON.stringify({
     schoolName: site.name,
     schoolSlug: site.slug,
