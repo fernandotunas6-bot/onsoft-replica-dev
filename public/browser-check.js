@@ -1,11 +1,11 @@
 /*
  * Verificação do navegador do SIGA Plus (portal e app SIGA Desktop).
  *
- * O SIGA é compilado para navegadores com o motor do Safari 16.4 ou mais recente
- * (Chrome/Edge 111, Firefox 114). Num motor mais antigo o ecrã aparece, mas o código
- * não arranca: botões, PIN e entrada não respondem. No Mac a app SIGA Desktop usa o
- * motor do Safari instalado no sistema, por isso um Mac com o Safari por actualizar
- * fica assim. Em vez de um ecrã morto, mostra como resolver.
+ * O SIGA é compilado para navegadores com o motor do Safari 15.4 ou mais recente
+ * (Chrome/Edge 99, Firefox 97; ver `target` em vite.config.ts). Num motor mais antigo o
+ * ecrã aparece, mas os estilos e o código não arrancam. No Mac a app SIGA Desktop usa o
+ * motor do Safari do sistema, por isso um Mac por actualizar fica assim. Em vez de um
+ * ecrã morto, mostra como resolver.
  *
  * Sintaxe antiga de propósito (var, function, sem módulos): tem de correr nos motores
  * antigos que pretende detectar. A cópia em desktop/public/ tem de ser igual (há um teste).
@@ -16,18 +16,12 @@
   // Diz o que falta neste motor, ou "" quando tem tudo.
   function missingFeature() {
     try {
-      // Lookbehind em expressões regulares: Safari 16.4, Chrome 62, Firefox 78.
-      new RegExp("(?<=a)b");
+      // Array.prototype.at(): Safari 15.4, Chrome 92, Firefox 90.
+      if (typeof Array.prototype.at !== "function") return "Array.prototype.at()";
+      // @layer, de que o Tailwind 4 precisa: Safari 15.4, Chrome 99, Firefox 97.
+      if (typeof window.CSSLayerBlockRule === "undefined") return "camadas de CSS (@layer)";
     } catch (e) {
-      return "expressões regulares com lookbehind";
-    }
-    try {
-      // color-mix(): Safari 16.2, Chrome 111, Firefox 113 (Tailwind 4 usa-o nas cores).
-      if (window.CSS && CSS.supports && !CSS.supports("color", "color-mix(in srgb, red, blue)")) {
-        return "cores com color-mix()";
-      }
-    } catch (e) {
-      return "cores com color-mix()";
+      return "funcionalidades básicas";
     }
     return "";
   }
@@ -47,14 +41,7 @@
   // Que motor é este, por saltos de funcionalidades (o user agent do Safari não diz).
   function engineGuess() {
     try {
-      if (!Array.prototype.at) return "anterior ao Safari 15.4";
-      if (window.CSS && CSS.supports && !CSS.supports("container-type", "inline-size")) {
-        return "Safari 15.4 a 15.6";
-      }
-      if (window.CSS && CSS.supports && !CSS.supports("color", "color-mix(in srgb, red, blue)")) {
-        return "Safari 16.0 ou 16.1";
-      }
-      return "Safari 16.2 ou 16.3";
+      return Array.prototype.at ? "" : "anterior ao Safari 15.4";
     } catch (e) {
       return "";
     }
@@ -85,7 +72,7 @@
     title = "É preciso actualizar o Safari deste Mac";
     intro =
       (desktopApp ? "A app SIGA Desktop usa o motor do Safari do Mac. " : "") +
-      "O SIGA Plus precisa do Safari 16.4 ou mais recente e este Mac tem uma versão antiga: " +
+      "O SIGA Plus precisa do Safari 15.4 ou mais recente e este Mac tem uma versão antiga: " +
       "por isso os botões, o PIN e a entrada não funcionam.";
     steps = [
       "Abra o menu Apple () → Preferências do Sistema → Actualização de Software.",
@@ -98,7 +85,7 @@
       "actualizados, em portal-siga.com.";
   } else if (iOS) {
     title = "É preciso actualizar o iOS";
-    intro = "O SIGA Plus precisa do iOS/iPadOS 16.4 ou mais recente.";
+    intro = "O SIGA Plus precisa do iOS/iPadOS 15.4 ou mais recente.";
     steps = [
       "Abra Definições → Geral → Actualização de software.",
       "Instale a actualização e volte a abrir o SIGA Plus.",

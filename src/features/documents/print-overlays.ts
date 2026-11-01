@@ -419,6 +419,19 @@ export function overlayServico(input: {
   }));
   const paymentSections = finance ? bankingPaymentSections(input.banking) : [];
   return {
+    // Documentos de caixa/fatura/recibo são da escola, não são declarações
+    // governamentais. Preservar o logótipo e contactos escolares, sem brasão,
+    // bandeira nem títulos da República nos templates partilhados.
+    ...(finance
+      ? {
+          school: {
+            ministry: "",
+            ministryLine: "",
+            emblemUrl: "",
+            flagUrl: "",
+          },
+        }
+      : {}),
     service: {
       name: input.name,
       areaLabel: area,

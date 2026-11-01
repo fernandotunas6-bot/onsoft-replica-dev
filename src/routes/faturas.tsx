@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { finishRecordedPayment } from "@/features/finance/finish-recorded-payment";
+import { lazy, Suspense, useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -98,6 +99,18 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
 import { schoolDateInDays, schoolTodayIso } from "@/lib/school-date";
 
+const StudentLedgerPanel = lazy(() =>
+  import("@/features/finance/components/StudentLedgerPanel").then((module) => ({
+    default: module.StudentLedgerPanel,
+  })),
+);
+
+const ReceiptRegisterPanel = lazy(() =>
+  import("@/features/finance/components/ReceiptRegisterPanel").then((module) => ({
+    default: module.ReceiptRegisterPanel,
+  })),
+);
+
 const faturasFilterDefaults = {
   q: "",
   estado: "todos",
@@ -170,6 +183,8 @@ function receiveDescription(multa: { counter: number; electronic: number }) {
 }
 
 function FaturasPage() {
+  const [showStudentLedger, setShowStudentLedger] = useState(false);
+  const [showReceipts, setShowReceipts] = useState(false);
   const paymentKey = usePaymentAttemptKey();
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
@@ -307,6 +322,7 @@ function FaturasPage() {
     const created = () =>
       realtime.invalidate(
         ["finance", "invoices"],
+        ["finance", "student-ledger"],
         ["finance", "reporting"],
         ["dashboard", "overview"],
       );
@@ -325,7 +341,12 @@ function FaturasPage() {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "finance_invoices" },
-        () => realtime.invalidate(["finance", "invoices"], ["finance", "reporting"]),
+        () =>
+          realtime.invalidate(
+            ["finance", "invoices"],
+            ["finance", "student-ledger"],
+            ["finance", "reporting"],
+          ),
       )
       .subscribe();
 
@@ -433,18 +454,17 @@ function FaturasPage() {
                 },
               });
               paymentKey.settled(attempt);
-              await Promise.all([
-                queryClient.invalidateQueries({
-                  queryKey: ["finance", "invoices"],
-                }),
-                queryClient.invalidateQueries({
-                  queryKey: ["finance", "reporting"],
-                }),
-                queryClient.invalidateQueries({ queryKey: ["arquivos"] }),
-              ]);
-              // Número oficial vem do servidor (gerado atomicamente) — nunca do
-              // valor digitado, para o PDF impresso bater sempre com a base de dados.
-              await downloadReceipt(f, paid.receipt_number, amount);
+              await finishRecordedPayment({
+                receiptNumber: paid.receipt_number,
+                refresh: () =>
+                  Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["finance"] }),
+                    queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+                    queryClient.invalidateQueries({ queryKey: ["arquivos"] }),
+                  ]),
+                // O número oficial é o devolvido pelo servidor, mesmo que o PDF falhe.
+                print: () => downloadReceipt(f, paid.receipt_number, amount),
+              });
               if (paid?.library_document_code) {
                 toast.success(`Recibo arquivado · ${paid.library_document_code}`);
               }
@@ -456,14 +476,10 @@ function FaturasPage() {
             )}
           />
         ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              void downloadReceipt(f, `RC-${f.numero.replace(/^FT-?/i, "")}`, f.recebido || f.valor)
-            }
-          >
-            <FileDown className="size-3.5" /> Recibo
+          <Button size="sm" variant="outline" asChild>
+            <Link to="/faturas/$invoiceId" params={{ invoiceId: f.id }}>
+              <FileDown className="size-3.5" /> Ver recibos
+            </Link>
           </Button>
         )}
         {resendInvoices ? (
@@ -508,6 +524,7 @@ function FaturasPage() {
                 queryClient.invalidateQueries({
                   queryKey: ["finance", "invoices"],
                 }),
+                queryClient.invalidateQueries({ queryKey: ["finance", "student-ledger"] }),
                 queryClient.invalidateQueries({
                   queryKey: ["finance", "reporting"],
                 }),
@@ -1179,6 +1196,40 @@ function FaturasPage() {
             },
           ]}
         />
+
+        <div>
+          <Button
+            variant="outline"
+            aria-expanded={showStudentLedger}
+            onClick={() => setShowStudentLedger((open) => !open)}
+          >
+            <Users className="size-4" />{" "}
+            {showStudentLedger
+              ? "Fechar lista financeira dos alunos"
+              : "Lista financeira dos alunos"}
+          </Button>
+        </div>
+        {showStudentLedger ? (
+          <Suspense fallback={<EntityListSkeleton rows={4} />}>
+            <StudentLedgerPanel blocked={financeInvoiceBlocked} />
+          </Suspense>
+        ) : null}
+
+        <div>
+          <Button
+            variant="outline"
+            aria-expanded={showReceipts}
+            onClick={() => setShowReceipts((open) => !open)}
+          >
+            <FileDown className="size-4" />
+            {showReceipts ? "Fechar pesquisa de recibos" : "Pesquisar recibos"}
+          </Button>
+        </div>
+        {showReceipts ? (
+          <Suspense fallback={<EntityListSkeleton rows={4} />}>
+            <ReceiptRegisterPanel />
+          </Suspense>
+        ) : null}
 
         <Panel
           title="Documentos emitidos"

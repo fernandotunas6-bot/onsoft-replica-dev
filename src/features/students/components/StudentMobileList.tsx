@@ -61,6 +61,7 @@ export function StudentMobileList({
   whatsappHref,
   financeAllowed = false,
   academicAllowed = false,
+  studentAccountsAllowed = false,
 }: {
   students: StudentMobileRow[];
   loading?: boolean;
@@ -76,6 +77,8 @@ export function StudentMobileList({
   whatsappHref?: (phone: string) => string;
   financeAllowed?: boolean;
   academicAllowed?: boolean;
+  /** Pessoas → Acessos dos alunos; ver `canOpenStudentAccounts`. */
+  studentAccountsAllowed?: boolean;
 }) {
   const navigate = useNavigate();
   const [actionsFor, setActionsFor] = useState<StudentMobileRow | null>(null);
@@ -153,6 +156,7 @@ export function StudentMobileList({
         {
           label: "Recuperar senha de aluno",
           icon: KeyRound,
+          hidden: !studentAccountsAllowed,
           onSelect: () => void navigate({ to: "/pessoas/acessos-alunos" }),
         },
         {

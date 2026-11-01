@@ -57,7 +57,11 @@ import {
 import { listTeachersDirectoryPage, searchPeopleDirectoryPage } from "./directory-server";
 import { reopenSurvivorGuardianLinks } from "@/features/students/guardian-links";
 import { commitTeacherUpdate } from "./teacher-update";
-import { teacherDeletionImpact, type DeletionImpact } from "@/features/school/deletion-impact";
+import {
+  countTeacherActiveAssignments,
+  teacherDeletionImpact,
+  type DeletionImpact,
+} from "@/features/school/deletion-impact";
 import { recordAccessAudit } from "@/features/audit/record-audit";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
@@ -1303,16 +1307,13 @@ export const deleteTeacher = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    const { count, error: linkError } = await db
-      .from("class_subjects")
-      .select("id", { count: "exact", head: true })
-      .eq("school_id", membership.schoolId)
-      .eq("teacher_id", data.teacherId)
-      .eq("status", "active");
-    if (linkError) {
-      throw publicDatabaseError(linkError, "Não foi possível validar disciplinas do professor.");
-    }
-    if ((count ?? 0) > 0) {
+    const count = await countTeacherActiveAssignments(
+      db,
+      membership.schoolId,
+      data.teacherId,
+      "Não foi possível validar disciplinas do professor.",
+    );
+    if (count > 0) {
       throw new Error(
         "Este professor ainda está ligado a disciplinas activas. Reatribua as turmas antes de excluir.",
       );

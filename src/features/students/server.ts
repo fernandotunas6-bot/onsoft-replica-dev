@@ -11,7 +11,7 @@ import {
   assertWorkflowRpcAvailable,
 } from "@/integrations/supabase/workflow-rpcs";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { isMissingTable, publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
   requireSgaWriterFor,
@@ -208,34 +208,54 @@ export const searchStudents = createServerFn({ method: "GET" })
       if (picked) enrollmentByStudent.set(studentId, picked as Record<string, unknown>);
     }
 
-    // Carregamento financeiro para os alunos pesquisados
+    // Carregamento financeiro para os alunos pesquisados. Sem as tabelas do Financeiro
+    // (módulo por instalar) a lista abre sem dívidas. Qualquer outro erro falha: antes
+    // era engolido, e um recibo por ler punha alunos que já pagaram como devedores na
+    // lista de cobrança (ou uma fatura por ler dava «propinas regularizadas»).
     const enrollmentIds = (allEnrollments ?? []).map((e) => e.id);
-    let invoicesByStudent = new Map<string, InvoiceLike[]>();
-    try {
+    const invoicesByStudent = new Map<string, InvoiceLike[]>();
+    const financeRead = <T>(result: { data: T[] | null; error: unknown }): T[] | null => {
+      const error = result.error as Parameters<typeof isMissingTable>[0];
+      if (!error) return result.data ?? [];
+      if (isMissingTable(error)) return null;
+      throw publicDatabaseError(error, "Não foi possível ler a situação financeira dos alunos.");
+    };
+    finance: {
       if (canReadFinance && enrollmentIds.length) {
-        const { data: contracts } = await reads
-          .from("finance_contracts")
-          .select("id, enrollment_id")
-          .in("enrollment_id", enrollmentIds)
-          .eq("school_id", membership.schoolId);
+        const contracts = financeRead(
+          await reads
+            .from("finance_contracts")
+            .select("id, enrollment_id")
+            .in("enrollment_id", enrollmentIds)
+            .eq("school_id", membership.schoolId),
+        );
+        if (!contracts) break finance;
 
         const contractIds = (contracts ?? []).map((c) => c.id);
         if (contractIds.length) {
-          const { data: invoices } = await reads
-            .from("finance_invoices")
-            .select("id, contract_id, amount, discount_amount, due_date, status")
-            .in("contract_id", contractIds)
-            .eq("school_id", membership.schoolId)
-            .neq("status", "cancelled");
+          // A multa por atraso conta para a dívida, como em Faturas (invoiceNetTotal).
+          const invoices = financeRead(
+            await reads
+              .from("finance_invoices")
+              .select("id, contract_id, amount, discount_amount, penalty_amount, due_date, status")
+              .in("contract_id", contractIds)
+              .eq("school_id", membership.schoolId)
+              .neq("status", "cancelled"),
+          );
+          if (!invoices) break finance;
 
-          const invoiceIds = (invoices ?? []).map((inv) => inv.id);
-          const { data: receipts } = invoiceIds.length
-            ? await reads
-                .from("finance_receipts")
-                .select("invoice_id, amount, status")
-                .in("invoice_id", invoiceIds)
-                .eq("school_id", membership.schoolId)
-            : { data: [] };
+          const invoiceIds = invoices.map((inv) => inv.id);
+          const receipts = invoiceIds.length
+            ? financeRead(
+                await reads
+                  .from("finance_receipts")
+                  .select("invoice_id, amount, status")
+                  .in("invoice_id", invoiceIds)
+                  .eq("school_id", membership.schoolId),
+              )
+            : [];
+          // Faturas sem os recibos davam tudo por pagar: sem recibos, sem resumo.
+          if (!receipts) break finance;
 
           const paidByInvoice = new Map<string, number>();
           for (const r of receipts ?? []) {
@@ -263,6 +283,7 @@ export const searchStudents = createServerFn({ method: "GET" })
                 id: inv.id,
                 amount: inv.amount,
                 discount_amount: inv.discount_amount,
+                penalty_amount: inv.penalty_amount,
                 amount_paid: paidByInvoice.get(inv.id) ?? 0,
                 due_date: inv.due_date,
                 status: inv.status,
@@ -272,9 +293,6 @@ export const searchStudents = createServerFn({ method: "GET" })
           }
         }
       }
-    } catch {
-      // Fallback gracioso caso o módulo financeiro ainda não esteja provisionado
-      invoicesByStudent = new Map();
     }
 
     const peopleById = new Map(

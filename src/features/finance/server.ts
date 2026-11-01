@@ -41,6 +41,7 @@ import {
 // Só o schema (zod puro, sem dependências pesadas) entra estaticamente; o
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
+import { readInvoicePaidAmount } from "./invoice-paid-amount";
 import { invoiceNetTotal, invoiceOpenAmount } from "./invoice-settlement";
 import { loadCompleteInvoiceReceipts, receiptsPaidByInvoice } from "./invoice-receipts";
 import {
@@ -1062,11 +1063,14 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       paid_on: paidOnIso(data.paidAt),
     };
     const keyed = data.idempotencyKey ? { ...args, idempotency_key: data.idempotencyKey } : args;
-    let { data: outcome, error } = await context.supabase.rpc("register_payment", keyed);
-    // Base ainda sem `20261024100000_register_payment_idempotency_key.sql`: a função
-    // não conhece a chave (PGRST202). Paga como antes, sem protecção à repetição.
+    const { data: outcome, error } = await context.supabase.rpc("register_payment", keyed);
+    // Não retirar a chave para repetir uma escrita: isso poderia duplicar um
+    // pagamento após falha de rede. A assinatura com chave foi confirmada na
+    // produção em 28/10/2026; bases antigas precisam da migração existente.
     if (error?.code === "PGRST202" && data.idempotencyKey) {
-      ({ data: outcome, error } = await context.supabase.rpc("register_payment", args));
+      throw new Error(
+        "A confirmação segura de pagamentos está indisponível. Contacte a administração antes de repetir.",
+      );
     }
     if (error) {
       if (isRpcAuthDenied(error)) {
@@ -1155,21 +1159,12 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
     if (invoice.status === "paid" || invoice.status === "cancelled") {
       throw new Error("Esta fatura já não tem valor por pagar.");
     }
-    const { data: receipts } = await db
-      .from("finance_receipts")
-      .select("amount")
-      .eq("school_id", membership.schoolId)
-      .eq("invoice_id", data.invoiceId)
-      .eq("status", "issued");
-    const alreadyPaid = (receipts ?? []).reduce(
-      (sum: number, r: { amount: unknown }) => sum + Number(r.amount || 0),
-      0,
-    );
+    const alreadyPaid = await readInvoicePaidAmount(db, membership.schoolId, data.invoiceId);
     // A referência é paga electronicamente: se hoje já é depois da tolerância, a liquidação
     // (webhook ou confirmação manual) aplica a multa, e a referência tem de a incluir.
     const billing = await readSettingsDomain(db, membership.schoolId, "billing");
     const lateFee = lateFeeFor(invoice, billing, data.paidOn ?? todayIso(), "electronic");
-    const due = Math.round((invoiceNetTotal(invoice) + lateFee - alreadyPaid) * 100) / 100;
+    const due = invoiceOpenAmount(invoiceNetTotal(invoice) + lateFee, alreadyPaid);
     if (due <= 0.009) throw new Error("Esta fatura já não tem valor por pagar.");
     const amount = data.amount ?? due;
     if (amount > due + 0.01) {
@@ -1207,6 +1202,7 @@ const confirmManualPaymentInputSchema = z.object({
   method: z.string().trim().max(40).optional(),
   /** Dia do pagamento no comprovativo; sem ele, hoje. */
   paidOn: paidOnDateSchema.optional(),
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
@@ -1227,31 +1223,28 @@ export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
         amount: data.amount,
         method: data.method ?? "multicaixa_express",
         ...(data.paidOn ? { paidAt: paidAtFromPaidOn(data.paidOn) } : {}),
+        ...(data.idempotencyKey ? { idempotencyKey: data.idempotencyKey } : {}),
         receiptNumber: `MCX-CONF-${data.reference.replace(/\s+/g, "")}`,
       },
     });
 
-    const db = await loadSgaAdminClient();
-    const normRef = normalizePaymentReference(data.reference);
-    // O pagamento já está registado e repetir podia duplicá-lo: não se lança,
-    // mas um plano que fica "pendente" com a fatura paga tem de ficar visível.
-    for (const [column, value] of [
-      ["invoice_id", data.invoiceId],
-      ["reference", normRef],
-    ] as const) {
+    // Uma prestação parcial não liquida todos os planos da factura. O acerto
+    // legado só é seguro quando o saldo da factura ficou integralmente pago.
+    if (payResult.invoice_status === "paid") {
+      const db = await loadSgaAdminClient();
       const { error: planError } = await db
         .from("finance_payment_plans")
         .update({ status: "settled", updated_at: new Date().toISOString() })
         .eq("school_id", membership.schoolId)
-        .eq(column, value)
+        .eq("invoice_id", data.invoiceId)
         .in("status", ["pending_gateway", "scheduled"]);
-      if (planError) {
+      // O recibo já está registado: uma falha deste acerto não é falha do
+      // pagamento e nunca deve levar o utilizador a pagá-lo outra vez.
+      if (planError)
         reportSigaError("finance.payment_plan.settle_failed", planError, {
           school_id: membership.schoolId,
           invoice_id: data.invoiceId,
-          by: column,
         });
-      }
     }
 
     return {
@@ -1259,6 +1252,7 @@ export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
       paidAt: new Date().toISOString(),
       receiptId: payResult.id,
       receiptNumber: payResult.receipt_number,
+      invoiceStatus: payResult.invoice_status,
       message: `Pagamento de ${data.amount} AOA confirmado manualmente pela tesouraria. Recibo oficial ${payResult.receipt_number} emitido.`,
     };
   });
@@ -1602,11 +1596,12 @@ const issueTuitionBatchInputSchema = z
   .object({
     classGroupId: z.string().guid().optional(),
     studentIds: z.array(z.string().guid()).min(1).max(TUITION_BATCH_LIMIT).optional(),
+    academicYearId: z.string().guid().optional(),
     dueOn: z.string().date(),
     issuedOn: z.string().date().optional(),
   })
-  .refine((value) => Boolean(value.classGroupId) !== Boolean(value.studentIds), {
-    message: "Seleccione uma turma ou alunos específicos, mas não ambos.",
+  .refine((value) => Boolean(value.classGroupId) || Boolean(value.studentIds), {
+    message: "Seleccione uma turma e/ou alunos específicos.",
   });
 
 export type TuitionBatchResult = {
@@ -1692,18 +1687,28 @@ export const issueTuitionBatch = createServerFn({ method: "POST" })
       }
       if (!activeYear) throw new Error("Defina um ano lectivo activo antes de emitir propinas.");
       academicYearId = String(activeYear.id);
+      if (data.academicYearId && data.academicYearId !== academicYearId) {
+        throw new Error(
+          "A selecção não pertence ao ano lectivo activo. Actualize o ano antes de emitir propinas.",
+        );
+      }
     }
     const baseQuery = db
       .from("enrollments")
       .select("student_id")
       .eq("school_id", membership.schoolId)
       .eq("status", "active");
+    // Sem escolher turma, manter o modo existente de selecção por alunos.
+    // Com turma, impedir emitir propina para aluno de outra turma.
+    const scopedQuery = data.classGroupId
+      ? baseQuery.eq("class_group_id", data.classGroupId)
+      : baseQuery;
     const { data: rows, error } = selectedIds
-      ? await baseQuery
+      ? await scopedQuery
           .in("student_id", selectedIds)
           .eq("academic_year_id", academicYearId!)
           .limit(TUITION_BATCH_LIMIT + 1)
-      : await baseQuery.eq("class_group_id", data.classGroupId!).limit(TUITION_BATCH_LIMIT + 1);
+      : await scopedQuery.limit(TUITION_BATCH_LIMIT + 1);
     if (error) throw publicDatabaseError(error, "Não foi possível ler os alunos da turma.");
     const studentIds = [...new Set((rows ?? []).map((row) => String(row.student_id)))];
     if (selectedIds && studentIds.length !== selectedIds.length) {
@@ -1715,6 +1720,63 @@ export const issueTuitionBatch = createServerFn({ method: "POST" })
       throw new Error(
         `O lote excede ${TUITION_BATCH_LIMIT} alunos. Divida a selecção em lotes menores.`,
       );
+    }
+
+    if (data.studentIds && studentIds.length !== new Set(data.studentIds).size) {
+      throw new Error(
+        "A selecção contém alunos sem matrícula activa nesta turma/ano. Actualize a lista.",
+      );
+    }
+    if (data.studentIds) {
+      // A emissão individual resolve a matrícula activa. Recusar ambiguidades antes
+      // de começar, para não cobrar outro ano/turma por escolha arbitrária.
+      const active = await readAllPages((from, to) =>
+        db
+          .from("enrollments")
+          .select("id, student_id")
+          .eq("school_id", membership.schoolId)
+          .eq("status", "active")
+          .in("student_id", studentIds)
+          .order("id")
+          .range(from, to),
+      );
+      if (active.error)
+        throw publicDatabaseError(active.error, "Não foi possível validar as matrículas.");
+      const counts = new Map<string, number>();
+      for (const row of active.data)
+        counts.set(row.student_id, (counts.get(row.student_id) ?? 0) + 1);
+      if (studentIds.some((id) => counts.get(id) !== 1)) {
+        throw new Error(
+          "Há alunos com matrículas activas ambíguas. Corrija as matrículas antes de emitir.",
+        );
+      }
+    }
+
+    if (selectedIds) {
+      // A emissão individual procura a matrícula activa: a ambiguidade é
+      // perigosa mesmo que a lista filtrada pela turma tenha só uma linha.
+      const active = await readAllPages((from, to) =>
+        db
+          .from("enrollments")
+          .select("id, student_id")
+          .eq("school_id", membership.schoolId)
+          .eq("status", "active")
+          .in("student_id", selectedIds)
+          .order("id")
+          .range(from, to),
+      );
+      if (active.error) {
+        throw publicDatabaseError(active.error, "Não foi possível validar as matrículas.");
+      }
+      const counts = new Map<string, number>();
+      for (const row of active.data) {
+        counts.set(row.student_id, (counts.get(row.student_id) ?? 0) + 1);
+      }
+      if (selectedIds.some((id) => counts.get(id) !== 1)) {
+        throw new Error(
+          "Há alunos com matrículas activas ambíguas. Corrija as matrículas antes de emitir.",
+        );
+      }
     }
 
     const result: TuitionBatchResult = { issued: [], skipped: [], failed: [] };

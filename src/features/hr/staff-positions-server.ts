@@ -27,7 +27,8 @@ export async function assertHrEmploymentStoreReady(db: Db, schoolId: string): Pr
  * O cargo profissional (hr_positions) não é uma permissão de login.
  * Garante um vínculo RH em rascunho, sem contrato nem salário, se a pessoa
  * recebeu um vínculo institucional de pessoal. Não cria duplicados se já
- * existir vínculo activo/em preparação na escola.
+ * existir vínculo activo/em preparação na escola; o índice
+ * hr_employments_one_current_per_person_idx garante-o também em concorrência.
  */
 export async function ensureStaffEmploymentDraft(
   db: Db,
@@ -35,22 +36,23 @@ export async function ensureStaffEmploymentDraft(
   personId: string,
   actorId: string,
 ): Promise<{ id: string; created: boolean }> {
-  const { data: existing, error } = await db
-    .from("hr_employments")
-    .select("id, status")
-    .eq("school_id", schoolId)
-    .eq("person_id", personId)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
-  if (error) {
-    if (isMissingHrTable(error)) {
-      throw new Error("O módulo RH ainda não está instalado nesta escola.");
+  const findCurrent = async () => {
+    const { data: existing, error } = await db
+      .from("hr_employments")
+      .select("id, status")
+      .eq("school_id", schoolId)
+      .eq("person_id", personId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+    if (error) {
+      if (isMissingHrTable(error)) {
+        throw new Error("O módulo RH ainda não está instalado nesta escola.");
+      }
+      throw publicDatabaseError(error, "Não foi possível verificar o vínculo laboral.");
     }
-    throw publicDatabaseError(error, "Não foi possível verificar o vínculo laboral.");
-  }
-  const current = (existing ?? []).find((item) =>
-    ["active", "draft", "suspended"].includes(item.status),
-  );
+    return (existing ?? []).find((item) => ["active", "draft", "suspended"].includes(item.status));
+  };
+  const current = await findCurrent();
   if (current) return { id: String(current.id), created: false };
   const { data: employment, error: createError } = await db
     .from("hr_employments")
@@ -66,6 +68,11 @@ export async function ensureStaffEmploymentDraft(
     })
     .select("id")
     .single();
+  if (createError?.code === "23505") {
+    // hr_employments_one_current_per_person_idx: outro pedido criou a ficha entretanto.
+    const concurrent = await findCurrent();
+    if (concurrent) return { id: String(concurrent.id), created: false };
+  }
   if (createError) throw publicDatabaseError(createError, "Não foi possível criar a ficha RH.");
   return { id: String(employment.id), created: true };
 }
@@ -140,7 +147,7 @@ export const assignStaffPosition = createServerFn({ method: "POST" })
 
     let departmentId = data.departmentId ?? null;
     if (departmentId) {
-      const { data: department } = await db
+      const { data: department, error: departmentError } = await db
         .from("hr_departments")
         .select("id")
         .eq("school_id", membership.schoolId)
@@ -148,6 +155,8 @@ export const assignStaffPosition = createServerFn({ method: "POST" })
         .eq("active", true)
         .is("deleted_at", null)
         .maybeSingle();
+      if (departmentError)
+        throw publicDatabaseError(departmentError, "Não foi possível verificar o departamento.");
       if (!department) throw new Error("Departamento inválido nesta escola.");
     }
 
@@ -167,18 +176,32 @@ export const assignStaffPosition = createServerFn({ method: "POST" })
       departmentId ??= position.department_id;
     } else if (data.newPositionName) {
       const name = data.newPositionName.trim();
-      const { data: matches } = await db
-        .from("hr_positions")
-        .select("id, name, department_id")
-        .eq("school_id", membership.schoolId)
-        .is("deleted_at", null)
-        .eq("active", true);
-      const existing = (matches ?? []).find(
-        (entry) => entry.name.toLocaleLowerCase("pt") === name.toLocaleLowerCase("pt"),
-      );
+      // O índice único (school_id, lower(name)) inclui cargos inactivos: procurar
+      // todos, para não tentar criar um nome que a base de dados recusa.
+      const findByName = async () => {
+        const { data: matches, error: matchError } = await db
+          .from("hr_positions")
+          .select("id, name, department_id, active")
+          .eq("school_id", membership.schoolId)
+          .is("deleted_at", null);
+        if (matchError)
+          throw publicDatabaseError(matchError, "Não foi possível verificar os cargos existentes.");
+        return (matches ?? []).find(
+          (entry) => entry.name.toLocaleLowerCase("pt") === name.toLocaleLowerCase("pt"),
+        );
+      };
+      const useExisting = (entry: NonNullable<Awaited<ReturnType<typeof findByName>>>) => {
+        if (!entry.active) {
+          throw new Error(
+            "Já existe um cargo inactivo com este nome. Reactive-o no catálogo de cargos do RH.",
+          );
+        }
+        positionId = String(entry.id);
+        departmentId ??= entry.department_id;
+      };
+      const existing = await findByName();
       if (existing) {
-        positionId = String(existing.id);
-        departmentId ??= existing.department_id;
+        useExisting(existing);
       } else {
         const { data: created, error: createError } = await db
           .from("hr_positions")
@@ -193,9 +216,17 @@ export const assignStaffPosition = createServerFn({ method: "POST" })
           })
           .select("id")
           .single();
-        if (createError)
+        if (createError?.code === "23505") {
+          // Outro pedido criou o mesmo cargo entretanto: reutilizar esse registo.
+          const concurrent = await findByName();
+          if (!concurrent)
+            throw publicDatabaseError(createError, "Não foi possível registar o cargo.");
+          useExisting(concurrent);
+        } else if (createError) {
           throw publicDatabaseError(createError, "Não foi possível registar o cargo.");
-        positionId = String(created.id);
+        } else {
+          positionId = String(created.id);
+        }
       }
     }
     if (!positionId) throw new Error("Cargo não encontrado.");

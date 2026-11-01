@@ -1,10 +1,13 @@
 import { publicWebsiteContent, websiteOrigin, type WebsiteState } from "./content-model";
+import type { SchoolAdmissions } from "./admissions";
 
 export function createWebsiteContentHandler(
   load: (code: string) => Promise<{
     state: WebsiteState;
     programNames: Record<string, string | null>;
     campaignOpen?: boolean;
+    /** Estado resolvido por `resolveSchoolAdmissions`; prevalece sobre `campaignOpen`. */
+    admissions?: SchoolAdmissions;
     allowedOrigins?: string[];
   } | null>,
 ) {
@@ -51,12 +54,14 @@ export function createWebsiteContentHandler(
         ...content,
         values,
         unavailablePrograms,
-        admissions: campaign
-          ? {
-              isOpen: loaded!.campaignOpen === true,
-              path: loaded!.campaignOpen ? `/matricula/${encodeURIComponent(campaign)}` : null,
-            }
-          : null,
+        admissions: loaded!.admissions
+          ? loaded!.admissions
+          : campaign
+            ? {
+                isOpen: loaded!.campaignOpen === true,
+                path: loaded!.campaignOpen ? `/matricula/${encodeURIComponent(campaign)}` : null,
+              }
+            : null,
       });
     } catch {
       return reply(503, { error: "website_unavailable" });

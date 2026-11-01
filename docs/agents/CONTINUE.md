@@ -1,5 +1,16 @@
 # Handoff — continuar o SIGA
 
+## Ecossistema: cinco destinos, jornada da escola nova e ligações — 01/11/2026
+
+Ramo `claude/cool-goldberg-syajnp`. Os cinco destinos estão publicados em `b38509db`
+(verificação pelos workflows; esta sessão não alcança `portal-siga.com`). Achados e
+pendências do proprietário em
+[estado do ecossistema 01/11](../auditoria/estado-ecossistema-2026-11-01.md): WEB, ADMIN e
+DOC só em `*.pages.dev`; PayFlow sem fornecedor nem liquidação no SIGA; protecção de
+palavras-passe vazadas desligada. Jornada: WEB `/start` → 1.º `/configuracoes/inicio`
+→ 2.º `/portal`; website e portal SIGA Plus na área do cliente
+(`/configuracoes/assinatura`) e no ADMIN. Sem SQL nem migrações neste ciclo.
+
 ## Auditoria funcional: sessão, escola e API de faltas — 27/10/2026
 
 Base `ac9c8b1b20a3213594fb6ef73546115977e5ff64`, ramo

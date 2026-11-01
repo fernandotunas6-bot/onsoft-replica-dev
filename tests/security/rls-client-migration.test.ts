@@ -56,6 +56,13 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Endereços da escola (2026-11-01): website, portal e inscrições online do
+  // Administrador. tenants e tenant_domains só têm SELECT para administradores da
+  // plataforma (platform_admin_all_*), e o domínio school_website de
+  // school_settings é só do servidor (school_web_content_server_only) — pg_policies
+  // confirmados na produção nesta data. Guarda: só Administrador; a escola vem da
+  // membership; devolve só URLs públicas, as mesmas que o website serve.
+  "src/features/school/school-addresses-server.ts",
   // Documentos docentes: teacher_document_entries é uma tabela privada com FORCE RLS
   // e sem GRANT para authenticated. O endpoint exige membership, valida teacher,
   // person e escola e devolve apenas campos autorizados; a associação do ficheiro
@@ -68,6 +75,13 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // pelo servidor. Atribuir o cargo exige Administrador, valida person/escola,
   // não atribui privilégios de login e reutiliza o vínculo laboral existente.
   "src/features/hr/staff-positions-server.ts",
+  // Lista financeira (28/10/2026): dados de alunos, matrículas, contratos,
+  // facturas e recibos usam context.supabase/RLS. Apenas class_groups,
+  // grade_levels, programs e academic_levels usam o cliente privilegiado:
+  // pg_policies e role_permissions confirmados na produção nesta data;
+  // treasury não tem academic.classes.read/academic.structure.read. A guarda
+  // Administrador/Tesouraria e school_id limitam o catálogo à escola activa.
+  "src/features/finance/student-ledger-server.ts",
   // Presença do professor na aula (2026-10-26): authenticated só tem SELECT em
   // siga_attendance_sessions (as chamadas escrevem-se no servidor), por isso a
   // entrada/saída do professor também. Aqui decide-se quem: o professor da aula,

@@ -23,6 +23,12 @@ const linkInput = teacherInput.extend({
 });
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
+function documentEntryState(status: string | null | undefined) {
+  if (status === "verified") return "validado" as const;
+  if (status === "rejected") return "rejeitado" as const;
+  return "recebido" as const;
+}
+
 /** A pessoa é a mesma; os documentos e a configuração pertencem à escola activa. */
 async function requireTeacherDocumentTarget(db: Db, schoolId: string, teacherId: string) {
   const { data: teacher, error } = await db
@@ -225,7 +231,7 @@ export const attachTeacherDocument = createServerFn({ method: "POST" })
     if (!doc) throw new Error("Tipo de documento não reconhecido.");
     const { data: existing, error: existingError } = await db
       .from("teacher_document_entries")
-      .select("id, document_code")
+      .select("id, document_code, validation_status")
       .eq("school_id", membership.schoolId)
       .eq("file_id", data.fileId)
       .maybeSingle();
@@ -237,7 +243,14 @@ export const attachTeacherDocument = createServerFn({ method: "POST" })
           "Este arquivo já está associado a outro tipo documental. Seleccione outro ficheiro.",
         );
       }
-      return { id: String(existing.id), documentCode: doc.code, state: "recebido" as const };
+      // Voltar a escolher o mesmo ficheiro não o torna novamente «recebido»:
+      // uma rejeição ou validação anterior mantém-se até nova revisão.
+      return {
+        id: String(existing.id),
+        documentCode: doc.code,
+        state: documentEntryState(existing.validation_status),
+        alreadyLinked: true,
+      };
     }
     const { data: result, error: insertError } = await db
       .from("teacher_document_entries")
@@ -254,7 +267,12 @@ export const attachTeacherDocument = createServerFn({ method: "POST" })
       .single();
     if (insertError)
       throw publicDatabaseError(insertError, "Não foi possível associar o documento.");
-    return { id: String(result.id), documentCode: doc.code, state: "recebido" as const };
+    return {
+      id: String(result.id),
+      documentCode: doc.code,
+      state: "recebido" as const,
+      alreadyLinked: false,
+    };
   });
 
 const reviewInput = teacherInput.extend({

@@ -4,6 +4,7 @@ import { getTenantAccessBlock } from "@/features/saas/tenant-access";
 import { readWebsiteState, WEBSITE_DOMAIN } from "@/features/school-website/content-model";
 import { createWebsiteContentHandler } from "@/features/school-website/content-http";
 import { schoolWebStorageReady } from "@/features/school-website/storage-guard";
+import { resolveSchoolAdmissions } from "@/features/school-website/admissions";
 
 // style-check: route-exempt — API pública de conteúdos; sem interface de operação.
 const handle = createWebsiteContentHandler(async (code) => {
@@ -51,18 +52,11 @@ const handle = createWebsiteContentHandler(async (code) => {
     const names = new Map((programs.data ?? []).map((program) => [program.id, program.name]));
     for (const [key, id] of Object.entries(bindings)) programNames[key] = names.get(id) ?? null;
   }
-  let campaignOpen = false;
-  const slug = state.published?.content.campaignSlug;
-  if (slug) {
-    const campaign = await db
-      .from("enrollment_forms")
-      .select("is_open")
-      .eq("school_id", school.id)
-      .eq("slug", slug)
-      .maybeSingle();
-    if (campaign.error) throw new Error("Campaign lookup failed");
-    campaignOpen = campaign.data?.is_open === true;
-  }
+  const admissions = await resolveSchoolAdmissions(
+    db,
+    school.id,
+    state.published?.content.campaignSlug,
+  );
   let allowedOrigins: string[] = [];
   if (school.tenant_id) {
     const domains = await db
@@ -75,7 +69,7 @@ const handle = createWebsiteContentHandler(async (code) => {
       .filter((domain) => domain.type === "siga_subdomain" || domain.verified_at)
       .map((domain) => `https://${domain.hostname}`);
   }
-  return { state, programNames, campaignOpen, allowedOrigins };
+  return { state, programNames, admissions, allowedOrigins };
 });
 export const Route = createFileRoute("/api/public/school-content/$code")({
   server: {

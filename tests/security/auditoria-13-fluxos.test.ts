@@ -21,7 +21,13 @@ describe("matrícula pública só para escolas que podem trabalhar", () => {
       const body = fnBody(source, name);
       expect(body).toContain("schoolAcceptsPublicEnrollment(db");
     }
-    expect(source).toContain("getTenantAccessBlock(");
+    // A guarda vive num módulo partilhado com o website da escola (01/11/2026),
+    // para o site nunca anunciar uma campanha que o formulário recusa.
+    expect(source).toContain('import { schoolAcceptsPublicEnrollment } from "./public-acceptance"');
+    expect(read("src/features/enrollment/public-acceptance.ts")).toContain("getTenantAccessBlock(");
+    expect(read("src/features/school-website/admissions.ts")).toContain(
+      "schoolAcceptsPublicEnrollment(db",
+    );
   });
 
   it("aceitar uma candidatura conta para o limite de alunos do plano", () => {

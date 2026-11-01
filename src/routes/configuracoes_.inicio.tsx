@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { toastActionError } from "@/lib/action-error-toast";
@@ -17,6 +17,7 @@ import {
 import type { SetupStep } from "@/features/school/setup-steps";
 import { moduleIcons } from "@/lib/app-icons";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
+import { SchoolAddressLinks } from "@/features/school/SchoolAddressLinks";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/configuracoes_/inicio")({
@@ -148,6 +149,23 @@ function SetupContent({ status }: { status: SchoolSetupStatus }) {
           ) : null}
         </div>
       </section>
+
+      {/* Ordem do arranque: configurar aqui (painel administrativo) e depois
+          entrar na escola. Os endereços públicos ficam à mão desde o início. */}
+      <Panel
+        title="A escola na internet"
+        description="Depois de configurar, entre na escola. O website e o portal são os endereços a partilhar com a comunidade."
+        action={
+          <Button asChild size="sm" variant={summary.ready ? "default" : "secondary"}>
+            <Link to="/portal">
+              Entrar na escola
+              <ArrowRight className="size-4" aria-hidden />
+            </Link>
+          </Button>
+        }
+      >
+        <SchoolAddressLinks />
+      </Panel>
 
       {groups.map((group) => (
         <Panel key={group} title={group}>
