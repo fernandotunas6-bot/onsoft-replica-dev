@@ -172,7 +172,7 @@ function HrAbsencesPage() {
           {absences.isLoading ? (
             <p className="text-sm text-muted-foreground">A carregar faltas…</p>
           ) : absences.isError ? (
-            <p className="text-sm text-destructive">
+            <p className="text-sm text-destructive-strong">
               {absences.error instanceof Error
                 ? absences.error.message
                 : "Não foi possível carregar as faltas."}

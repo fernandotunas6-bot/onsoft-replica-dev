@@ -112,7 +112,7 @@ export function EnrollmentCampaignPanel() {
   }
   if (formQuery.isError || !form) {
     return (
-      <p className="text-sm text-destructive">
+      <p className="text-sm text-destructive-strong">
         {formQuery.error instanceof Error
           ? formQuery.error.message
           : "Não foi possível carregar o formulário público."}

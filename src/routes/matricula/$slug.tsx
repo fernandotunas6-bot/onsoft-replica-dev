@@ -204,7 +204,7 @@ export function PublicEnrollmentForm({ slug }: { slug: string }) {
                 <EnrollmentFeeNotice amount={form?.admissionFeeAmount} />
               </div>
               {error ? (
-                <p role="alert" className="mt-4 text-sm text-destructive">
+                <p role="alert" className="mt-4 text-sm text-destructive-strong">
                   {error}
                 </p>
               ) : null}
@@ -429,7 +429,7 @@ export function PublicEnrollmentForm({ slug }: { slug: string }) {
                     <Textarea id="notes" name="notes" />
                   </div>
                 ) : null}
-                {error ? <p className="text-sm text-destructive">{error}</p> : null}
+                {error ? <p className="text-sm text-destructive-strong">{error}</p> : null}
                 <Button type="submit" className="w-full" disabled={saving}>
                   Rever candidatura
                 </Button>

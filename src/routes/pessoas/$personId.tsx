@@ -805,7 +805,7 @@ function PersonDetail() {
                   {personalFilesQuery.isLoading ? (
                     <p className="text-xs text-muted-foreground">A carregar documentos…</p>
                   ) : personalFilesQuery.isError ? (
-                    <p className="text-xs text-destructive">
+                    <p className="text-xs text-destructive-strong">
                       Não foi possível consultar os ficheiros.
                     </p>
                   ) : personalFilesQuery.data?.files.length ? (

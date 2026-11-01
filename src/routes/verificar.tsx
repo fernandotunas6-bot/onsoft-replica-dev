@@ -78,7 +78,7 @@ function VerifyDocumentPage() {
         {query.isLoading ? (
           <InlineLoading label="A verificar…" />
         ) : query.isError ? (
-          <p className="text-sm text-destructive">
+          <p className="text-sm text-destructive-strong">
             {/* Erros técnicos não chegam ao público (publicErrorMessage). */}
             {publicErrorMessage(query.error, "Não foi possível verificar agora. Tente mais tarde.")}
           </p>
@@ -128,7 +128,7 @@ function VerifyDocumentPage() {
           </section>
         ) : query.data && !query.data.valid ? (
           <section className="space-y-1 rounded-xl border border-border p-4">
-            <p className="flex items-center gap-2 font-medium text-destructive">
+            <p className="flex items-center gap-2 font-medium text-destructive-strong">
               <InvalidIcon className="size-5" /> Código não encontrado
             </p>
             <p className="text-sm text-muted-foreground">Confirme se escreveu bem o código.</p>

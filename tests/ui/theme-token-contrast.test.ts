@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -92,6 +92,8 @@ const PARES: Array<[string, string, number, string]> = [
   ["--primary-foreground", "--primary", 4.5, "botão primário"],
   ["--accent-foreground", "--accent", 4.5, "estado accent / item activo"],
   ["--destructive-foreground", "--destructive", 4.5, "botão e etiqueta destrutivos"],
+  ["--destructive-foreground", "--destructive-hover", 4.5, "hover destrutivo opaco"],
+  ["--destructive-strong", "--background", 4.5, "texto destrutivo na página"],
   ["--success-foreground", "--success", 4.5, "etiqueta de sucesso"],
   ["--warning-foreground", "--warning", 4.5, "etiqueta de aviso"],
   ["--info-foreground", "--info", 4.5, "etiqueta de informação"],
@@ -171,4 +173,118 @@ describe("contraste dos tokens de tema", () => {
       expect(razaoEscrita.length, `isenção ${chave} sem razão suficiente`).toBeGreaterThan(40);
     }
   });
+});
+
+// O mesmo preenchimento serve os fundos translúcidos dos avisos e badges.
+// Medir o texto real (strong), não o foreground claro do botão sólido.
+describe("texto destrutivo em superfícies translúcidas", () => {
+  for (const selector of [":root", ".dark"]) {
+    const tokens = lerBloco(selector);
+    for (const superficie of ["--background", "--card", "--muted"]) {
+      for (const alpha of [0, 0.05, 0.1, 0.12, 0.15, 0.2]) {
+        it(`${selector}: texto sobre ${superficie}, tinta ${alpha}`, () => {
+          const base = cor(tokens, superficie);
+          const tinta = cor(tokens, "--destructive");
+          const fundo = tinta.map((canal, i) => canal * alpha + base[i] * (1 - alpha));
+          expect(razao(cor(tokens, "--destructive-strong"), fundo)).toBeGreaterThanOrEqual(4.5);
+        });
+      }
+    }
+  }
+});
+
+describe("consumidores e evidência do tema", () => {
+  it("não usa a cor de preenchimento como texto nem dilui o texto de erro", () => {
+    const root = resolve(__dirname, "../../src");
+    const inseguros = readdirSync(root, { recursive: true })
+      .filter((path) => /\.tsx?$/.test(String(path)))
+      .filter((path) =>
+        /\btext-destructive(?![\w-])|\btext-destructive-strong\//.test(
+          readFileSync(resolve(root, String(path)), "utf8"),
+        ),
+      );
+    expect(inseguros).toEqual([]);
+  });
+
+  it("a evidência tipográfica inclui os mínimos px definidos no tema", () => {
+    const prova = JSON.parse(
+      readFileSync(
+        resolve(__dirname, "../../docs/design/evidence/2026-10-30/typography-scale.json"),
+        "utf8",
+      ),
+    );
+    for (const linha of prova.render_px_depois) {
+      for (const nome of ["text-xs", "text-sm", "text-base", "text-lg"]) {
+        const m = CSS.match(new RegExp(`--${nome}: max\\(([\\d.]+)px, ([\\d.]+)rem\\)`));
+        expect(m, `escala ${nome} ausente`).toBeTruthy();
+        expect(linha[nome]).toBe(Math.max(Number(m![1]), Number(m![2]) * linha.raiz_px));
+      }
+    }
+  });
+});
+
+describe("hover destrutivo dos consumidores", () => {
+  // Estas variantes têm texto destructive-foreground. Os hovers ghost com
+  // tinta /10 usam texto strong e são cobertos pelos pares translúcidos acima.
+  const candidatos = new Set(
+    ["button.tsx", "badge.tsx"].flatMap(
+      (path) =>
+        readFileSync(resolve(__dirname, "../../src/components/ui", path), "utf8").match(
+          /hover:bg-destructive(?:-[\w]+)?(?:\/\d+)?/g,
+        ) ?? [],
+    ),
+  );
+  for (const selector of [":root", ".dark"]) {
+    for (const superficie of ["--background", "--card"]) {
+      it(`${selector}: hover com texto claro sobre ${superficie}`, () => {
+        expect(candidatos.size).toBeGreaterThan(0);
+        const tokens = lerBloco(selector);
+        for (const candidato of candidatos) {
+          const [nome, opacidade] = candidato.replace("hover:bg-", "").split("/");
+          const alpha = opacidade ? Number(opacidade) / 100 : 1;
+          const base = cor(tokens, superficie);
+          const tinta = cor(tokens, `--${nome}`);
+          const fundo = tinta.map((c, i) => c * alpha + base[i] * (1 - alpha));
+          expect(
+            razao(cor(tokens, "--destructive-foreground"), fundo),
+            candidato,
+          ).toBeGreaterThanOrEqual(4.5);
+        }
+      });
+    }
+  }
+});
+
+// Mede os pares que os componentes de aluno realmente declaram, incluindo a
+// tinta e o fundo subjacente; o foreground de um badge sólido não serve aqui.
+describe("etiquetas académicas e financeiras dos alunos", () => {
+  for (const [ficheiro, mapa] of [
+    ["src/features/students/components/StudentFinanceBadge.tsx", "financeTones"],
+    ["src/features/students/components/StudentStatusBadge.tsx", "statusTones"],
+    ["src/routes/alunos/index.tsx", "pagamentoTone"],
+  ]) {
+    const codigo = readFileSync(resolve(__dirname, "../..", ficheiro), "utf8");
+    const corpo = codigo.match(new RegExp(`const ${mapa}:[\\s\\S]*?= \\{([\\s\\S]*?)\\n\\};`))?.[1];
+    if (!corpo) throw new Error(`Mapa ${mapa} não encontrado`);
+    const estados = [...corpo.matchAll(/\b(\w+): "([^"]+)"/g)];
+    if (!estados.length) throw new Error(`Mapa ${mapa} vazio`);
+    for (const [, estado, classes] of estados) {
+      for (const selector of [":root", ".dark"]) {
+        for (const superficie of ["--background", "--card"]) {
+          it(`${mapa}.${estado} / ${selector} sobre ${superficie}`, () => {
+            const tokens = lerBloco(selector);
+            const texto = classes.match(/\btext-([\w-]+)/)?.[1];
+            const fundo = classes.match(/\bbg-([\w-]+)(?:\/(\d+))?/);
+            expect(texto).toBeTruthy();
+            expect(fundo).toBeTruthy();
+            const alpha = fundo![2] ? Number(fundo![2]) / 100 : 1;
+            const base = cor(tokens, superficie);
+            const tinta = cor(tokens, `--${fundo![1]}`);
+            const composto = tinta.map((c, i) => c * alpha + base[i] * (1 - alpha));
+            expect(razao(cor(tokens, `--${texto}`), composto), classes).toBeGreaterThanOrEqual(4.5);
+          });
+        }
+      }
+    }
+  }
 });

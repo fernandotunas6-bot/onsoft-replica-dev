@@ -45,7 +45,7 @@ function collectBrowserContext() {
 }
 
 const likelihoodTone: Record<string, string> = {
-  alta: "text-destructive",
+  alta: "text-destructive-strong",
   média: "text-warning-foreground",
   baixa: "text-muted-foreground",
 };
@@ -134,7 +134,7 @@ function DiagnosticPage() {
                 </Button>
               </div>
               {mutation.error ? (
-                <p className="flex items-center gap-2 text-sm text-destructive" role="alert">
+                <p className="flex items-center gap-2 text-sm text-destructive-strong" role="alert">
                   <AlertTriangle className="size-4" /> {mutation.error.message}
                 </p>
               ) : null}

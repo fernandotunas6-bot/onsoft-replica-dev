@@ -133,7 +133,7 @@ function HubAppRow({
               className={cn(
                 "mt-1 inline-block text-[11px] font-semibold",
                 status === "error"
-                  ? "text-destructive"
+                  ? "text-destructive-strong"
                   : active
                     ? "text-success"
                     : "text-muted-foreground",

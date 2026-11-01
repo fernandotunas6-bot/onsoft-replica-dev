@@ -1154,7 +1154,7 @@ function FinanceiroPage() {
                         <TableCell
                           className={cn(
                             "text-right font-bold",
-                            m.tipo === "Entrada" ? "text-success" : "text-destructive",
+                            m.tipo === "Entrada" ? "text-success" : "text-destructive-strong",
                           )}
                         >
                           {m.tipo === "Entrada" ? "+" : "−"} {kwanza(m.valor)}
@@ -1204,7 +1204,7 @@ function FinanceiroPage() {
                       <TableRow>
                         <TableCell
                           colSpan={7}
-                          className="py-8 text-center text-sm text-destructive"
+                          className="py-8 text-center text-sm text-destructive-strong"
                         >
                           Não foi possível carregar os movimentos de caixa.
                         </TableCell>
@@ -1337,7 +1337,7 @@ function FinanceiroPage() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="text-destructive"
+                                  className="text-destructive-strong"
                                   onClick={open}
                                 >
                                   Cancelar

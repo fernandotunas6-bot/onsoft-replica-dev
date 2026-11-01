@@ -83,7 +83,7 @@ function AcceptInvitePage() {
             {status === "success" ? (
               <CheckCircle2 className="size-7 text-success" />
             ) : status === "error" ? (
-              <AlertTriangle className="size-7 text-destructive" />
+              <AlertTriangle className="size-7 text-destructive-strong" />
             ) : (
               <Building2 className="size-7 text-primary" />
             )}

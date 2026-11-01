@@ -241,7 +241,7 @@ function TeacherProfilePage() {
                   trigger={(open: () => void) => (
                     <Button
                       variant="outline"
-                      className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      className="gap-2 text-destructive-strong hover:bg-destructive/10 hover:text-destructive-strong"
                       onClick={open}
                     >
                       <UserMinus className="size-4" /> Desligar
@@ -329,11 +329,11 @@ function TeacherProfilePage() {
             Não foi possível encontrar este professor na escola activa.
           </p>
         ) : mismatchedTeacher ? (
-          <p className="rounded-xl border border-border p-5 text-sm text-destructive">
+          <p className="rounded-xl border border-border p-5 text-sm text-destructive-strong">
             Só pode consultar a sua própria ficha docente nesta escola.
           </p>
         ) : teacherWorkspaceQuery.isError ? (
-          <p className="rounded-xl border border-border p-5 text-sm text-destructive">
+          <p className="rounded-xl border border-border p-5 text-sm text-destructive-strong">
             Não foi possível carregar as atribuições académicas deste professor.
           </p>
         ) : (

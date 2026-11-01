@@ -97,7 +97,7 @@ export function TeacherQrIssuerPanel() {
       {lessons.isLoading ? (
         <p className="text-sm text-muted-foreground">A carregar aulas publicadas…</p>
       ) : lessons.isError ? (
-        <p className="text-sm text-destructive">
+        <p className="text-sm text-destructive-strong">
           {lessons.error instanceof Error
             ? lessons.error.message
             : "Não foi possível carregar as aulas."}

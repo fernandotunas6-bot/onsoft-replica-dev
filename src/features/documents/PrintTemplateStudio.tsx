@@ -173,7 +173,7 @@ export function PrintTemplateStudio() {
         }
       >
         {catalogQuery.isError ? (
-          <p className="py-6 text-center text-sm text-destructive">
+          <p className="py-6 text-center text-sm text-destructive-strong">
             Não foi possível carregar os modelos de {`public/templates`}.
           </p>
         ) : (

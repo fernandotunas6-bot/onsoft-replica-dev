@@ -65,7 +65,9 @@ export function AngolaPhoneField({
       {hint ? (
         <p
           className={
-            hint.ok ? "text-xs text-muted-foreground" : "text-xs font-medium text-destructive"
+            hint.ok
+              ? "text-xs text-muted-foreground"
+              : "text-xs font-medium text-destructive-strong"
           }
         >
           {hint.text}

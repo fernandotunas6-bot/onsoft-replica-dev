@@ -74,7 +74,7 @@ export function CrudListFeedbackRow({
           {kind === "forbidden" ? (
             <LockKeyhole aria-hidden="true" className="mb-3 size-6 text-muted-foreground" />
           ) : (
-            <AlertCircle aria-hidden="true" className="mb-3 size-6 text-destructive" />
+            <AlertCircle aria-hidden="true" className="mb-3 size-6 text-destructive-strong" />
           )}
           <p className="text-sm font-semibold text-foreground">{title}</p>
           <p className="mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">

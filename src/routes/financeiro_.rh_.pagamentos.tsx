@@ -318,7 +318,9 @@ function PayrollPaymentsPage() {
             </Panel>
           ) : !selected ? (
             <Panel title="Ordem indisponível">
-              <p className="text-sm text-destructive">Não foi possível carregar esta ordem.</p>
+              <p className="text-sm text-destructive-strong">
+                Não foi possível carregar esta ordem.
+              </p>
             </Panel>
           ) : (
             <div className="space-y-4">

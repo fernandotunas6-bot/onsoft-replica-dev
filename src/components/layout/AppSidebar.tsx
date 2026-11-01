@@ -640,7 +640,7 @@ export function AppSidebar({
               <DropdownMenuItem
                 onClick={() => void signOut()}
                 disabled={signingOut}
-                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                className="text-destructive-strong focus:bg-destructive/10 focus:text-destructive-strong"
               >
                 <LogOut className="size-4" /> {signingOut ? "A sair…" : "Sair"}
               </DropdownMenuItem>

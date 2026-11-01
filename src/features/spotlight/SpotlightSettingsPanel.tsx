@@ -268,7 +268,7 @@ export function SpotlightSettingsPanel() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="size-8 text-destructive"
+                      className="size-8 text-destructive-strong"
                       disabled={!canEdit}
                       onClick={() => removeCustom(item.id)}
                       aria-label="Apagar destaque"

@@ -337,7 +337,7 @@ function GradeSheetDialog({
                       />
                     ) : (
                       <X
-                        className="mt-0.5 size-4 shrink-0 text-destructive/80"
+                        className="mt-0.5 size-4 shrink-0 text-destructive-strong"
                         aria-label="Por resolver"
                       />
                     )}
@@ -465,7 +465,7 @@ function GradeSheetDialog({
                             className={cn(
                               "py-2 pl-3 text-xs",
                               row.result === "fail"
-                                ? "text-destructive/85"
+                                ? "text-destructive-strong"
                                 : "text-muted-foreground",
                             )}
                           >

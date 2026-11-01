@@ -331,7 +331,7 @@ export function AccountDrawer({
             <div className="space-y-2 px-4 pb-6 pt-3">
               <Button
                 variant="ghost"
-                className="w-full justify-center gap-2 rounded-2xl bg-destructive/10 py-5 font-semibold text-destructive hover:bg-destructive/15 hover:text-destructive"
+                className="w-full justify-center gap-2 rounded-2xl bg-destructive/10 py-5 font-semibold text-destructive-strong hover:bg-destructive/15 hover:text-destructive-strong"
                 onClick={handleSignOut}
                 disabled={signingOut}
               >
@@ -371,7 +371,7 @@ export function AccountDrawer({
           <AlertDialogFooter>
             <AlertDialogCancel disabled={signingOut}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive-hover"
               onClick={() => void handleGlobalSignOut()}
               disabled={signingOut}
             >

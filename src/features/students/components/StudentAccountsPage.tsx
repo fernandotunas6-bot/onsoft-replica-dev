@@ -135,7 +135,7 @@ export function StudentAccountsView() {
   if (query.isLoading) return <InlineLoading label="A carregar os alunos…" />;
   if (query.isError || !data) {
     return (
-      <p role="alert" className="text-sm text-destructive">
+      <p role="alert" className="text-sm text-destructive-strong">
         {publicErrorMessage(query.error, "Não foi possível carregar os alunos.")}
       </p>
     );

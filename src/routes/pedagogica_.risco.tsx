@@ -50,7 +50,7 @@ export const Route = createFileRoute("/pedagogica_/risco")({
 });
 
 const riskTone: Record<string, string> = {
-  alto: "bg-destructive/10 text-destructive border-destructive/30",
+  alto: "bg-destructive/10 text-destructive-strong border-destructive/30",
   médio: "bg-warning/10 text-warning-foreground border-warning/40",
   baixo: "bg-muted text-muted-foreground border-border",
 };
@@ -227,7 +227,7 @@ function RiskPage() {
               </Button>
             </div>
             {mutation.error ? (
-              <p className="flex items-center gap-2 text-sm text-destructive" role="alert">
+              <p className="flex items-center gap-2 text-sm text-destructive-strong" role="alert">
                 <AlertTriangle className="size-4" /> {mutation.error.message}
               </p>
             ) : null}

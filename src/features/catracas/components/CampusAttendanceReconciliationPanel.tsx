@@ -100,7 +100,7 @@ export function CampusAttendanceReconciliationPanel() {
                 <div
                   className={`size-9 rounded-xl flex items-center justify-center font-bold text-xs ${
                     an.severity === "high"
-                      ? "bg-destructive/10 text-destructive border border-destructive/30"
+                      ? "bg-destructive/10 text-destructive-strong border border-destructive/30"
                       : "bg-warning/10 text-warning-strong border border-warning/30"
                   }`}
                 >

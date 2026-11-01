@@ -871,7 +871,7 @@ function PeoplePage() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="text-destructive"
+                                    className="text-destructive-strong"
                                     onClick={open}
                                   >
                                     <Trash2 className="size-3.5" />
@@ -1165,7 +1165,7 @@ function PeoplePage() {
                 <Skeleton className="h-20 w-full" />
               </div>
             ) : personQuery.isError ? (
-              <p className="text-sm text-destructive">
+              <p className="text-sm text-destructive-strong">
                 {personQuery.error instanceof Error
                   ? personQuery.error.message
                   : "Não foi possível carregar a pessoa."}

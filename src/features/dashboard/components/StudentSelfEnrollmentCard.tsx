@@ -126,7 +126,7 @@ export function StudentSelfEnrollmentCard() {
                   {enroll.isPending ? "A inscrever…" : `Inscrever (${chosenCredits} créditos)`}
                 </Button>
                 {overLimit ? (
-                  <span className="text-xs text-destructive">
+                  <span className="text-xs text-destructive-strong">
                     {total} créditos ultrapassam o máximo de {data.limits.perYear} por ano.
                   </span>
                 ) : null}

@@ -738,8 +738,8 @@ export function ScheduleWorkspace({
 
       {/* Alertas de Conflito em Tempo Real */}
       {selectedConflicts.length > 0 && (
-        <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-xs text-destructive">
-          <div className="flex items-center gap-2 font-bold text-destructive">
+        <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-xs text-destructive-strong">
+          <div className="flex items-center gap-2 font-bold text-destructive-strong">
             <AlertTriangle className="size-4 shrink-0" />
             <span>
               Motor de Conflitos: Foram detectadas {selectedConflicts.length} colisões de horário
@@ -911,7 +911,7 @@ export function ScheduleWorkspace({
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="size-6 p-0 text-muted-foreground hover:text-destructive"
+                                      className="size-6 p-0 text-muted-foreground hover:text-destructive-strong"
                                       onClick={open}
                                     >
                                       <Trash2 className="size-3" />

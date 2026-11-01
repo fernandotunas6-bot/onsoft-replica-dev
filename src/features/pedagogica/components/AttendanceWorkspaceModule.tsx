@@ -220,7 +220,11 @@ export function AttendanceWorkspaceModule({
                 value: presenceSummary.awaiting,
                 tone: "text-warning-strong",
               },
-              { label: "Sem presença", value: presenceSummary.missing, tone: "text-destructive" },
+              {
+                label: "Sem presença",
+                value: presenceSummary.missing,
+                tone: "text-destructive-strong",
+              },
             ]
               .filter((item) => item.always || item.value > 0)
               .map((item) => (
@@ -428,7 +432,7 @@ export function AttendanceWorkspaceModule({
                         ) : rec.status === "absent" ? (
                           <Badge
                             variant="outline"
-                            className="bg-destructive/10 text-destructive border-destructive/30 text-[11px]"
+                            className="bg-destructive/10 text-destructive-strong border-destructive/30 text-[11px]"
                           >
                             <X className="size-3 mr-1" /> Falta
                           </Badge>

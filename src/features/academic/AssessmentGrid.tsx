@@ -226,7 +226,7 @@ export function AssessmentGrid({
                         className={cn(
                           "h-9 w-full bg-transparent px-2 text-right outline-none focus:bg-primary/10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                           dirtyKeys.has(cellKey) && "bg-warning/20",
-                          invalid && "bg-destructive/15 text-destructive",
+                          invalid && "bg-destructive/15 text-destructive-strong",
                         )}
                       />
                     </td>

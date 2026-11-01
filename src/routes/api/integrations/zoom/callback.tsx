@@ -19,7 +19,7 @@ function ZoomOAuthCallbackPage() {
   if (search.error) {
     return (
       <main className="mx-auto max-w-md px-5 py-16 text-center space-y-4">
-        <div className="rounded-full bg-destructive/10 p-3 text-destructive inline-flex">
+        <div className="rounded-full bg-destructive/10 p-3 text-destructive-strong inline-flex">
           <span className="text-2xl">⚠</span>
         </div>
         <h1 className="text-lg font-bold text-foreground">Autorização Recusada</h1>

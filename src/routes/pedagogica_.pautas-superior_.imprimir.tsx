@@ -59,7 +59,7 @@ function UnitSheetPrintPage() {
         {sheet.isLoading ? (
           <p className="text-sm text-muted-foreground">A preparar a pauta…</p>
         ) : !data ? (
-          <p className="text-sm text-destructive">
+          <p className="text-sm text-destructive-strong">
             {sheet.error instanceof Error ? sheet.error.message : "Não foi possível abrir a pauta."}
           </p>
         ) : (

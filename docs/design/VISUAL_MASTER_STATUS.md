@@ -524,9 +524,66 @@ por baixo com o botão em contorno. Definições → «Apps do SIGA»; no ecrã 
 
 ## Contraste dos tokens e tamanho tipográfico (30/10/2026)
 
-Primeiro trabalho registado na fase 2.2, que estava `por auditar`. Não altera
-componentes, layout, rotas, dados nem permissões: só nove valores de token em
-`src/styles.css`, mais um teste e a prova.
+Estado: **parcial**. A PR #419, integrada em `6e4aed3`, mede 78 pares de tokens,
+corrige 10 das 16 falhas numéricas e isenta seis pares de separadores decorativos.
+Altera também a raiz de 11px para 11,5px na faixa 1024–1535px. Não foi apenas
+uma alteração de tokens de cor. O JSON `contrast-tokens.json` conserva essa
+fotografia histórica.
+
+A revisão dos consumidores encontrou contraste insuficiente no uso de
+`text-destructive` no tema escuro (4,06:1 na página, 3,70:1 no cartão) e hover
+translúcido fora da cobertura inicial. Implementado no ramo de revisão: migrar o texto para
+`text-destructive-strong` e usar hover destrutivo opaco, sem alterar dados,
+permissões, handlers ou dimensões. Cobertura de regressão inclui fundos tintados
+e impede a reutilização do preenchimento como texto em `src/`.
+
+A evidência tipográfica foi corrigida: `text-xs` já tinha mínimo de 11px,
+`text-sm` 12px, `text-base` 13px e `text-lg` 14px. Os 8,25/8,63px não eram o
+tamanho das classes. A raiz afecta também espaçamentos e dimensões em rem.
+
+Prova e limites: [relatório 2.2](VISUAL_2026-10-30_FASE_2-2.md),
+`evidence/2026-10-30/typography-scale.json` e
+`tests/ui/theme-token-contrast.test.ts`. Falta validação de páginas renderizadas
+em sessão autenticada, dispositivos físicos, zoom/reflow, SVG, imagens,
+hierarquia e marcas personalizadas. Não declarar conformidade integral WCAG.
+
+Verificação local desta revisão: `npm test -- --maxWorkers=4` — 804 ficheiros
+aprovados, 3 ignorados; 5.696 testes aprovados e 25 ignorados. Após acrescentar
+os quatro casos que seguem as classes hover de Button/Badge, execução específica:
+`vitest run tests/ui/theme-token-contrast.test.ts` — 119 aprovados e seis
+isenções. Repor temporariamente o hover antigo reproduziu duas falhas no tema
+claro; os ficheiros finais foram restaurados. O teste novo também falhou antes
+da correcção dos consumidores e da evidência tipográfica.
+
+`npm run build`, `npm run typecheck`, `npm run check:style` (65/65 rotas) e
+`npm run lint` aprovados; lint com 58 avisos, zero erros. CSS compilado pelo
+Tailwind confirma o mapeamento de texto strong, fundo original, hover novo e
+mínimo `text-xs` de 11px. Uma comparação automática dos 148 ficheiros de origem
+alterados confirma apenas as substituições de classes previstas e formatação.
+Sem navegador Chromium instalado neste executor: não houve capturas nem prova
+visual renderizada. Não houve merge, deploy, SQL ou escrita de dados escolares.
+
+## Etiquetas de alunos — revisão adicional de contraste (30/10/2026)
+
+Estado: **parcial**, implementado e testado localmente; sem publicação.
+`StudentFinanceBadge`, `StudentStatusBadge` e o mapa de pagamentos da lista de
+alunos mantêm fundos, contornos, tamanhos, rótulos e estados. Só os textos
+passam para os tokens strong adequados. Corrigida a reutilização de
+`warning-foreground` sobre fundo warning translúcido no tema escuro.
+
+O teste lê os mapas dos consumidores e mede os 15 estados nos dois temas e
+sobre página/cartão (60 casos). Antes: 23 falhas; depois: todos passam.
+`vitest run tests/ui/theme-token-contrast.test.ts tests/students
+ tests/ui/shared-list-controls.test.tsx tests/ui/education-workflow-visual.test.ts`:
+26 ficheiros, 349 testes aprovados, seis isenções decorativas. O teste de tema
+tem agora 179 aprovados e seis isenções. Lint dos quatro ficheiros de código e
+check:style aprovados. Marca personalizada, renderização autenticada,
+zoom/reflow e aparelhos físicos continuam sem validação neste ciclo.
+
+Build e tipos desta revisão: as execuções simultâneas foram terminadas com 137
+por falta de memória (dois eventos OOM kill registados no cgroup). Repetidos
+sequencialmente com `NODE_OPTIONS=--max-old-space-size=3072`: `npm run build`
+e `tsc --noEmit` aprovados. Nenhuma validação foi desactivada.
 
 - **Corrigido e verificado:** 6 das 14 falhas de contraste WCAG 2.2 AA. As que
   importavam estavam na variante base do `Button` e do `Badge` — todo o botão e

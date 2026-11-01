@@ -105,7 +105,7 @@ export function FirstPasswordScreen({ name }: { name: string | null }) {
           />
         </div>
         {error ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-sm text-destructive-strong">
             {error}
           </p>
         ) : null}

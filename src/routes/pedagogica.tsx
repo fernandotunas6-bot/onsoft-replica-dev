@@ -789,9 +789,10 @@ function PedagogicaPage() {
                     // chamada) está em /pedagogica/risco; o relatório antigo
                     // abria sempre vazio e dizia "nenhum aluno em risco".
                     onClick={() => void navigate({ to: "/pedagogica/risco" })}
-                    className="gap-2 text-xs text-destructive cursor-pointer"
+                    className="gap-2 text-xs text-destructive-strong cursor-pointer"
                   >
-                    <ShieldAlert className="size-3.5 text-destructive" /> Relatório Risco Abandono
+                    <ShieldAlert className="size-3.5 text-destructive-strong" /> Relatório Risco
+                    Abandono
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

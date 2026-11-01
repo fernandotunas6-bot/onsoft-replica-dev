@@ -111,7 +111,7 @@ function TreasuryPage() {
           icon={moduleIcons.treasury}
         />
         {error ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-sm text-destructive-strong">
             {(error as Error).message}
           </p>
         ) : null}
@@ -185,7 +185,7 @@ function TreasuryPage() {
                   <span
                     className={cn(
                       "text-right font-medium",
-                      m.received - m.expense < 0 ? "text-destructive" : "text-foreground",
+                      m.received - m.expense < 0 ? "text-destructive-strong" : "text-foreground",
                     )}
                   >
                     {kz(m.received - m.expense)}
@@ -267,7 +267,7 @@ function TreasuryPage() {
                     <tr key={i.id} className="border-t border-border">
                       <td className="py-2 pr-3 font-mono text-xs">{i.number}</td>
                       <td className="py-2 pr-3">{i.student_name}</td>
-                      <td className={cn("py-2 pr-3", i.overdue && "text-destructive")}>
+                      <td className={cn("py-2 pr-3", i.overdue && "text-destructive-strong")}>
                         {i.due_on ?? "—"}
                         {i.overdue ? " · em atraso" : ""}
                       </td>
@@ -353,7 +353,7 @@ function TreasuryPage() {
                   <span
                     className={cn(
                       "shrink-0 font-medium",
-                      c.direction === "out" ? "text-destructive" : "text-foreground",
+                      c.direction === "out" ? "text-destructive-strong" : "text-foreground",
                     )}
                   >
                     {c.direction === "out" ? "−" : "+"}

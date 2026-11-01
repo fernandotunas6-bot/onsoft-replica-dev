@@ -308,7 +308,7 @@ export function LessonPlanModal({
                 {file.name}
                 <button
                   type="button"
-                  className="ml-1 text-muted-foreground hover:text-destructive"
+                  className="ml-1 text-muted-foreground hover:text-destructive-strong"
                   onClick={() => setFile(null)}
                   aria-label="Remover anexo"
                 >
@@ -357,7 +357,7 @@ export function LessonPlanModal({
           </span>
         </label>
 
-        {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
+        {formError ? <p className="text-sm text-destructive-strong">{formError}</p> : null}
       </div>
     </FormModal>
   );

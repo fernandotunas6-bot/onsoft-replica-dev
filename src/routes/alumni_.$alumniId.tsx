@@ -71,7 +71,7 @@ function AlumniProfilePage() {
       <AppShell>
         <div className="mx-auto max-w-7xl p-6">
           <Card>
-            <CardContent className="p-8 text-sm text-destructive">
+            <CardContent className="p-8 text-sm text-destructive-strong">
               Não foi possível carregar este Alumni.
             </CardContent>
           </Card>

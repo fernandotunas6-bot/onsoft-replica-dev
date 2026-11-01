@@ -99,7 +99,7 @@ export function LoginMfaSetting() {
             </p>
           ) : null}
           {error ? (
-            <p role="alert" className="text-xs text-destructive">
+            <p role="alert" className="text-xs text-destructive-strong">
               Não foi possível consultar o estado.
             </p>
           ) : null}

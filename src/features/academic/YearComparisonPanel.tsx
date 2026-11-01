@@ -114,7 +114,7 @@ export function YearComparisonPanel({ enabled }: { enabled: boolean }) {
                               y.passDelta > 0
                                 ? "text-success"
                                 : y.passDelta < 0
-                                  ? "text-destructive"
+                                  ? "text-destructive-strong"
                                   : "text-muted-foreground",
                             )}
                           >

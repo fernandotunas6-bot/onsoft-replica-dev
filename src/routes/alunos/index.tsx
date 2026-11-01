@@ -207,9 +207,9 @@ const pagamentoLabels: Record<string, string> = {
 };
 
 const pagamentoTone: Record<string, string> = {
-  settled: "bg-success/15 text-success",
-  pending: "bg-warning/20 text-warning-foreground",
-  overdue: "bg-destructive/12 text-destructive",
+  settled: "bg-success/15 text-success-strong",
+  pending: "bg-warning/20 text-warning-strong",
+  overdue: "bg-destructive/12 text-destructive-strong",
 };
 
 type StudentRow = {
@@ -764,7 +764,7 @@ function StudentsPage() {
           <div
             className={
               studentCapacity.atLimit
-                ? "rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                ? "rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive-strong"
                 : "rounded-xl border border-border bg-muted/60 px-4 py-3 text-sm text-foreground"
             }
           >
@@ -1020,7 +1020,7 @@ function StudentsPage() {
                     "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                     categoria === "divida"
                       ? "bg-destructive text-destructive-foreground shadow-xs"
-                      : "bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20",
+                      : "bg-destructive/10 text-destructive-strong hover:bg-destructive/20 border border-destructive/20",
                   )}
                 >
                   Com Dívida ({quickCounts.overdue})
@@ -1149,7 +1149,7 @@ function StudentsPage() {
                     "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
                     subInactivos === "cancelled"
                       ? "bg-destructive text-destructive-foreground"
-                      : "bg-destructive/10 text-destructive hover:bg-destructive/20",
+                      : "bg-destructive/10 text-destructive-strong hover:bg-destructive/20",
                   )}
                 >
                   Cancelados ({quickCounts.inactivesDetail.cancelled})
@@ -1296,7 +1296,7 @@ function StudentsPage() {
                       <TableRow>
                         <TableCell
                           colSpan={9}
-                          className="py-10 text-center text-sm text-destructive"
+                          className="py-10 text-center text-sm text-destructive-strong"
                         >
                           Não foi possível carregar os estudantes:{" "}
                           {studentsQuery.error instanceof Error

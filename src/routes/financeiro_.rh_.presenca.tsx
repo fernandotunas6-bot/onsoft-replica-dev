@@ -71,7 +71,7 @@ function AttendanceAssurancePage() {
 
         {policy.isError ? (
           <Panel title="Configuração indisponível">
-            <p className="text-sm text-destructive">
+            <p className="text-sm text-destructive-strong">
               {policy.error instanceof Error
                 ? policy.error.message
                 : "Não foi possível carregar a política."}
@@ -255,7 +255,9 @@ function AttendanceAssurancePage() {
           {evidence.isLoading ? (
             <p className="text-sm text-muted-foreground">A carregar evidências…</p>
           ) : evidence.isError ? (
-            <p className="text-sm text-destructive">Não foi possível carregar as evidências.</p>
+            <p className="text-sm text-destructive-strong">
+              Não foi possível carregar as evidências.
+            </p>
           ) : (evidence.data ?? []).length === 0 ? (
             <EmptyState
               icon={ShieldCheck}

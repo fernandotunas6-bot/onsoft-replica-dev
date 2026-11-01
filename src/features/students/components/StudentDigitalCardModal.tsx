@@ -223,11 +223,11 @@ export function StudentDigitalCardModal({
                     <ShieldCheck className="size-3.5" /> Cartão activo
                   </span>
                 ) : card?.status === "suspended" ? (
-                  <span className="flex items-center gap-1 font-semibold text-destructive">
+                  <span className="flex items-center gap-1 font-semibold text-destructive-strong">
                     <ShieldOff className="size-3.5" /> Cartão suspenso
                   </span>
                 ) : card?.status === "lost" ? (
-                  <span className="flex items-center gap-1 font-semibold text-destructive">
+                  <span className="flex items-center gap-1 font-semibold text-destructive-strong">
                     <ShieldOff className="size-3.5" /> Marcado como perdido
                   </span>
                 ) : (

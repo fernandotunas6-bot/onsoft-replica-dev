@@ -200,7 +200,9 @@ function PayrollOperationsPage() {
             {runs.isLoading ? (
               <p className="text-sm text-muted-foreground">A carregar competências…</p>
             ) : runs.isError ? (
-              <p className="text-sm text-destructive">Não foi possível carregar as folhas.</p>
+              <p className="text-sm text-destructive-strong">
+                Não foi possível carregar as folhas.
+              </p>
             ) : (runs.data ?? []).length === 0 ? (
               <EmptyState
                 icon={CalendarRange}
@@ -260,7 +262,9 @@ function PayrollOperationsPage() {
               </Panel>
             ) : detail.isError || !selected ? (
               <Panel title="Folha indisponível">
-                <p className="text-sm text-destructive">Não foi possível carregar esta folha.</p>
+                <p className="text-sm text-destructive-strong">
+                  Não foi possível carregar esta folha.
+                </p>
               </Panel>
             ) : (
               <>

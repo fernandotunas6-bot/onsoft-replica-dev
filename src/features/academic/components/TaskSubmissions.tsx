@@ -104,7 +104,7 @@ export function TaskSubmissionsPanel({
   if (query.isLoading) return <InlineLoading label="A carregar as entregas…" />;
   if (query.isError || !query.data) {
     return (
-      <p role="alert" className="text-sm text-destructive">
+      <p role="alert" className="text-sm text-destructive-strong">
         {publicErrorMessage(query.error, "Não foi possível ler as entregas.")}
       </p>
     );

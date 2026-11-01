@@ -237,7 +237,9 @@ export function StudentGradesCard({ studentId }: { studentId?: string | null }) 
 function Score({ value, passing }: { value: number | null; passing: number }) {
   if (value == null) return <span className="text-muted-foreground">—</span>;
   return (
-    <span className={value < passing ? "text-destructive/85" : undefined}>{value.toFixed(1)}</span>
+    <span className={value < passing ? "text-destructive-strong" : undefined}>
+      {value.toFixed(1)}
+    </span>
   );
 }
 
@@ -246,7 +248,7 @@ const OUTLOOK_TONE: Record<PassOutlook["kind"], string> = {
   complete: "text-muted-foreground",
   secured: "text-muted-foreground",
   needs: "text-foreground",
-  unreachable: "text-destructive/85",
+  unreachable: "text-destructive-strong",
 };
 
 /** Abre a página da disciplina: notas até 20 e o histórico dos trabalhos. */
@@ -277,7 +279,7 @@ function SubjectLink({
 function PassProgress({ subject }: { subject: SubjectYearReport }) {
   const tone =
     subject.outlook.kind === "complete" && !subject.outlook.passed
-      ? "text-destructive/85"
+      ? "text-destructive-strong"
       : OUTLOOK_TONE[subject.outlook.kind];
   return (
     <div className="min-w-[160px] space-y-1">

@@ -83,7 +83,7 @@ export function PortalStat({
             <p
               className={cn(
                 "text-xs leading-snug",
-                attention ? "text-destructive/80" : "text-muted-foreground",
+                attention ? "text-destructive-strong" : "text-muted-foreground",
               )}
             >
               {hint}
@@ -169,7 +169,7 @@ export function PortalQuickLinks({ items }: { items: PortalQuickLink[] }) {
 
 const ATTENDANCE_STATUS: Record<string, { label: string; dot: string; text: string }> = {
   present: { label: "Presente", dot: "bg-success/70", text: "text-muted-foreground" },
-  absent: { label: "Falta", dot: "bg-destructive", text: "text-destructive/90" },
+  absent: { label: "Falta", dot: "bg-destructive", text: "text-destructive-strong" },
   excused: { label: "Justificada", dot: "bg-muted-foreground/50", text: "text-muted-foreground" },
   late: { label: "Atraso", dot: "bg-warning", text: "text-muted-foreground" },
 };

@@ -178,7 +178,7 @@ export function FileDetailsPanel({
             {selectedContentOpen && selected.description ? (
               <p className="text-muted-foreground">{selected.description}</p>
             ) : selectedContentOpen ? (
-              <p className="text-destructive">Sem descrição — organize este ficheiro.</p>
+              <p className="text-destructive-strong">Sem descrição — organize este ficheiro.</p>
             ) : (
               <p className="text-muted-foreground">{systemLockedMsg}</p>
             )}

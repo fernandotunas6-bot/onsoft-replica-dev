@@ -35,7 +35,7 @@ function Progress({ c }: { c: RiskCase }) {
     <span
       className={cn(
         "inline-flex items-center gap-1 text-xs font-medium",
-        d > 0.05 ? "text-primary" : d < -0.05 ? "text-destructive" : "text-muted-foreground",
+        d > 0.05 ? "text-primary" : d < -0.05 ? "text-destructive-strong" : "text-muted-foreground",
       )}
     >
       <Icon className="size-3.5" />
@@ -132,7 +132,9 @@ function CaseCard({ c }: { c: RiskCase }) {
               >
                 {m.isPending ? "A guardar…" : "Registar intervenção"}
               </Button>
-              {m.error ? <p className="mt-1 text-xs text-destructive">{m.error.message}</p> : null}
+              {m.error ? (
+                <p className="mt-1 text-xs text-destructive-strong">{m.error.message}</p>
+              ) : null}
             </div>
           </div>
         </div>
@@ -172,7 +174,7 @@ export function RiskFollowup() {
       {q.isLoading ? (
         <p className="text-sm text-muted-foreground">A carregar…</p>
       ) : q.error ? (
-        <p className="text-sm text-destructive">{(q.error as Error).message}</p>
+        <p className="text-sm text-destructive-strong">{(q.error as Error).message}</p>
       ) : cases.length === 0 ? (
         <EmptyState
           title="Sem alunos em acompanhamento"

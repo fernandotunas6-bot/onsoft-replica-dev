@@ -155,7 +155,7 @@ function InvoicePaymentReferenceCard({
   if (refQuery.isError || !referenceData) {
     return (
       <div className="space-y-3 py-8 text-center">
-        <p className="text-sm text-destructive">
+        <p className="text-sm text-destructive-strong">
           {refQuery.error instanceof Error
             ? refQuery.error.message
             : "Não foi possível gerar a referência EMIS."}
@@ -315,7 +315,7 @@ function InvoicePaymentReferenceCard({
         </p>
       ) : null}
       {!paidOnValid ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive-strong">
           Indique uma data válida até hoje.
         </p>
       ) : null}

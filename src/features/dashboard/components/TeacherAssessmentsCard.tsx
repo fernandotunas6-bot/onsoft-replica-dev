@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 const STATE_TONE = {
   done: "text-muted-foreground",
   partial: "text-foreground",
-  none: "text-destructive/85",
+  none: "text-destructive-strong",
   "no-students": "text-muted-foreground",
 } as const;
 
@@ -52,7 +52,7 @@ export function TeacherAssessmentsCard() {
           <span
             className={cn(
               "text-xs",
-              urgent && pendingTotal > 0 ? "text-destructive/85" : "text-muted-foreground",
+              urgent && pendingTotal > 0 ? "text-destructive-strong" : "text-muted-foreground",
             )}
           >
             {deadline}

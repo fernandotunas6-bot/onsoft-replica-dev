@@ -7,7 +7,7 @@ regem o refinamento visual:
   23/10/2026, **com a adenda do proprietário de 27/10/2026** sobre o
   comportamento da sidebar (último commit 7a0124b6, 2026-10-27). Diz o que fazer.
 - **Parte II — a matriz de execução:** `VISUAL_MASTER_STATUS.md` (último commit
-  b724d8f8, 2026-10-30). Diz o que já está provado e o que não está.
+  revisão de consumidores após #419, 2026-10-30). Diz o que já está provado e o que não está.
 
 Os dois ficheiros originais continuam a ser a fonte de verdade; este é uma cópia
 para colar como prompt, e caduca a cada alteração deles. As ligações internas da
@@ -459,6 +459,8 @@ As restantes regras do padrão visual de 23/10/2026 continuam válidas.
 ---
 
 # Execução do padrão visual — 23/10/2026
+
+**30/10/2026 — secções verticais e auditoria (implementado):** padrão aplicado a 15 consumidores; ficha de Pessoas também vertical no telemóvel. Corrigidos scroll que podia deslocar a página, nomes extensos e contraste activo (6,65:1 claro / 7,92:1 escuro no ensaio controlado). 557 testes aprovados em 76 ficheiros, seis excepções preexistentes de contraste decorativo ignoradas. Tipos e lint dos ficheiros alterados aprovados; conferência Chromium em seis larguras e temas claro/escuro. Script reproduzível: `node scripts/qa/vertical-navigation.mjs`. Validação autenticada e publicação pendentes; push anterior bloqueado pela revisão automática. Evidência e limites em `docs/agents/HANDOFF_VERTICAL_NAV_2026-10-30.md`.
 
 **29/10/2026 — integração da escolha de turma com o formulário actual:**
 preservada a correcção de Claude que cancela Enter na pesquisa e coloca o foco
@@ -973,9 +975,66 @@ por baixo com o botão em contorno. Definições → «Apps do SIGA»; no ecrã 
 
 ## Contraste dos tokens e tamanho tipográfico (30/10/2026)
 
-Primeiro trabalho registado na fase 2.2, que estava `por auditar`. Não altera
-componentes, layout, rotas, dados nem permissões: só nove valores de token em
-`src/styles.css`, mais um teste e a prova.
+Estado: **parcial**. A PR #419, integrada em `6e4aed3`, mede 78 pares de tokens,
+corrige 10 das 16 falhas numéricas e isenta seis pares de separadores decorativos.
+Altera também a raiz de 11px para 11,5px na faixa 1024–1535px. Não foi apenas
+uma alteração de tokens de cor. O JSON `contrast-tokens.json` conserva essa
+fotografia histórica.
+
+A revisão dos consumidores encontrou contraste insuficiente no uso de
+`text-destructive` no tema escuro (4,06:1 na página, 3,70:1 no cartão) e hover
+translúcido fora da cobertura inicial. Implementado no ramo de revisão: migrar o texto para
+`text-destructive-strong` e usar hover destrutivo opaco, sem alterar dados,
+permissões, handlers ou dimensões. Cobertura de regressão inclui fundos tintados
+e impede a reutilização do preenchimento como texto em `src/`.
+
+A evidência tipográfica foi corrigida: `text-xs` já tinha mínimo de 11px,
+`text-sm` 12px, `text-base` 13px e `text-lg` 14px. Os 8,25/8,63px não eram o
+tamanho das classes. A raiz afecta também espaçamentos e dimensões em rem.
+
+Prova e limites: [relatório 2.2](VISUAL_2026-10-30_FASE_2-2.md),
+`evidence/2026-10-30/typography-scale.json` e
+`tests/ui/theme-token-contrast.test.ts`. Falta validação de páginas renderizadas
+em sessão autenticada, dispositivos físicos, zoom/reflow, SVG, imagens,
+hierarquia e marcas personalizadas. Não declarar conformidade integral WCAG.
+
+Verificação local desta revisão: `npm test -- --maxWorkers=4` — 804 ficheiros
+aprovados, 3 ignorados; 5.696 testes aprovados e 25 ignorados. Após acrescentar
+os quatro casos que seguem as classes hover de Button/Badge, execução específica:
+`vitest run tests/ui/theme-token-contrast.test.ts` — 119 aprovados e seis
+isenções. Repor temporariamente o hover antigo reproduziu duas falhas no tema
+claro; os ficheiros finais foram restaurados. O teste novo também falhou antes
+da correcção dos consumidores e da evidência tipográfica.
+
+`npm run build`, `npm run typecheck`, `npm run check:style` (65/65 rotas) e
+`npm run lint` aprovados; lint com 58 avisos, zero erros. CSS compilado pelo
+Tailwind confirma o mapeamento de texto strong, fundo original, hover novo e
+mínimo `text-xs` de 11px. Uma comparação automática dos 148 ficheiros de origem
+alterados confirma apenas as substituições de classes previstas e formatação.
+Sem navegador Chromium instalado neste executor: não houve capturas nem prova
+visual renderizada. Não houve merge, deploy, SQL ou escrita de dados escolares.
+
+## Etiquetas de alunos — revisão adicional de contraste (30/10/2026)
+
+Estado: **parcial**, implementado e testado localmente; sem publicação.
+`StudentFinanceBadge`, `StudentStatusBadge` e o mapa de pagamentos da lista de
+alunos mantêm fundos, contornos, tamanhos, rótulos e estados. Só os textos
+passam para os tokens strong adequados. Corrigida a reutilização de
+`warning-foreground` sobre fundo warning translúcido no tema escuro.
+
+O teste lê os mapas dos consumidores e mede os 15 estados nos dois temas e
+sobre página/cartão (60 casos). Antes: 23 falhas; depois: todos passam.
+`vitest run tests/ui/theme-token-contrast.test.ts tests/students
+ tests/ui/shared-list-controls.test.tsx tests/ui/education-workflow-visual.test.ts`:
+26 ficheiros, 349 testes aprovados, seis isenções decorativas. O teste de tema
+tem agora 179 aprovados e seis isenções. Lint dos quatro ficheiros de código e
+check:style aprovados. Marca personalizada, renderização autenticada,
+zoom/reflow e aparelhos físicos continuam sem validação neste ciclo.
+
+Build e tipos desta revisão: as execuções simultâneas foram terminadas com 137
+por falta de memória (dois eventos OOM kill registados no cgroup). Repetidos
+sequencialmente com `NODE_OPTIONS=--max-old-space-size=3072`: `npm run build`
+e `tsc --noEmit` aprovados. Nenhuma validação foi desactivada.
 
 - **Corrigido e verificado:** 6 das 14 falhas de contraste WCAG 2.2 AA. As que
   importavam estavam na variante base do `Button` e do `Badge` — todo o botão e

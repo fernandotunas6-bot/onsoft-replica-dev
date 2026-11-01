@@ -420,13 +420,13 @@ export function TurnstileAccessPanel() {
               className={`p-4 rounded-xl border flex items-center gap-4 transition-all ${
                 lastScanResult.granted
                   ? "border-success/40 bg-success/10 text-success-strong"
-                  : "border-destructive/40 bg-destructive/10 text-destructive"
+                  : "border-destructive/40 bg-destructive/10 text-destructive-strong"
               }`}
             >
               {lastScanResult.granted ? (
                 <CheckCircle2 className="size-10 text-success shrink-0" />
               ) : (
-                <XCircle className="size-10 text-destructive shrink-0" />
+                <XCircle className="size-10 text-destructive-strong shrink-0" />
               )}
               <div>
                 <h4 className="font-extrabold text-lg">
