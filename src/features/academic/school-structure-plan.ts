@@ -91,11 +91,20 @@ export function planSchoolStructure(
   plan.rooms = [];
 
   if (has("pre_escolar")) {
+    // `academic_levels` e `grade_levels` têm ambas CHECK (sequence > 0): com
+    // sequence 0 e n 0 este ramo falhava sempre no upsert, com o erro genérico
+    // «Há um campo com um valor inválido» a apontar para datas e números.
+    // Nenhuma escola chegou a ter Iniciação por causa disto.
+    //
+    // A Iniciação precede o Primário, mas 1 é o menor valor que a base aceita e
+    // o Primário já está a 1 nas escolas existentes. Renumerar EDUCATION_LEVELS
+    // desincronizaria essas linhas, porque o upsert não actualiza em conflito —
+    // a renumeração, se for desejada, precisa de migração de dados à parte.
     addGeneric(
       plan,
-      { code: "INIC", name: "Iniciação", sequence: 0, kind: "general" },
+      { code: "INIC", name: "Iniciação", sequence: 1, kind: "general" },
       { code: "INIC", name: "Iniciação", short: "INIC" },
-      [{ n: 0, code: "INIC", label: "Iniciação" }],
+      [{ n: 1, code: "INIC", label: "Iniciação" }],
     );
   }
   if (has("ii_ciclo")) {

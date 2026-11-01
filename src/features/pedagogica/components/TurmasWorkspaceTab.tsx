@@ -148,6 +148,8 @@ export function TurmasWorkspaceTab({
       <ClassWaitlistPanel />
       <ListFilterBar
         values={filters}
+        resultCount={turmasComDados.length}
+        resultNoun="turma"
         activeCount={activeCount}
         onChange={(name, value) => setFilter(name, value)}
         onReset={resetFilters}

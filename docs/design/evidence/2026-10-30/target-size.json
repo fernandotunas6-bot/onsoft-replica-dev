@@ -1,0 +1,40 @@
+{
+  "medido_em": "2026-10-30",
+  "norma": "WCAG 2.2 SC 2.5.8 Target Size (Minimum) — 24x24 px CSS, nivel AA. O contrato pede 44x44 px como preferencia (fase 4.3).",
+  "raiz_tipografica": { "movel_px": 12, "desktop_px": 11.5, "nota": "styles.css define a raiz em 75% / 71,875% do 16px do browser, logo a escala rem do Tailwind esta ~25% abaixo do nominal: h-11 sao 33px, nao 44" },
+  "verificacao_geometrica": {
+    "metodo": "document.elementFromPoint no browser do projecto, com o CSS compilado, sobre as cadeias de classes exactas que os componentes emitem",
+    "limite": "nao medido sobre instancias renderizadas dentro da aplicacao: sem sessao autenticada todas as rotas desenham o ecra de entrada",
+    "resultados": [
+      { "controlo": "caixa de verificacao", "caixa_visual_px": "12x12", "alvo_px": "24x24", "toque_a_menos_11px": "acerta", "toque_a_menos_14px": "falha" },
+      { "controlo": "opcao de radio", "caixa_visual_px": "12x12", "alvo_px": "24x24", "toque_a_menos_11px": "acerta", "toque_a_menos_14px": "falha" },
+      { "controlo": "interruptor", "caixa_visual_px": "27x15", "alvo_px": "24x24", "toque_a_menos_11px": "acerta", "toque_a_menos_14px": "falha" }
+    ],
+    "defeito_apanhado_na_medicao": "before:w-full no interruptor resolvia contra a caixa de conteudo e as bordas de 2px deixavam-no a 23px, 1px abaixo do minimo; corrigido para before:w-[24px]"
+  },
+  "inventario": [
+    { "controlo": "caixa de verificacao", "classe": "h-4", "movel_px": 12, "desktop_px": 11.5, "sc_2_5_8": "falhava", "estado": "corrigido com area de toque em pseudo-elemento" },
+    { "controlo": "opcao de radio", "classe": "h-4", "movel_px": 12, "desktop_px": 11.5, "sc_2_5_8": "falhava", "estado": "corrigido com area de toque em pseudo-elemento" },
+    { "controlo": "interruptor", "classe": "h-5", "movel_px": 15, "desktop_px": 14.4, "sc_2_5_8": "falhava", "estado": "corrigido com area de toque em pseudo-elemento" },
+    { "controlo": "aba", "classe": "min-h-9", "movel_px": 27, "desktop_px": 25.9, "sc_2_5_8": "passa", "estado": "abaixo dos 44px do contrato" },
+    { "controlo": "botao de pagina", "classe": "h-9", "movel_px": 27, "desktop_px": 25.9, "sc_2_5_8": "passa", "estado": "abaixo dos 44px do contrato" },
+    { "controlo": "campo de texto", "classe": "h-[44px] lg:h-9", "movel_px": 44, "desktop_px": 25.9, "sc_2_5_8": "passa", "estado": "divergente do selector no desktop" },
+    { "controlo": "selector (gatilho)", "classe": "h-[44px]", "movel_px": 44, "desktop_px": 44, "sc_2_5_8": "passa", "estado": "sem override lg: — fica 18px mais alto que o campo de texto no desktop" },
+    { "controlo": "area de texto", "classe": "min-h-[96px]", "movel_px": 96, "desktop_px": 96, "sc_2_5_8": "passa", "estado": "ok" },
+    { "controlo": "dia do calendario", "classe": "aspect-square h-full w-full", "movel_px": null, "desktop_px": null, "sc_2_5_8": "nao mensuravel estaticamente", "estado": "recebe a dimensao da celula da grelha; exige medicao em runtime" }
+  ],
+  "foco_visivel": {
+    "com_focus_visible": ["checkbox", "radio-group", "switch", "input", "textarea", "tabs", "button", "toggle", "slider"],
+    "por_composicao_do_button": ["pagination", "calendar", "toggle-group"],
+    "outline_do_browser_preservado": ["accordion"],
+    "divergente": { "select": "usa focus: em vez de focus-visible:, logo o anel aparece tambem ao clique de rato" },
+    "foco_por_cor_de_texto_apenas": {
+      "componentes": ["dropdown-menu", "command"],
+      "medicao": "o realce de fundo --accent sobre --popover mede 1,16:1 no tema claro e 1,26:1 no escuro — nao perceptivel por si",
+      "compensacao": "o foco muda tambem a cor do texto para --accent-foreground, que mede 8,02:1 sobre --accent no claro",
+      "leitura": "2.4.7 (AA) exige indicador visivel; a mudanca de cor do texto e visivel, pelo que nao e falha clara, mas o indicador e fraco"
+    }
+  },
+  "teste_de_regressao": "tests/ui/target-size-contract.test.ts",
+  "falha_anterior_nao_relacionada": "tests/enrollment/public-review-flow.test.tsx expira aos 5000ms tambem sem estas alteracoes (confirmado com as alteracoes guardadas)"
+}

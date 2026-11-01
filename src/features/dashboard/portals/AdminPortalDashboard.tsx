@@ -131,26 +131,6 @@ export function AdminPortalDashboard({
           : undefined,
     },
     {
-      label: "Estudantes masculinos",
-      icon: UserRound,
-      value: capabilities.students ? String(data?.totals.male ?? 0) : "—",
-      tone: "info" as const,
-      hint:
-        capabilities.students && totalStudents
-          ? `${Math.round(((data?.totals.male ?? 0) / totalStudents) * 100)}% do total`
-          : "Aguardando dados",
-    },
-    {
-      label: "Estudantes femininos",
-      icon: UserRound,
-      value: capabilities.students ? String(data?.totals.female ?? 0) : "—",
-      tone: "pink" as const,
-      hint:
-        capabilities.students && totalStudents
-          ? `${Math.round(((data?.totals.female ?? 0) / totalStudents) * 100)}% do total`
-          : "Aguardando dados",
-    },
-    {
       label: capabilities.documents ? "Documentos emitidos" : "Total recebido",
       icon: capabilities.documents ? FileText : Receipt,
       value: capabilities.documents
@@ -173,21 +153,33 @@ export function AdminPortalDashboard({
     },
   ];
 
+  // Cada número abre o separador onde ele se gere. Antes eram `div` sem destino
+  // nenhum, mas com `hover:shadow-card`: reagiam ao rato e não levavam a lado
+  // nenhum. O destino só existe quando a pessoa pode abrir `/pedagogica` — sem
+  // isso fica o cartão parado, e sem o realce que prometia o clique.
+  const podeAbrirPedagogica = canAccessPath("/pedagogica", currentUser.role, currentUser.grants);
+  const miniStatHref = podeAbrirPedagogica ? ("/pedagogica" as const) : undefined;
   const miniStats = [
     {
       label: "Cursos",
       icon: BookOpen,
       value: capabilities.students ? String(data?.totals.courses ?? 0) : "—",
+      href: miniStatHref,
+      search: { tab: "estrutura" as const },
     },
     {
       label: "Turmas activas",
       icon: Users,
       value: capabilities.students ? String(data?.totals.classGroups ?? 0) : "—",
+      href: miniStatHref,
+      search: { tab: "turmas" as const },
     },
     {
       label: "Salas",
       icon: DoorOpen,
       value: capabilities.students ? String(data?.totals.rooms ?? 0) : "—",
+      href: miniStatHref,
+      search: { tab: "salas" as const },
     },
     {
       label: "Taxa de presença",
@@ -196,6 +188,8 @@ export function AdminPortalDashboard({
         capabilities.students && data?.totals.attendanceAverage != null
           ? `${data.totals.attendanceAverage}%`
           : "—",
+      href: miniStatHref,
+      search: { tab: "presencas" as const },
     },
   ];
 
@@ -691,12 +685,7 @@ export function AdminPortalDashboard({
             <>
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm text-muted-foreground">{s.label}</p>
-                <IconChip
-                  icon={s.icon}
-                  size="md"
-                  tone={s.tone === "pink" ? "info" : s.tone}
-                  label={s.label}
-                />
+                <IconChip icon={s.icon} size="md" tone={s.tone} label={s.label} />
               </div>
               <p className="mt-3 text-4xl font-extrabold tracking-tight">{s.value}</p>
               <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
@@ -707,15 +696,12 @@ export function AdminPortalDashboard({
               key={s.label}
               to={s.href}
               {...(s.search ? { search: s.search } : {})}
-              className="surface-card block p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:border-primary/40 hover:shadow-card cursor-pointer motion-reduce:transition-none motion-reduce:hover:scale-100"
+              className="surface-card block cursor-pointer p-5 transition-[border-color,box-shadow] duration-150 ease-out hover:border-primary/40 hover:shadow-card motion-reduce:transition-none"
             >
               {card}
             </Link>
           ) : (
-            <div
-              key={s.label}
-              className="surface-card p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card motion-reduce:transition-none motion-reduce:hover:scale-100"
-            >
+            <div key={s.label} className="surface-card p-5">
               {card}
             </div>
           );
@@ -723,18 +709,32 @@ export function AdminPortalDashboard({
       </div>
 
       <div className="hidden gap-4 md:grid sm:grid-cols-2 xl:grid-cols-4">
-        {miniStats.map((s) => (
-          <div
-            key={s.label}
-            className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card motion-reduce:transition-none motion-reduce:hover:scale-100"
-          >
-            <IconChip icon={s.icon} size="md" tone="primary" label={s.label} />
-            <div>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-              <p className="text-xl font-bold">{s.value}</p>
+        {miniStats.map((s) => {
+          const conteudo = (
+            <>
+              <IconChip icon={s.icon} size="md" tone="primary" label={s.label} />
+              <div>
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+                <p className="text-xl font-bold">{s.value}</p>
+              </div>
+            </>
+          );
+          // Sem destino não há realce: o cartão parado não deve parecer clicável.
+          return s.href ? (
+            <Link
+              key={s.label}
+              to={s.href}
+              search={s.search}
+              className="surface-card flex cursor-pointer items-center gap-4 p-4 transition-[border-color,box-shadow] duration-150 ease-out hover:border-primary/40 hover:shadow-card motion-reduce:transition-none"
+            >
+              {conteudo}
+            </Link>
+          ) : (
+            <div key={s.label} className="surface-card flex items-center gap-4 p-4">
+              {conteudo}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -747,7 +747,7 @@ export function AdminPortalDashboard({
                 <h2 className="text-base font-semibold">Comunicados</h2>
               </div>
               {canAccessPath("/comunicacoes", currentUser.role) ? (
-                <Button asChild size="sm" variant="ghost">
+                <Button asChild size="sm" variant="link">
                   <Link to="/comunicacoes">Ver todos</Link>
                 </Button>
               ) : null}

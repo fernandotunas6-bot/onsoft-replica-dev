@@ -767,6 +767,8 @@ function DocumentosPage() {
           action={
             <ListFilterBar
               className="border-0 bg-transparent p-0 shadow-none"
+              resultCount={filtered.length}
+              resultNoun="documento"
               values={filters}
               activeCount={activeCount}
               onChange={(name, value) => setFilter(name as keyof typeof filters, value)}

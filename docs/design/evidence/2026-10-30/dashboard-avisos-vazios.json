@@ -1,0 +1,54 @@
+{
+  "medido_em": "2026-10-30",
+  "ambito": "fase 2.3 — dashboard, notificacoes e estados vazios",
+  "limite_desta_medicao": "sem sessao autenticada todas as rotas desenham o ecra de entrada; o dashboard nao pode ser visto nem fotografado. Tudo aqui foi lido no codigo, nao observado no ecra.",
+  "dashboard": {
+    "ficheiro_principal": "features/dashboard/portals/AdminPortalDashboard.tsx (821 linhas)",
+    "inventario": { "botoes": 7, "ligacoes": 9, "cartoes": 6, "gradientes": 0, "badges": 0, "sombras": 8 },
+    "leitura": "o excesso nao estava na contagem de elementos — esta no comportamento e na incoerencia de estilo",
+    "removido": {
+      "o_que": "crescimento dos cartoes ao passar o rato",
+      "antes": "transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card",
+      "depois": "transition-[border-color,box-shadow] duration-150 ease-out hover:shadow-card",
+      "quantos": 3,
+      "porque": "o cartao nao revela nada ao crescer: e decoracao. O transition-all animava todas as propriedades em vez das duas que mudam, e 150ms fica dentro da faixa de 120-180ms que o contrato indica para elementos pequenos. O retorno util (borda e sombra) fica.",
+      "preservado": "motion-reduce:transition-none; os destinos, o cursor-pointer e a borda de destaque mantem-se"
+    },
+    "simplificado_para_estilo_de_ligacao": {
+      "quais": [
+        "AdminPortalDashboard.tsx:750 «Ver todos» → /comunicacoes",
+        "TodayAtSchoolCard.tsx:137 «Abrir calendario» → /calendario"
+      ],
+      "de": "variant=\"ghost\"", "para": "variant=\"link\"",
+      "porque": "sao navegacao, nao accao — e ja eram <a> por asChild. O portal-ui.tsx ja rende o «Ver tudo» como ligacao simples nos portais de aluno e encarregado: o Admin e o TodayAtSchool e que destoavam.",
+      "porque_nao_ligacao_inline": "converter para <a> solto perderia o min-h-[44px] que a variante de tamanho do Button garante; variant=\"link\" da o aspecto sem perder o alvo"
+    },
+    "deixado_como_esta": [
+      { "o_que": "«Nova Matricula» e «Caixa & Pagamentos»", "razao": "sao as accoes primarias do cabecalho; passa-las a ligacao enfraquece o percurso principal" },
+      { "o_que": "4 botoes fantasma de separador (Visao Geral, Pedagogico, Financeiro, Auditoria)", "razao": "sao alternadores de vista com aria-pressed, nao navegacao" },
+      { "o_que": "3 botoes so de icone no portal do professor", "razao": "estilo de ligacao daria sublinhado sem texto" },
+      { "o_que": "transition-all na barra de progresso (linha 669)", "razao": "ali a animacao e funcional: mostra o progresso" }
+    ],
+    "fora_do_ambito_pedido": "hover:scale-[1.02] existe tambem em routes/alunos/$studentId.tsx e routes/pessoas/$personId.tsx, que nao sao o dashboard"
+  },
+  "notificacoes": {
+    "corrigido": {
+      "o_que": "botao de fechar do aviso, no telemovel",
+      "antes": "max-sm:!size-7 = 1,75rem = 21px com a raiz a 12px",
+      "depois": "max-sm:!size-[24px]",
+      "norma": "SC 2.5.8 Target Size (Minimum), AA"
+    },
+    "ja_correcto": {
+      "botao_de_accao": "max-sm:!h-10 = 30px, acima do minimo",
+      "descricao": "group-[.toast]:text-foreground/80, com comentario a explicar que nao pode ficar em cinzento-claro",
+      "icones": "FeedbackIcon por estado: success, error, warning, info, processing"
+    },
+    "nota": "o Toaster do projecto ja tinha cuidado explicito com contraste da descricao e com o alvo do botao de accao; so o botao de fechar escapou"
+  },
+  "estados_vazios": {
+    "componente_partilhado": "ui/empty-state.tsx, 34 consumidores",
+    "texto_de_vazio_a_mao": "80 ficheiros contem «Nenhum», «Nenhuma», «Sem resultados» ou «Sem dados»",
+    "aviso": "este segundo numero NAO e uma conclusao: «Nenhum» aparece em muitos contextos que nao sao estados vazios de lista. Nao foi verificado ficheiro a ficheiro e nao deve ser citado como contagem de duplicacao.",
+    "estado": "por auditar a serio"
+  }
+}

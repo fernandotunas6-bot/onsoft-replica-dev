@@ -35,7 +35,11 @@ export function ListPaginationBar({
       className={`flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-[12px] text-muted-foreground ${className}`}
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
-        <span>
+        {/* SC 4.1.3: a contagem muda ao filtrar, pesquisar e paginar sem que o
+            foco se mova, pelo que tem de ser anunciada. role="status" implica
+            aria-live="polite"; aria-atomic faz ler a frase inteira e não só o
+            número que mudou. Sem efeito visual. */}
+        <span role="status" aria-atomic="true">
           Mostrando{" "}
           <strong className="font-semibold text-foreground">{`${startItem}–${endItem}`}</strong> de{" "}
           <strong className="font-semibold text-foreground">{totalItems}</strong> registo
