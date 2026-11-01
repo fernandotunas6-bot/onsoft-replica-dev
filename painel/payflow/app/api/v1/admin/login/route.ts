@@ -6,6 +6,7 @@ import { permissionsForRole, sessionCookie } from "@/lib/admin-session";
 import { createOpaqueId, sha256 } from "@/lib/identifiers";
 import { corsHeaders, jsonResponse, safeEqual } from "@/lib/payflow";
 import { getIntegrationApiKey, isSandboxRuntime } from "@/lib/runtime";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json().catch(() => ({}))) as {
+    const body = ((await readJsonBody(request)) ?? {}) as {
       key?: string;
       sso_assertion?: string;
       school_id?: string;

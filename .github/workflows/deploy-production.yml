@@ -188,6 +188,15 @@ jobs:
           # Configuração não secreta (scripts/worker-secrets.mjs → OPTIONAL_WORKER_VARS);
           # vazias não são enviadas e o que está no painel da Cloudflare mantém-se.
           PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
+          # Domínios próprios do WEB, ADMIN e DOC (ex.: https://www.portal-siga.com).
+          # Vazios, scripts/deploy-all.mjs mantém os *.pages.dev. Só definir depois de
+          # ligar o domínio ao projecto Pages e o HTTPS responder.
+          VITE_WEB_URL: ${{ vars.WEB_URL }}
+          NEXT_PUBLIC_WEB_URL: ${{ vars.WEB_URL }}
+          VITE_ADMIN_URL: ${{ vars.ADMIN_URL }}
+          NEXT_PUBLIC_ADMIN_URL: ${{ vars.ADMIN_URL }}
+          VITE_DOCS_URL: ${{ vars.DOCS_URL }}
+          NEXT_PUBLIC_DOCS_URL: ${{ vars.DOCS_URL }}
           APPYPAY_ENV: ${{ vars.APPYPAY_ENV }}
           APPYPAY_CLIENT_ID: ${{ vars.APPYPAY_CLIENT_ID }}
           APPYPAY_RESOURCE: ${{ vars.APPYPAY_RESOURCE }}

@@ -5,7 +5,8 @@ import {
   payflowSettlementInputSchema,
 } from "@/features/finance/payflow-settlement";
 import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
-import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { isRateLimitBypassed } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { clientIpFromRequest } from "@/lib/request-ip";
 
 // style-check: route-exempt — webhook HTTP PayFlow → SIGA (sem shell administrativo).
@@ -20,16 +21,21 @@ export const Route = createFileRoute("/api/finance/payflow/settlement")({
     handlers: {
       POST: async ({ request }) => {
         const rateLimitKey = `ip:${clientIpFromRequest(request)}`;
+        // Limitador partilhado entre instâncias do Worker (com recurso à memória
+        // se a base falhar): o limite só em memória valia por instância e não
+        // travava tentativas distribuídas.
         if (
           !isRateLimitBypassed(rateLimitKey) &&
-          !checkRateLimit([rateLimitKey], PAYFLOW_SETTLEMENT_RATE_LIMIT)
+          !(await consumeRateLimit(
+            [`payflow_settlement:${rateLimitKey}`],
+            PAYFLOW_SETTLEMENT_RATE_LIMIT,
+          ))
         ) {
           return Response.json(
             { ok: false, message: "Demasiados pedidos. Tente mais tarde." },
             { status: 429 },
           );
         }
-        recordRateLimitAttempt([rateLimitKey], PAYFLOW_SETTLEMENT_RATE_LIMIT);
 
         if (!payflowSettlementAuthorized(request.headers.get("authorization"))) {
           return Response.json(

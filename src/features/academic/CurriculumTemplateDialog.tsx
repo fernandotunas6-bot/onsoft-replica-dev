@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   EDUCATION_LEVELS,
+  needsLargePlanConfirmation,
   planCurriculum,
   summarizePlan,
   type EducationLevelId,
@@ -61,6 +62,8 @@ export function CurriculumTemplateDialog({
   const [capacity, setCapacity] = useState(35);
   const [createRooms, setCreateRooms] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Plano grande: o primeiro clique só pede confirmação; mudar a escolha anula-a.
+  const [confirmedTurmas, setConfirmedTurmas] = useState<number | null>(null);
   const apply = useServerFn(applyCurriculumTemplate);
   const applyCatalog = useServerFn(applyCatalogStructure);
   const fromCatalog = country !== "AO";
@@ -110,7 +113,14 @@ export function CurriculumTemplateDialog({
       return { ...prev, [id]: [...list] };
     });
 
+  const largePlan = needsLargePlanConfirmation(summary);
+  const awaitingConfirmation = largePlan && confirmedTurmas !== summary.turmas;
+
   const submit = async () => {
+    if (awaitingConfirmation) {
+      setConfirmedTurmas(summary.turmas);
+      return;
+    }
     setSaving(true);
     try {
       const result = fromCatalog
@@ -328,6 +338,13 @@ export function CurriculumTemplateDialog({
                     .join(", ")}
                   {plan.classGroups.length > 3 ? "…" : ""}
                 </p>
+                {largePlan ? (
+                  <p className="mt-1 text-xs text-warning-strong" role="status">
+                    São {summary.turmas} turmas. Escolha só os níveis que a escola lecciona; as
+                    turmas sem alunos ficam vazias nas listas.
+                    {awaitingConfirmation ? "" : " Carregue de novo para confirmar."}
+                  </p>
+                ) : null}
                 {withoutPlan.length ? (
                   <p className="mt-1 text-xs text-muted-foreground">
                     Sem disciplinas para:{" "}
@@ -348,7 +365,11 @@ export function CurriculumTemplateDialog({
               Cancelar
             </Button>
             <Button type="button" onClick={submit} disabled={!summary.cursos || saving}>
-              {saving ? "A criar…" : "Criar estrutura"}
+              {saving
+                ? "A criar…"
+                : largePlan && !awaitingConfirmation
+                  ? `Confirmar: criar ${summary.turmas} turmas`
+                  : "Criar estrutura"}
             </Button>
           </DialogFooter>
         </DialogContent>
