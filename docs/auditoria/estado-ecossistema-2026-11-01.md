@@ -202,6 +202,16 @@ squash escondem duplicações, por isso «em conflito» não prova que o trabalh
 - **Esquema `private`:** `authenticated` executa 60 funções auxiliares usadas pelas
   políticas RLS, mas não lê nenhuma tabela; `anon` sem acesso.
 
+## 4g. Isolamento entre escolas nos dados
+
+- As ligações entre tabelas escolares são, na maioria, compostas com `school_id`
+  (`(school_id, x_id)`), e a própria base impede apontar para outra escola.
+- Nas ligações simples (só pelo `id`) entre tabelas que têm `school_id` — lista de espera,
+  RH, presenças, chat, ficheiros, tarefas, exames, entre outras — contou-se, na produção a
+  01/11, quantas linhas apontam para um pai de outra escola: **nenhuma**.
+- A contagem correu num bloco `DO` com uma tabela temporária de sessão para devolver o
+  resultado; não alterou dados nem estrutura.
+
 ## 5. Pendências do proprietário
 
 - Domínios personalizados `www.`, `admin.` e `docs.portal-siga.com` nos projectos Pages.
