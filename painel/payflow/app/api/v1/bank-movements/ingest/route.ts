@@ -7,6 +7,7 @@ import {
   verifiedPayload,
 } from "@/lib/bank-transfer-verify";
 import { reportPayflowEvent } from "@/lib/ops-report";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = movementSchema.safeParse(await request.json());
+    const parsed = movementSchema.safeParse(await readJsonBody(request));
     if (!parsed.success) {
       return jsonResponse(
         {

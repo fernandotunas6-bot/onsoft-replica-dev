@@ -19,6 +19,7 @@ import {
   type PaymentRecord,
 } from "@/lib/payflow";
 import { getTransferExpiryHours, isSandboxRuntime } from "@/lib/runtime";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = createPaymentSchema.safeParse(await request.json());
+    const parsed = createPaymentSchema.safeParse(await readJsonBody(request));
     if (!parsed.success) {
       return jsonResponse(
         {

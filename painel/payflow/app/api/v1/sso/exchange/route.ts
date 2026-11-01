@@ -7,13 +7,14 @@ import { createOpaqueId, sha256 } from "@/lib/identifiers";
 import { jsonResponse } from "@/lib/payflow";
 import { getSsoSecret } from "@/lib/runtime";
 import { verifySsoAssertion } from "@/lib/sso-assertion";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
 async function readAssertion(request: Request) {
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
-    const body = (await request.json()) as { assertion?: unknown };
+    const body = ((await readJsonBody(request)) ?? {}) as { assertion?: unknown };
     return typeof body.assertion === "string" ? body.assertion : "";
   }
   const form = await request.formData();

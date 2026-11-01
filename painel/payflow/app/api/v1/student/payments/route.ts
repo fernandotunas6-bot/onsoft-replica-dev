@@ -20,6 +20,7 @@ import { createCheckoutToken, createPaymentId, corsHeaders, jsonResponse } from 
 import { resolveStudentSession } from "@/lib/student-session";
 import { emisMethods, initiateEmisSandbox } from "@/lib/providers/emis";
 import { getTransferExpiryHours, isSandboxRuntime } from "@/lib/runtime";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
@@ -116,7 +117,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const parsed = paymentSchema.safeParse(await request.json());
+    const parsed = paymentSchema.safeParse(await readJsonBody(request));
     if (!parsed.success) {
       return jsonResponse(
         { error: { code: "invalid_payment", message: "Escolha uma cobrança e um método de pagamento disponível." } },

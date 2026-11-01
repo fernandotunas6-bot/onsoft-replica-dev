@@ -16,6 +16,7 @@ import {
 } from "@/lib/bank-transfer-verify";
 import { logPayflowEvent } from "@/lib/ops-log";
 import { corsHeaders, isIntegrationAuthorized, jsonResponse } from "@/lib/payflow";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ async function readCsvFromRequest(request: Request) {
     const csv = await file.text();
     return { csv, apply, school_id: schoolId };
   }
-  const parsed = importSchema.safeParse(await request.json());
+  const parsed = importSchema.safeParse(await readJsonBody(request, 2 * 1024 * 1024));
   if (!parsed.success) {
     return { error: "Envie um CSV com cabeçalho (referencia, valor, movimento, data)." as const };
   }
