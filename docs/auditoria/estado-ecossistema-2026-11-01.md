@@ -186,6 +186,22 @@ Fusão de ensaio local (`git merge-tree`, sem alterar nada) contra `d3c3f154`:
 O `git cherry` só reconhece como já integrados 2 commits da #392 e 3 da #136: as fusões por
 squash escondem duplicações, por isso «em conflito» não prova que o trabalho falta na `main`.
 
+## 4f. Segredos, Edge Functions e privilégios da base
+
+- **Segredos no repositório:** sem chaves Supabase (`sb_secret_`, `service_role`),
+  Cloudflare, GitHub, Slack, AWS, Resend, Stripe ou chaves privadas nos ficheiros
+  versionados; os quatro `.env*` são exemplos com marcadores; sem `.pem`, keystores ou JSON
+  de credenciais. O histórico antigo não foi varrido (clone parcial).
+- **Edge Functions:** só `bbb-classroom`, igual no repositório e na produção;
+  `verify_jwt` ligado, origens permitidas, membership activa da escola pedida e papel lido
+  no servidor.
+- **Tabelas sem RLS acessíveis à API:** nenhuma (`public`, `private`,
+  `academic_evidence`, incluindo vistas).
+- **`SECURITY DEFINER`:** 140 funções (40 `public`, 100 `private`), todas com
+  `search_path` fixo; nenhuma executável por `anon`.
+- **Esquema `private`:** `authenticated` executa 60 funções auxiliares usadas pelas
+  políticas RLS, mas não lê nenhuma tabela; `anon` sem acesso.
+
 ## 5. Pendências do proprietário
 
 - Domínios personalizados `www.`, `admin.` e `docs.portal-siga.com` nos projectos Pages.
