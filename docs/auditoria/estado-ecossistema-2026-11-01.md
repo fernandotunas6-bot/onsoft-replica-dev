@@ -212,6 +212,29 @@ squash escondem duplicações, por isso «em conflito» não prova que o trabalh
 - A contagem correu num bloco `DO` com uma tabela temporária de sessão para devolver o
   resultado; não alterou dados nem estrutura.
 
+## 4h. Uso real e qualidade dos dados (produção, 01/11)
+
+| Escola (tenant)                            | Estado                | Alunos | Professores | Turmas | Notas | Facturas | Contas |
+| ------------------------------------------ | --------------------- | ------ | ----------- | ------ | ----- | -------- | ------ |
+| ISPAB (`minha-escola`)                     | activa, paga          | 72     | 12          | 235    | 189   | 6        | 9      |
+| ISPAB Demonstração (`ispab`)               | trial                 | 0      | 0           | 0      | 0     | 0        | 2      |
+| Epatulokko, Colégio Ekovongo, Portal       | trial                 | 0      | 0           | 0      | 0     | 0        | 1–2    |
+| `siga-plus-web-production-falhou-986ba240` | `provisioning_failed` | 0      | 0           | 0      | 0     | 0        | 0      |
+
+- **Uma escola em uso real.** As 48 escolas de 21/10 foram limpas; ficam 6.
+- **Financeiro:** 6 facturas (3 pagas, 2 em aberto, 1 anulada) e 3 recibos, todos coerentes
+  (pagas cobertas por recibos, nenhuma recebida a mais). Sem cobranças no gateway, sem
+  sessões de caixa e sem despesas: o módulo ainda não está em uso diário.
+- **Turmas do ISPAB:** 235 turmas para 72 alunos, só 4 com alunos. A 22/10, às 16:31 e
+  16:33, foram aplicados dois modelos de estrutura académica; o segundo era de todos os
+  níveis (5 níveis, 73 classes, do infantil ao médio) e criou 192 turmas, como
+  «5º Ano EINF A — Tarde», num instituto superior. Há ainda 12 turmas «DEMO —» de 08/10. O
+  modelo é idempotente (a terceira aplicação, a 29/10, não criou nada); não é defeito, é
+  um modelo inadequado ao tipo de escola. **Decisão do proprietário:** arquivar as turmas
+  vazias e as «DEMO», e se o assistente deve propor só os níveis do tipo de instituição.
+- **Tenant órfão:** `siga-plus-web-production-falhou-986ba240` em `provisioning_failed`,
+  sem dados nem contas. Pode ser removido pelo ADMIN.
+
 ## 5. Pendências do proprietário
 
 - Domínios personalizados `www.`, `admin.` e `docs.portal-siga.com` nos projectos Pages.
