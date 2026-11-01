@@ -116,6 +116,51 @@ Supabase: 90 tabelas só de servidor (RLS sem políticas, sem permissões para
 auxiliares do RLS e **protecção contra palavras-passe vazadas desligada** (Auth → definições;
 acção do proprietário).
 
+## 4a. APIs públicas e da plataforma (build compilado, sem sessão)
+
+Ensaio no build `node-server` local, sem sessão nem escritas, com a URL e a chave
+publicável do Supabase:
+
+- **Móveis (`/api/mobile/*`, 9 rotas):** todas recusam sem sessão (401). A classe de
+  defeito de 27/10 («Server function info not found») não se repete.
+- **Plataforma (`/api/saas/*`, 39 rotas):** leituras e escritas de administração
+  respondem 401 sem sessão. As rotas públicas por desenho (planos, catálogo, verificação de
+  subdomínio, signup, site WEB) não expõem dados privados.
+- **Dinheiro e acessos:** confirmação do gateway (HMAC), liquidação PayFlow (chave
+  comparada em tempo constante), AppyPay, catracas (chave do dispositivo e limites) e
+  calendário ICS (token) protegidos.
+
+Menores (sem dados expostos):
+
+1. Várias rotas validam o corpo antes da sessão: sem sessão, um POST malformado recebe
+   400/422 com os nomes dos campos em vez de 401.
+2. Método não suportado numa rota `/api` (ex.: `POST /api/mobile/agenda`) devolve a página
+   HTML com 200 em vez de 405.
+3. `/api/finance/payflow/settlement` limita tentativas só em memória (por instância do
+   Worker); as catracas e o website usam o limitador partilhado.
+
+## 4b. Dependências dos painéis (o CI audita só a raiz)
+
+`npm audit --omit=dev` a 01/11 (a raiz está limpa com `bun audit`):
+
+| Painel  | Alta/crítica                                                    | Relevância                                                                                                                                                                    |
+| ------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PAYFLOW | `next` 16.3.6 (crítica), `zod` 3.25.76, `source-map-js`         | **zod** é real: 13 endpoints lêem JSON sem limite de tamanho e o aviso é esgotamento de memória com colecções grandes. `next` é usado via Vinext, sem `use cache`/Draft Mode. |
+| ADMIN   | `next` 16.3.6 (crítica), `zod` <4.6.6, `source-map-js`          | Exportação estática: o defeito do Next é do servidor e não corre em produção.                                                                                                 |
+| WEB     | `vite` 7.3 (launch-editor, Windows/dev), `zod`, `source-map-js` | Só cliente/compilação.                                                                                                                                                        |
+| DOC     | `source-map-js`                                                 | Só compilação.                                                                                                                                                                |
+
+Recomendação: limite de corpo nos endpoints PayFlow e `zod` 4.6.7 (mudança major no
+PayFlow, com testes); `next` 16.4.3 e `zod` 4.6.7 no ADMIN/WEB; acrescentar os painéis
+ao job «Auditoria de dependências».
+
+## 4c. Issues que parecem resolvidas
+
+#181 e #195 (token Cloudflare): o deploy passa desde 30/10. #202 (avisos altos de MCP e
+`launch-editor`): overrides na raiz e `bun audit` limpo. #204 (publicar `siga-ispab`): o
+workflow publicou a 31/10; o HTTPS do domínio fica por confirmar. Fechar só com a
+decisão do proprietário.
+
 ## 5. Pendências do proprietário
 
 - Domínios personalizados `www.`, `admin.` e `docs.portal-siga.com` nos projectos Pages.
