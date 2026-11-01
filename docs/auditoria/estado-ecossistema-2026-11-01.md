@@ -78,6 +78,36 @@ Correcção incluída: no ADMIN, «Abrir no SIGA» apontava para a raiz do subdo
 website público, não o SIGA. Passa a haver duas ligações explícitas: «Website da escola» e
 «Portal SIGA Plus».
 
+## 3a. E-inscrição: website → formulário oficial (trabalho do Codex, 20–22/10)
+
+O que o Codex deixou (#196 e commits de 20–22/10) está correcto na segurança: a API
+`/api/public/school-website/$slug` valida a origem (`SIGA_SCHOOL_WEBSITE_ORIGINS`), o
+tamanho do pedido (16 KB) e o ritmo (10 por hora e IP), recusa `school_id`/`tenant_id`
+vindos do cliente, reutiliza a validação e a numeração oficial (`CAND-…`) e não expõe
+erros. O formulário do modelo (`/candidatura/`) é de demonstração: guarda no navegador e
+nunca envia — por desenho, não se liga o POST real a um formulário de simulação.
+
+**Defeito encontrado (produção, só leitura, 01/11):** o site só levava ao formulário
+oficial quando o Administrador escolhia a campanha no editor. Nenhuma escola o tinha feito:
+
+| Escola                        | Campanha                                | Aberta               | Website                       | Campanha no site | Efeito antes                                              |
+| ----------------------------- | --------------------------------------- | -------------------- | ----------------------------- | ---------------- | --------------------------------------------------------- |
+| ISPAB (`minha-escola`)        | `escola-de-demonstracao-siga-matricula` | sim (7 candidaturas) | publicado, modelo completo    | vazia            | `/candidatura/` mostrava o formulário **de demonstração** |
+| ISPAB (Demonstração, `ispab`) | `ispab`                                 | não                  | publicado                     | vazia            | idem                                                      |
+| Epatulokko, Portal, Ekovongo  | uma cada                                | sim                  | não publicado (só identidade) | —                | sem caminho do site para a inscrição                      |
+
+**Correcção (este ramo):** `resolveSchoolAdmissions` é a regra única para o site e para a
+API de conteúdos — a campanha escolhida, ou, sem escolha, a única aberta da escola
+(nunca apagada; escola que pode receber candidaturas, a mesma condição do formulário).
+`/candidatura/` responde com 302 para `/matricula/<campanha>` no servidor, também nas
+escolas só com identidade; sem campanha aberta, «Candidaturas encerradas» (ou 404 fora do
+âmbito). O painel da escola (assistente e Assinatura) mostra «Inscrições online» ao lado do
+website e do portal. Nenhum dado da produção foi alterado.
+
+**Fica de fora:** o website estático `siga-ispab` (Pages, `painel/escolas`) tem
+`contentUrl` vazio e aponta para a escola de demonstração; continua demonstrativo até o
+proprietário decidir ligá-lo à escola real (`school.config.json`) e validar.
+
 ## 4. Base de dados
 
 Migrações e diferenças de registo: ver a issue #420 (actualizada a 01/11). Avisos do

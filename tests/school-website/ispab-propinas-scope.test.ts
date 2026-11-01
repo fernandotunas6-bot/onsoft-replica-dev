@@ -62,7 +62,7 @@ describe("Entrega segura Kursinha — ISPAB no domínio escolar existente", () =
       templateVersion: websiteTemplate.version,
       values: {},
       unavailablePrograms: [],
-      admissions: null,
+      admissions: { isOpen: false, path: null },
     });
     expect(page).not.toBeNull();
     expect(page).toContain(
@@ -87,7 +87,7 @@ describe("Entrega segura Kursinha — ISPAB no domínio escolar existente", () =
         templateVersion: websiteTemplate.version,
         values: {},
         unavailablePrograms: [],
-        admissions: null,
+        admissions: { isOpen: false, path: null },
       },
     );
     expect(alternate).toContain(

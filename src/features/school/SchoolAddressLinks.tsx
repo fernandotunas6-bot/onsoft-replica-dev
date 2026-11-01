@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ExternalLink, Globe, GraduationCap } from "lucide-react";
+import { ClipboardList, ExternalLink, Globe, GraduationCap } from "lucide-react";
 import { getMySchoolAddresses, type SchoolAddresses } from "./school-addresses-server";
 
 export const SCHOOL_ADDRESSES_QUERY_KEY = ["school", "addresses"] as const;
@@ -31,6 +31,16 @@ export function SchoolAddressLinks({ enabled = true }: { enabled?: boolean }) {
       hint: "Entrada da equipa, alunos e encarregados",
       icon: GraduationCap,
     },
+    ...(query.data.enrollmentUrl
+      ? [
+          {
+            href: query.data.enrollmentUrl,
+            label: "Inscrições online",
+            hint: "Formulário oficial ligado ao website",
+            icon: ClipboardList,
+          },
+        ]
+      : []),
   ];
   return (
     <ul className="grid min-w-0 gap-2 text-sm" aria-label="Endereços da escola">
