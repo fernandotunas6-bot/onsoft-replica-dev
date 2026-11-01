@@ -47,6 +47,31 @@ export function getSigaSchoolUrl(slug?: string): string {
   return `https://${clean}.${PLATFORM_DOMAIN}`;
 }
 
+function validSlug(slug?: string): string | null {
+  const clean = (slug ?? "").trim().toLowerCase();
+  return clean && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(clean) ? clean : null;
+}
+
+/**
+ * Website público da escola. No subdomínio, a raiz é o website (o Worker do
+ * SIGA serve-o antes do router — `schoolSiteRequest`); em desenvolvimento,
+ * o caminho partilhado `/escolas/<slug>/` do SIGA local.
+ */
+export function getSchoolWebsiteUrl(slug?: string): string | null {
+  const clean = validSlug(slug);
+  if (!clean) return null;
+  if (isLocal) return `${ECOSYSTEM_URLS.siga}/escolas/${clean}/`;
+  return `${getSigaSchoolUrl(clean)}/`;
+}
+
+/** Portal SIGA Plus da escola (entrada da equipa, alunos e encarregados). */
+export function getSchoolPortalUrl(slug?: string): string {
+  const clean = validSlug(slug);
+  if (!clean) return `${ECOSYSTEM_URLS.siga}/portal`;
+  const origin = isLocal ? ECOSYSTEM_URLS.siga : getSigaSchoolUrl(clean);
+  return `${origin}/portal?escola=${encodeURIComponent(clean)}`;
+}
+
 export function getSaasApiUrl(path: string): string {
   const clean = path.startsWith("/") ? path : `/${path}`;
   return `${ECOSYSTEM_URLS.siga}${clean}`;

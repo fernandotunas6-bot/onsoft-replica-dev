@@ -18,6 +18,7 @@ import {
 import { describeSubscription, formatBytes, usageShare } from "@/features/saas/subscription-view";
 import { cn } from "@/lib/utils";
 import { PlanPaymentPanel } from "@/features/saas/PlanPaymentPanel";
+import { SchoolAddressLinks } from "@/features/school/SchoolAddressLinks";
 
 export const Route = createFileRoute("/configuracoes_/assinatura")({
   head: () => ({
@@ -155,6 +156,8 @@ function SubscriptionDetail({ data }: { data: SubscriptionOverview }) {
       <div className="grid min-w-0 content-start gap-6">
         <PlanPaymentPanel data={data} />
         <Panel title="Endereço da escola">
+          <SchoolAddressLinks />
+          <p className="mb-2 mt-4 text-xs text-muted-foreground">Domínios registados</p>
           <ul className="grid min-w-0 gap-2 text-sm">
             <li className="flex min-w-0 items-center gap-2">
               <Globe className="size-4 shrink-0 text-muted-foreground" />

@@ -1,5 +1,14 @@
 # Execução do padrão visual — 23/10/2026
 
+**01/11/2026 — ligações da escola nova (implementado, sem validação visual):**
+`/configuracoes/inicio` ganha o painel «A escola na internet» (website, portal SIGA Plus e
+«Entrar na escola»); `/configuracoes/assinatura` mostra website e portal no painel
+«Endereço da escola» já existente. Componentes `Panel` e `Button` existentes, sem modal
+novo nem alteração de identidade. WEB `/start`: o assistente de configuração passa a ser a
+primeira escolha. ADMIN: «Website da escola» e «Portal SIGA Plus» em vez de «Abrir no SIGA».
+Evidência: testes de URLs e do servidor de endereços, `typecheck`, lint, `check:style` e
+`check:a11y` passaram. Captura autenticada e dispositivos físicos ainda pendentes.
+
 **30/10/2026 — secções verticais e auditoria (implementado):** padrão aplicado a 15 consumidores; ficha de Pessoas também vertical no telemóvel. Corrigidos scroll que podia deslocar a página, nomes extensos e contraste activo (6,65:1 claro / 7,92:1 escuro no ensaio controlado). 557 testes aprovados em 76 ficheiros, seis excepções preexistentes de contraste decorativo ignoradas. Tipos e lint dos ficheiros alterados aprovados; conferência Chromium em seis larguras e temas claro/escuro. Script reproduzível: `node scripts/qa/vertical-navigation.mjs`. Validação autenticada e publicação pendentes; push anterior bloqueado pela revisão automática. Evidência e limites em `docs/agents/HANDOFF_VERTICAL_NAV_2026-10-30.md`.
 
 **29/10/2026 — integração da escolha de turma com o formulário actual:**
