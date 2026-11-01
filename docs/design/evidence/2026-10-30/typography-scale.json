@@ -54,7 +54,8 @@
   ],
   "badge_text_xs": {
     "antes_1024_1535": "11px",
-    "depois": "11px"
+    "depois": "11px",
+    "nota": "os 8,25px reportados inicialmente estavam errados"
   },
   "nota": "Valores calculados do CSS com 16px no browser, não medição de ecrã. max(px, rem) aplica mínimos; dimensões e espaçamentos rem crescem 4,55% a 1024–1535px. Texto só cresce quando rem supera o mínimo.",
   "minimos_px": {
@@ -88,5 +89,13 @@
       "text-base": 13,
       "text-lg": 14
     }
-  ]
+  ],
+  "correccao": "medicao inicial errada: lia a aritmetica do rem e ignorava o max() que o tema aplica a escala de texto. Com --text-xs: max(11px, 0.75rem) e irmaos, o piso esta sempre activo. Valores reais medidos no browser, iguais nas duas larguras: text-xs 11px, text-sm 12px, text-base 13px, text-lg 14px. A alteracao da raiz nao mudou nenhum tamanho de letra; mudou ~4,5% nos espacamentos e caixas declarados em rem.",
+  "escala_real_medida_px": {
+    "text-xs": 11,
+    "text-sm": 12,
+    "text-base": 13,
+    "text-lg": 14,
+    "nota": "identica a 900px e a 1280px de largura; o piso em px vence a raiz em ambos"
+  }
 }

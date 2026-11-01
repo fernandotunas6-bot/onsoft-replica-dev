@@ -617,6 +617,9 @@ function ComunicacoesPage() {
               <Panel title="Histórico" description="Comunicados criados na escola">
                 <ListFilterBar
                   className="mb-4"
+                  resultCount={filtered.length}
+                  resultNoun="comunicação"
+                  resultNounPlural="comunicações"
                   values={filters}
                   activeCount={activeCount}
                   onChange={(name, value) => setFilter(name as keyof typeof filters, value)}

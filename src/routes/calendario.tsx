@@ -1122,6 +1122,8 @@ function CalendarioPage() {
         >
           <ListFilterBar
             className="mb-4"
+            resultCount={filtered.length}
+            resultNoun="evento"
             values={filters}
             activeCount={activeCount}
             onChange={(name, value) => setFilter(name as keyof typeof filters, value)}

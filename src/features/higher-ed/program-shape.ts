@@ -5,7 +5,10 @@
 export type HigherEdProgramKind = "undergraduate" | "postgraduate";
 
 /** O mesmo nível dos modelos de estrutura (curriculum-templates: «ES»). */
-export const HIGHER_ED_LEVEL = { code: "ES", name: "Ensino Superior", sequence: 5 } as const;
+// O mesmo código «ES» é escrito por dois caminhos (aqui e EDUCATION_LEVELS) e o
+// upsert não actualiza em conflito: manter a sequence igual nos dois, senão a
+// ordem do nível passa a depender de qual deles criou a linha primeiro.
+export const HIGHER_ED_LEVEL = { code: "ES", name: "Ensino Superior", sequence: 6 } as const;
 
 /** Código do curso como nos modelos de estrutura: «ES-DIREITO». */
 export function higherEdProgramCode(raw: string) {

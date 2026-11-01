@@ -48,4 +48,24 @@ describe("ListPaginationBar", () => {
     expect(cleanHtml).toContain("Por página:");
     expect(cleanHtml).toContain("1–10");
   });
+
+  it("anuncia a contagem como região de estado (SC 4.1.3)", () => {
+    // A contagem muda ao filtrar, pesquisar e paginar sem que o foco se mova.
+    // Sem role="status" nenhum leitor de ecrã diz que a lista mudou.
+    const html = renderToString(
+      React.createElement(ListPaginationBar, {
+        page: 1,
+        pageSize: 25,
+        totalItems: 100,
+        onPageChange: vi.fn(),
+      }),
+    );
+
+    expect(html).toMatch(/<span[^>]*role="status"[^>]*>/);
+    expect(html).toMatch(/<span[^>]*aria-atomic="true"[^>]*>/);
+    // a região anunciada tem de conter a frase inteira, não só o número
+    const regiao = html.match(/<span[^>]*role="status"[^>]*>([\s\S]*?)<\/span>/)?.[1] ?? "";
+    expect(regiao).toContain("Mostrando");
+    expect(regiao).toContain("100");
+  });
 });

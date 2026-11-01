@@ -970,6 +970,8 @@ function FinanceiroPage() {
         <Panel title="Movimentos de caixa" description="Últimos lançamentos registados">
           <ListFilterBar
             className="mb-4"
+            resultCount={lista.length}
+            resultNoun="movimento"
             values={filters}
             activeCount={activeCount}
             onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
