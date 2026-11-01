@@ -81,7 +81,7 @@ describe("confirmação manual no cartão da referência", () => {
     await waitFor(() => expect(server.confirmManualMulticaixaPayment).toHaveBeenCalled());
     const sent = server.confirmManualMulticaixaPayment.mock.calls[0][0].data;
     expect(sent.amount).toBe(11000);
-    expect(sent).not.toHaveProperty("paidOn");
+    expect(sent.paidOn).toBe("2026-10-22");
   });
 
   it("pago dentro da tolerância: sem multa e com a data do comprovativo", async () => {

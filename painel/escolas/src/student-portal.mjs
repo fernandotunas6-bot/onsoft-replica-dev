@@ -46,6 +46,22 @@ export function setupStudentPortal(config,{connected=false,win=window}={}){
       }else table(node,['Disciplina','Média final registada'],subjects.map(s=>[s.subjectName,number(s.finalAverage)]));
     }else if(section==='horarios'){
       const schedule=data.timetable;const node=panel(schedule?.className||'Horário publicado');const days=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];table(node,['Dia','Horário','Disciplina','Docente','Sala'],array(schedule?.days).flatMap(d=>array(d.lessons).map(l=>[days[d.weekday]||'—',l.startsAt+' – '+l.endsAt,l.subjectName,l.teacherName||'—',l.room||'—'])));
+    }else if(section==='financeiro'){
+      const f=data.finance;
+      const money=n=>Number(n||0).toLocaleString('pt-AO',{minimumFractionDigits:2,maximumFractionDigits:2})+' Kz';
+      const sums=panel('Resumo financeiro');
+      if(!f)sums.append(el('p','Situação financeira indisponível.'));
+      else{
+        const grid=el('div',null,'stat-grid');
+        for(const [label,value] of [['Facturado',f.billed],['Pago',f.paid],['Em dívida',f.outstanding]]){
+          const card=el('article',null,'stat-card');card.append(el('strong',money(value)),el('p',label));grid.append(card)
+        }
+        sums.append(grid);
+        table(panel('Facturas'),['Número','Total','Pago','Em dívida','Estado'],array(f.invoices).map(i=>[i.number,money(i.total),money(i.paid),money(i.outstanding),i.status]));
+        table(panel('Recibos'),['Número','Data','Valor'],array(f.receipts).map(i=>[i.number,i.paidOn||'—',money(i.amount)]));
+        if(f.moreInvoices||f.moreReceipts)sums.append(el('p','Mostram-se os 50 registos mais recentes de cada tipo. Solicite o histórico completo à tesouraria.','quiet-note'));
+        sums.append(el('p','Um redireccionamento após pagamento não substitui a confirmação financeira oficial.','quiet-note'));
+      }
     }else if(section==='perfil'){
       const node=panel('A sua conta');const dl=el('dl',null,'student-profile');for(const [label,value] of [['Nome',data.name],['E-mail',data.email],['Instituição',data.schoolName]]){const row=el('div');row.append(el('dt',label),el('dd',value||'—'));dl.append(row)}node.append(dl,accountLink('Gerir o meu perfil ↗','/perfil'));
     }else{

@@ -13,8 +13,11 @@ export function portalLoginReturn(href: string): string | null {
     const school = current.searchParams.get("escola");
     if (school && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(school) && school.length <= 50)
       target.searchParams.set("escola", school);
-    if (current.searchParams.get("vista") === "estudante")
+    if (current.searchParams.get("vista") === "estudante") {
       target.searchParams.set("vista", "estudante");
+      if (current.searchParams.get("seccao") === "financeiro")
+        target.searchParams.set("seccao", "financeiro");
+    }
     return target.href;
   } catch {
     return null;

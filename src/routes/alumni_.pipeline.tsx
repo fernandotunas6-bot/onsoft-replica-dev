@@ -14,7 +14,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import { listAlumni } from "@/features/alumni/server";
 import {
   createMentorshipFromPipeline,
@@ -193,8 +193,8 @@ function AlumniPipelinePage() {
           </Card>
         </section>
 
-        <Tabs defaultValue="applications" className="space-y-4">
-          <TabsList className="h-auto flex-wrap rounded-2xl bg-muted/60 p-1">
+        <Tabs layout="sidebar" defaultValue="applications" className="space-y-4">
+          <TabsList aria-label="Secções Alumni">
             <TabsTrigger value="applications" className="rounded-xl">
               Candidaturas
             </TabsTrigger>
@@ -205,243 +205,246 @@ function AlumniPipelinePage() {
               Mentorias
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="applications">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pipeline de oportunidades</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {applications.length ? (
-                  applications.map((row) => {
-                    const opp = Array.isArray(row.alumni_opportunities)
-                      ? row.alumni_opportunities[0]
-                      : row.alumni_opportunities;
-                    return (
-                      <div
-                        key={row.id}
-                        className="grid gap-3 rounded-2xl border border-border/60 p-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_220px] lg:items-center"
-                      >
-                        <div>
-                          <p className="font-bold">{row.alumni.fullName}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {row.alumni.studentNumber || "Sem nº de processo"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">{opp?.title || "Oportunidade"}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {opp?.organization || opp?.opportunity_type || "Rede Alumni"}
-                          </p>
-                        </div>
-                        <select
-                          id={`opp-status-${row.opportunity_id}-${row.alumni_id}`}
-                          aria-label="Estado da candidatura"
-                          value={row.status}
-                          onChange={(e) =>
-                            applicationMutation.mutate({
-                              opportunityId: row.opportunity_id,
-                              alumniId: row.alumni_id,
-                              status: e.target.value as (typeof applicationStatuses)[number],
-                            })
-                          }
-                          className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+          <TabsPanels>
+            <TabsContent value="applications">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pipeline de oportunidades</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {applications.length ? (
+                    applications.map((row) => {
+                      const opp = Array.isArray(row.alumni_opportunities)
+                        ? row.alumni_opportunities[0]
+                        : row.alumni_opportunities;
+                      return (
+                        <div
+                          key={row.id}
+                          className="grid gap-3 rounded-2xl border border-border/60 p-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_220px] lg:items-center"
                         >
-                          {applicationStatuses.map((status) => (
-                            <option key={status} value={status}>
-                              {statusLabel[status]}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Sem candidaturas registadas nesta selecção.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                          <div>
+                            <p className="font-bold">{row.alumni.fullName}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {row.alumni.studentNumber || "Sem nº de processo"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold">{opp?.title || "Oportunidade"}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {opp?.organization || opp?.opportunity_type || "Rede Alumni"}
+                            </p>
+                          </div>
+                          <select
+                            id={`opp-status-${row.opportunity_id}-${row.alumni_id}`}
+                            aria-label="Estado da candidatura"
+                            value={row.status}
+                            onChange={(e) =>
+                              applicationMutation.mutate({
+                                opportunityId: row.opportunity_id,
+                                alumniId: row.alumni_id,
+                                status: e.target.value as (typeof applicationStatuses)[number],
+                              })
+                            }
+                            className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                          >
+                            {applicationStatuses.map((status) => (
+                              <option key={status} value={status}>
+                                {statusLabel[status]}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Sem candidaturas registadas nesta selecção.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <TabsContent value="events">
-            <Card>
-              <CardHeader>
-                <CardTitle>Inscrições e check-in</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {registrations.length ? (
-                  registrations.map((row) => {
-                    const event = Array.isArray(row.alumni_events)
-                      ? row.alumni_events[0]
-                      : row.alumni_events;
-                    return (
-                      <div
-                        key={row.id}
-                        className="grid gap-3 rounded-2xl border border-border/60 p-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_220px] lg:items-center"
-                      >
-                        <div>
-                          <p className="font-bold">{row.alumni.fullName}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {row.checked_in_at
-                              ? `Check-in: ${new Date(row.checked_in_at).toLocaleString("pt-AO")}`
-                              : "Sem check-in"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">{event?.title || "Evento Alumni"}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {event?.starts_at
-                              ? new Date(event.starts_at).toLocaleString("pt-AO")
-                              : "Data por confirmar"}
-                          </p>
-                        </div>
-                        <select
-                          id={`event-status-${row.event_id}-${row.alumni_id}`}
-                          aria-label="Estado da inscrição"
-                          value={row.status}
-                          onChange={(e) =>
-                            registrationMutation.mutate({
-                              eventId: row.event_id,
-                              alumniId: row.alumni_id,
-                              status: e.target.value as (typeof eventStatuses)[number],
-                            })
-                          }
-                          className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+            <TabsContent value="events">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Inscrições e check-in</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {registrations.length ? (
+                    registrations.map((row) => {
+                      const event = Array.isArray(row.alumni_events)
+                        ? row.alumni_events[0]
+                        : row.alumni_events;
+                      return (
+                        <div
+                          key={row.id}
+                          className="grid gap-3 rounded-2xl border border-border/60 p-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_220px] lg:items-center"
                         >
-                          {eventStatuses.map((status) => (
-                            <option key={status} value={status}>
-                              {statusLabel[status]}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Ainda não existem inscrições em eventos.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                          <div>
+                            <p className="font-bold">{row.alumni.fullName}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {row.checked_in_at
+                                ? `Check-in: ${new Date(row.checked_in_at).toLocaleString("pt-AO")}`
+                                : "Sem check-in"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold">
+                              {event?.title || "Evento Alumni"}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {event?.starts_at
+                                ? new Date(event.starts_at).toLocaleString("pt-AO")
+                                : "Data por confirmar"}
+                            </p>
+                          </div>
+                          <select
+                            id={`event-status-${row.event_id}-${row.alumni_id}`}
+                            aria-label="Estado da inscrição"
+                            value={row.status}
+                            onChange={(e) =>
+                              registrationMutation.mutate({
+                                eventId: row.event_id,
+                                alumniId: row.alumni_id,
+                                status: e.target.value as (typeof eventStatuses)[number],
+                              })
+                            }
+                            className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                          >
+                            {eventStatuses.map((status) => (
+                              <option key={status} value={status}>
+                                {statusLabel[status]}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Ainda não existem inscrições em eventos.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <TabsContent value="mentoring" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Criar relação de mentoria</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <select
-                  id="mentoring-mentor"
-                  aria-label="Seleccionar mentor"
-                  value={mentorId}
-                  onChange={(e) => setMentorId(e.target.value)}
-                  className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
-                >
-                  <option value="">Seleccionar mentor…</option>
-                  {(alumniQuery.data ?? [])
-                    .filter((row) => row.available_for_mentoring)
-                    .map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.full_name} · {row.student_number}
-                      </option>
-                    ))}
-                </select>
-                <select
-                  id="mentoring-mentee"
-                  aria-label="Seleccionar mentorado"
-                  value={menteeId}
-                  onChange={(e) => setMenteeId(e.target.value)}
-                  className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
-                >
-                  <option value="">Seleccionar mentorado…</option>
-                  {(alumniQuery.data ?? [])
-                    .filter((row) => row.id !== mentorId)
-                    .map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.full_name} · {row.student_number}
-                      </option>
-                    ))}
-                </select>
-                <Input
-                  id="mentoring-focus-area"
-                  aria-label="Área de foco"
-                  value={focusArea}
-                  onChange={(e) => setFocusArea(e.target.value)}
-                  placeholder="Área de foco: carreira, liderança, tecnologia…"
-                  className="md:col-span-2"
-                />
-                <div className="md:col-span-2">
-                  <Button
-                    onClick={() => createMentorshipMutation.mutate()}
-                    disabled={
-                      !mentorId ||
-                      !menteeId ||
-                      focusArea.trim().length < 2 ||
-                      createMentorshipMutation.isPending
-                    }
+            <TabsContent value="mentoring" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Criar relação de mentoria</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <select
+                    id="mentoring-mentor"
+                    aria-label="Seleccionar mentor"
+                    value={mentorId}
+                    onChange={(e) => setMentorId(e.target.value)}
+                    className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
                   >
-                    <Handshake className="mr-2 size-4" />
-                    Criar mentoria
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Mentorias existentes</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {mentorships.length ? (
-                  mentorships.map((row) => (
-                    <div
-                      key={row.id}
-                      className="grid gap-3 rounded-2xl border border-border/60 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_200px] lg:items-center"
+                    <option value="">Seleccionar mentor…</option>
+                    {(alumniQuery.data ?? [])
+                      .filter((row) => row.available_for_mentoring)
+                      .map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {row.full_name} · {row.student_number}
+                        </option>
+                      ))}
+                  </select>
+                  <select
+                    id="mentoring-mentee"
+                    aria-label="Seleccionar mentorado"
+                    value={menteeId}
+                    onChange={(e) => setMenteeId(e.target.value)}
+                    className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">Seleccionar mentorado…</option>
+                    {(alumniQuery.data ?? [])
+                      .filter((row) => row.id !== mentorId)
+                      .map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {row.full_name} · {row.student_number}
+                        </option>
+                      ))}
+                  </select>
+                  <Input
+                    id="mentoring-focus-area"
+                    aria-label="Área de foco"
+                    value={focusArea}
+                    onChange={(e) => setFocusArea(e.target.value)}
+                    placeholder="Área de foco: carreira, liderança, tecnologia…"
+                    className="md:col-span-2"
+                  />
+                  <div className="md:col-span-2">
+                    <Button
+                      onClick={() => createMentorshipMutation.mutate()}
+                      disabled={
+                        !mentorId ||
+                        !menteeId ||
+                        focusArea.trim().length < 2 ||
+                        createMentorshipMutation.isPending
+                      }
                     >
-                      <div>
-                        <p className="text-[11px] font-bold text-muted-foreground">Mentor</p>
-                        <p className="font-bold">{row.mentor.fullName}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] font-bold text-muted-foreground">Mentorado</p>
-                        <p className="font-bold">{row.mentee.fullName}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] font-bold text-muted-foreground">Foco</p>
-                        <p className="text-sm font-semibold">{row.focus_area}</p>
-                      </div>
-                      <select
-                        id={`mentorship-status-${row.id}`}
-                        aria-label="Estado da mentoria"
-                        value={row.status}
-                        onChange={(e) =>
-                          mentorshipStatusMutation.mutate({
-                            mentorshipId: row.id,
-                            status: e.target.value as (typeof mentorshipStatuses)[number],
-                          })
-                        }
-                        className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                      <Handshake className="mr-2 size-4" />
+                      Criar mentoria
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Mentorias existentes</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {mentorships.length ? (
+                    mentorships.map((row) => (
+                      <div
+                        key={row.id}
+                        className="grid gap-3 rounded-2xl border border-border/60 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_200px] lg:items-center"
                       >
-                        {mentorshipStatuses.map((status) => (
-                          <option key={status} value={status}>
-                            {statusLabel[status]}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Ainda não existem mentorias registadas.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                        <div>
+                          <p className="text-[11px] font-bold text-muted-foreground">Mentor</p>
+                          <p className="font-bold">{row.mentor.fullName}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-bold text-muted-foreground">Mentorado</p>
+                          <p className="font-bold">{row.mentee.fullName}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-bold text-muted-foreground">Foco</p>
+                          <p className="text-sm font-semibold">{row.focus_area}</p>
+                        </div>
+                        <select
+                          id={`mentorship-status-${row.id}`}
+                          aria-label="Estado da mentoria"
+                          value={row.status}
+                          onChange={(e) =>
+                            mentorshipStatusMutation.mutate({
+                              mentorshipId: row.id,
+                              status: e.target.value as (typeof mentorshipStatuses)[number],
+                            })
+                          }
+                          className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                        >
+                          {mentorshipStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {statusLabel[status]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Ainda não existem mentorias registadas.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </TabsPanels>
         </Tabs>
       </div>
     </AppShell>

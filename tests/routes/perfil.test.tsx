@@ -17,6 +17,7 @@ vi.mock("@/components/ui/tabs", async () => {
   }>({ value: "", onValueChange: () => {} });
 
   return {
+    TabsPanels: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
     Tabs: ({
       value,
       defaultValue,

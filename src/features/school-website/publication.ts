@@ -1,6 +1,7 @@
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicWebsiteContent, websiteTemplate, type WebsiteState } from "./content-model";
 import { schoolIdentityValues, type SchoolSiteIdentity } from "./site-identity";
+import { resolveSchoolAdmissions } from "./admissions";
 
 /**
  * Identidade por omissão de uma escola que ainda não publicou nada.
@@ -41,19 +42,14 @@ export async function loadSchoolPublication(
       else unavailablePrograms.push(key);
     }
   }
-  const slug = state.published?.content.campaignSlug;
-  let admissions: { isOpen: boolean; path: string | null } | null = null;
-  if (slug) {
-    const campaign = await db
-      .from("enrollment_forms")
-      .select("is_open")
-      .eq("school_id", schoolId)
-      .eq("slug", slug)
-      .maybeSingle();
-    if (campaign.error) throw new Error("Campaign lookup failed");
-    const isOpen = campaign.data?.is_open === true;
-    admissions = { isOpen, path: isOpen ? `/matricula/${encodeURIComponent(slug)}` : null };
-  }
+  // Sempre um estado real: a campanha aberta liga ao formulário oficial; sem ela,
+  // «Candidaturas encerradas». O formulário de demonstração do modelo nunca
+  // aparece como candidatura de uma escola real.
+  const admissions = await resolveSchoolAdmissions(
+    db,
+    schoolId,
+    state.published?.content.campaignSlug,
+  );
   return {
     ...publication,
     apiVersion: 1,

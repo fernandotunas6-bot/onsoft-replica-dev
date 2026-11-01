@@ -60,6 +60,12 @@ jobs:
         run: node scripts/siga/check-release-contracts.mjs
       - run: bun run typecheck
       - run: bun run lint
+      # O website integrado é gerado no build, não é versionado em
+      # site-pages.generated.json. Sem gerar as páginas aqui, o teste de
+      # /site/propinas/confirmacao/ falha neste job embora passe na CI,
+      # que executa bun run build antes dos testes.
+      - name: Gerar website multi-escola antes dos testes
+        run: node scripts/siga/build-school-website.mjs
       - run: bun run test
 
   deploy:

@@ -96,7 +96,10 @@ export function PersonalNotificationsList({
     mutationFn: (ids: string[] | undefined) =>
       markMyNotificationsRead({ data: ids ? { ids } : {} }),
     meta: { errorToast: false },
-    onMutate: (ids) => {
+    onMutate: async (ids) => {
+      // Uma leitura em curso (abertura do sino, intervalo, Realtime) chegaria
+      // depois e repunha o aviso como por ler até ao próximo refetch.
+      await queryClient.cancelQueries({ queryKey });
       queryClient.setQueryData<Feed>(queryKey, (old) => {
         if (!old) return old;
         const selected = ids ? new Set(ids) : null;

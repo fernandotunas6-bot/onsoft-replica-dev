@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MediaAvatar } from "@/components/ui/media-frame";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import { AlumniPrivacyPanel } from "@/features/alumni/AlumniPrivacyPanel";
 import { AlumniSurveyForm } from "@/features/alumni/AlumniSurveyForm";
 import {
@@ -248,8 +248,8 @@ function AlumniPortalPage() {
           </Card>
         </StatGrid>
 
-        <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList className="h-auto flex-wrap rounded-2xl bg-muted/60 p-1">
+        <Tabs layout="sidebar" defaultValue="profile" className="space-y-4">
+          <TabsList aria-label="Secções Alumni">
             <TabsTrigger value="profile" className="rounded-xl">
               Meu perfil
             </TabsTrigger>
@@ -267,187 +267,191 @@ function AlumniPortalPage() {
               Privacidade
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="profile">
-            <Card className="border-border/70 shadow-sm">
-              <CardHeader>
-                <CardTitle>Trajectória profissional</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <Input
-                  id="alumni-headline"
-                  aria-label="Título profissional ou headline"
-                  defaultValue={portal.profile.headline ?? ""}
-                  onChange={(event) => setHeadline(event.target.value)}
-                  placeholder="Título profissional / headline"
-                  className="rounded-xl"
-                />
-                <Input
-                  id="alumni-company"
-                  aria-label="Empresa ou organização"
-                  defaultValue={portal.profile.current_company ?? ""}
-                  onChange={(event) => setCompany(event.target.value)}
-                  placeholder="Empresa / organização"
-                  className="rounded-xl"
-                />
-                <Input
-                  id="alumni-role"
-                  aria-label="Função actual"
-                  defaultValue={portal.profile.current_role ?? ""}
-                  onChange={(event) => setRole(event.target.value)}
-                  placeholder="Função actual"
-                  className="rounded-xl"
-                />
-                <Input
-                  id="alumni-province"
-                  aria-label="Província"
-                  defaultValue={portal.profile.province ?? ""}
-                  onChange={(event) => setProvince(event.target.value)}
-                  placeholder="Província"
-                  className="rounded-xl"
-                />
-                <div className="md:col-span-2">
-                  <Button
-                    onClick={() => updateMutation.mutate()}
-                    disabled={updateMutation.isPending}
+          <TabsPanels>
+            <TabsContent value="profile">
+              <Card className="border-border/70 shadow-sm">
+                <CardHeader>
+                  <CardTitle>Trajectória profissional</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <Input
+                    id="alumni-headline"
+                    aria-label="Título profissional ou headline"
+                    defaultValue={portal.profile.headline ?? ""}
+                    onChange={(event) => setHeadline(event.target.value)}
+                    placeholder="Título profissional / headline"
                     className="rounded-xl"
-                  >
-                    {updateMutation.isPending ? "A guardar…" : "Guardar trajectória"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  />
+                  <Input
+                    id="alumni-company"
+                    aria-label="Empresa ou organização"
+                    defaultValue={portal.profile.current_company ?? ""}
+                    onChange={(event) => setCompany(event.target.value)}
+                    placeholder="Empresa / organização"
+                    className="rounded-xl"
+                  />
+                  <Input
+                    id="alumni-role"
+                    aria-label="Função actual"
+                    defaultValue={portal.profile.current_role ?? ""}
+                    onChange={(event) => setRole(event.target.value)}
+                    placeholder="Função actual"
+                    className="rounded-xl"
+                  />
+                  <Input
+                    id="alumni-province"
+                    aria-label="Província"
+                    defaultValue={portal.profile.province ?? ""}
+                    onChange={(event) => setProvince(event.target.value)}
+                    placeholder="Província"
+                    className="rounded-xl"
+                  />
+                  <div className="md:col-span-2">
+                    <Button
+                      onClick={() => updateMutation.mutate()}
+                      disabled={updateMutation.isPending}
+                      className="rounded-xl"
+                    >
+                      {updateMutation.isPending ? "A guardar…" : "Guardar trajectória"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <TabsContent value="opportunities" className="grid gap-4 md:grid-cols-2">
-            {portal.opportunities.map((item) => {
-              const current = applicationByOpportunity.get(item.id);
-              return (
-                <Card key={item.id} className="border-border/70 shadow-sm">
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-bold text-primary">{item.opportunity_type}</p>
-                        <h3 className="mt-1 font-bold">{item.title}</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {item.organization || "Rede Alumni"}
-                        </p>
+            <TabsContent value="opportunities" className="grid gap-4 md:grid-cols-2">
+              {portal.opportunities.map((item) => {
+                const current = applicationByOpportunity.get(item.id);
+                return (
+                  <Card key={item.id} className="border-border/70 shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-bold text-primary">{item.opportunity_type}</p>
+                          <h3 className="mt-1 font-bold">{item.title}</h3>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {item.organization || "Rede Alumni"}
+                          </p>
+                        </div>
+                        {item.remote_allowed ? (
+                          <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-bold text-primary">
+                            Remoto
+                          </span>
+                        ) : null}
                       </div>
-                      {item.remote_allowed ? (
-                        <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-bold text-primary">
-                          Remoto
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-3 line-clamp-3 text-xs leading-5 text-muted-foreground">
-                      {item.description || "Oportunidade publicada para a comunidade Alumni."}
-                    </p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant={current?.status === "interested" ? "default" : "outline"}
-                        onClick={() =>
-                          opportunityMutation.mutate({
-                            opportunityId: item.id,
-                            status: "interested",
-                          })
-                        }
-                      >
-                        Tenho interesse
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={current?.status === "applied" ? "default" : "outline"}
-                        onClick={() =>
-                          opportunityMutation.mutate({ opportunityId: item.id, status: "applied" })
-                        }
-                      >
-                        Candidatei-me
-                      </Button>
-                      {current && current.status !== "withdrawn" ? (
+                      <p className="mt-3 line-clamp-3 text-xs leading-5 text-muted-foreground">
+                        {item.description || "Oportunidade publicada para a comunidade Alumni."}
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-2">
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant={current?.status === "interested" ? "default" : "outline"}
                           onClick={() =>
                             opportunityMutation.mutate({
                               opportunityId: item.id,
-                              status: "withdrawn",
+                              status: "interested",
                             })
                           }
                         >
-                          Retirar
+                          Tenho interesse
                         </Button>
-                      ) : null}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </TabsContent>
+                        <Button
+                          size="sm"
+                          variant={current?.status === "applied" ? "default" : "outline"}
+                          onClick={() =>
+                            opportunityMutation.mutate({
+                              opportunityId: item.id,
+                              status: "applied",
+                            })
+                          }
+                        >
+                          Candidatei-me
+                        </Button>
+                        {current && current.status !== "withdrawn" ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              opportunityMutation.mutate({
+                                opportunityId: item.id,
+                                status: "withdrawn",
+                              })
+                            }
+                          >
+                            Retirar
+                          </Button>
+                        ) : null}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </TabsContent>
 
-          <TabsContent value="events" className="grid gap-4 md:grid-cols-2">
-            {portal.events.map((event) => (
-              <Card key={event.id}>
-                <CardContent className="p-5">
-                  <p className="text-xs font-bold text-primary">{event.event_type}</p>
-                  <h3 className="mt-1 font-bold">{event.title}</h3>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {new Date(event.starts_at).toLocaleString("pt-AO")}
-                    {event.location ? ` · ${event.location}` : ""}
-                  </p>
-                  <Button
-                    className="mt-4"
-                    size="sm"
-                    variant={registeredEventIds.has(event.id) ? "outline" : "default"}
-                    disabled={registeredEventIds.has(event.id)}
-                    onClick={() => eventMutation.mutate(event.id)}
-                  >
-                    {registeredEventIds.has(event.id) ? "Inscrito" : "Inscrever-me"}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="surveys" className="space-y-4">
-            {portal.surveys.length ? (
-              portal.surveys.map((survey) => (
-                <Card key={survey.id} className="border-border/70 shadow-sm">
-                  <CardHeader>
-                    <CardTitle>{survey.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm leading-6 text-muted-foreground">
-                      {survey.description || "Ajude a escola a acompanhar o impacto da formação."}
+            <TabsContent value="events" className="grid gap-4 md:grid-cols-2">
+              {portal.events.map((event) => (
+                <Card key={event.id}>
+                  <CardContent className="p-5">
+                    <p className="text-xs font-bold text-primary">{event.event_type}</p>
+                    <h3 className="mt-1 font-bold">{event.title}</h3>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {new Date(event.starts_at).toLocaleString("pt-AO")}
+                      {event.location ? ` · ${event.location}` : ""}
                     </p>
-                    <AlumniSurveyForm
-                      schema={survey.schema_json}
-                      onSubmit={(response) =>
-                        submitMyAlumniSurvey({ data: { surveyId: survey.id, response } }).then(
-                          async () => {
-                            toast.success("Respostas enviadas.");
-                            await queryClient.invalidateQueries({
-                              queryKey: ["alumni", "self-service"],
-                            });
-                          },
-                        )
-                      }
-                    />
+                    <Button
+                      className="mt-4"
+                      size="sm"
+                      variant={registeredEventIds.has(event.id) ? "outline" : "default"}
+                      disabled={registeredEventIds.has(event.id)}
+                      onClick={() => eventMutation.mutate(event.id)}
+                    >
+                      {registeredEventIds.has(event.id) ? "Inscrito" : "Inscrever-me"}
+                    </Button>
                   </CardContent>
                 </Card>
-              ))
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-sm text-muted-foreground">
-                  Não há tracer studies activos neste momento.
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+              ))}
+            </TabsContent>
 
-          <TabsContent value="privacy">
-            <AlumniPrivacyPanel />
-          </TabsContent>
+            <TabsContent value="surveys" className="space-y-4">
+              {portal.surveys.length ? (
+                portal.surveys.map((survey) => (
+                  <Card key={survey.id} className="border-border/70 shadow-sm">
+                    <CardHeader>
+                      <CardTitle>{survey.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm leading-6 text-muted-foreground">
+                        {survey.description || "Ajude a escola a acompanhar o impacto da formação."}
+                      </p>
+                      <AlumniSurveyForm
+                        schema={survey.schema_json}
+                        onSubmit={(response) =>
+                          submitMyAlumniSurvey({ data: { surveyId: survey.id, response } }).then(
+                            async () => {
+                              toast.success("Respostas enviadas.");
+                              await queryClient.invalidateQueries({
+                                queryKey: ["alumni", "self-service"],
+                              });
+                            },
+                          )
+                        }
+                      />
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Card>
+                  <CardContent className="p-8 text-sm text-muted-foreground">
+                    Não há tracer studies activos neste momento.
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="privacy">
+              <AlumniPrivacyPanel />
+            </TabsContent>
+          </TabsPanels>
         </Tabs>
       </div>
     </AppShell>

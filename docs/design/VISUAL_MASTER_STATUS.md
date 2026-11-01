@@ -1,5 +1,16 @@
 # Execução do padrão visual — 23/10/2026
 
+**01/11/2026 — ligações da escola nova (implementado, sem validação visual):**
+`/configuracoes/inicio` ganha o painel «A escola na internet» (website, portal SIGA Plus e
+«Entrar na escola»); `/configuracoes/assinatura` mostra website e portal no painel
+«Endereço da escola» já existente. Componentes `Panel` e `Button` existentes, sem modal
+novo nem alteração de identidade. WEB `/start`: o assistente de configuração passa a ser a
+primeira escolha. ADMIN: «Website da escola» e «Portal SIGA Plus» em vez de «Abrir no SIGA».
+Evidência: testes de URLs e do servidor de endereços, `typecheck`, lint, `check:style` e
+`check:a11y` passaram. Captura autenticada e dispositivos físicos ainda pendentes.
+
+**30/10/2026 — secções verticais e auditoria (implementado):** padrão aplicado a 15 consumidores; ficha de Pessoas também vertical no telemóvel. Corrigidos scroll que podia deslocar a página, nomes extensos e contraste activo (6,65:1 claro / 7,92:1 escuro no ensaio controlado). 557 testes aprovados em 76 ficheiros, seis excepções preexistentes de contraste decorativo ignoradas. Tipos e lint dos ficheiros alterados aprovados; conferência Chromium em seis larguras e temas claro/escuro. Script reproduzível: `node scripts/qa/vertical-navigation.mjs`. Validação autenticada e publicação pendentes; push anterior bloqueado pela revisão automática. Evidência e limites em `docs/agents/HANDOFF_VERTICAL_NAV_2026-10-30.md`.
+
 **29/10/2026 — integração da escolha de turma com o formulário actual:**
 preservada a correcção de Claude que cancela Enter na pesquisa e coloca o foco
 na lista. Integração com `main` 74695eaa sem reescrever o histórico; o selector
@@ -710,3 +721,36 @@ lido no código. Conta de Administrador, ISPAB, 1440×900.
   contagem» estava certo pela razão errada. O ficheiro não tem decoração a mais;
   o ecrã composto tem 4,2 ecrãs de scroll. Isso não se via contando elementos —
   só se via abrindo o dashboard.
+
+### 28/10/2026 — Financeiro: lista por aluno
+
+| Fase / módulo | Estado | Evidência | Próximo passo |
+| --- | --- | --- | --- |
+| Faturas / lista financeira por aluno | implementado | StudentLedgerPanel; filtros partilhados, estados centralizados, tabela paginada, erros e carregamento; testes DOM de filtros/selecção | Ensaio visual desktop/tablet/Android, teclado e zoom |
+| Fluidez / desempenho da lista | parcial | Chunk e consulta carregados só ao abrir; cache por escola/ano; 25 linhas por página; backend por páginas e ids | Medir rede lenta, latência e Web Vitals reais |
+| Isolamento e perfis | parcial | Guarda financeira, school_id em todas as consultas; testes com duas escolas simuladas | Testar sessões e RLS reais |
+
+Refinamento da lista financeira: selecção/desmarcação por página, contador de
+dívida seleccionada e exportação só dos devedores escolhidos. Estado implementado;
+testes DOM cobrem exclusão de alunos sem dívida, matrícula inactiva, selecção
+entre páginas e limite de 60. Layout em aparelhos continua por validar.
+
+### 28/10/2026 — lista financeira em navegador
+
+| Âmbito | Estado | Evidência | Limite / próximo passo |
+| --- | --- | --- | --- |
+| Lista móvel e toque | validado em Chromium controlado | Cartões abaixo de 768 px; alvos de 44 px; nove viewports, 320–1440 px | Ensaiar aparelhos reais |
+| Teclado, contexto, CSV, diálogo | validado em Chromium controlado | `scripts/qa/finance-student-ledger.mjs`; foco/Escape em 320 × 800 e 640 × 360; descarga real CSV; API fictícia | Sessão/servidor real, leitores de ecrã e restantes browsers |
+
+Detalhes e limites: `docs/qa/finance/STUDENT_LEDGER_BROWSER_2026-10-28.md`.
+Não confundir este ensaio do componente com validação integral do portal ou dos
+pagamentos. A vista de tablet/desktop e os estados do dinheiro foram preservados.
+
+### 28/10/2026 — cartão de pagamento
+
+| Âmbito | Estado | Evidência | Próximo passo |
+| --- | --- | --- | --- |
+| Referência/confirmar/cópia | validado em Chromium controlado | 320/390/768/1440 px; alvos de 44 px, recálculo bloqueado, clipboard e confirmação única com API fictícia | Sessões reais e aparelhos |
+| Sucesso após recibo | implementado e testado local | Estado do recibo, cache/PDF separados da liquidação em Faturas, Caixa e ficha | Ensaio operacional com Tesouraria |
+
+Ver `docs/agents/HANDOFF_PAYMENT_CONFIRMATION_2026-10-28.md` para os limites.

@@ -42,3 +42,36 @@ describe("ADMIN getSigaSchoolUrl", () => {
     expect(getSigaSchoolUrl("colegio-esperanca")).toBe("http://localhost:3006");
   });
 });
+
+describe("ADMIN website e portal da escola", () => {
+  it("em produção: website na raiz do subdomínio e portal em /portal", async () => {
+    const { getSchoolWebsiteUrl, getSchoolPortalUrl } = await loadAdminUrls({
+      NODE_ENV: "production",
+      NEXT_PUBLIC_SIGA_URL: "",
+      NEXT_PUBLIC_PLATFORM_DOMAIN: "",
+    });
+    expect(getSchoolWebsiteUrl("colegio-esperanca")).toBe(
+      "https://colegio-esperanca.portal-siga.com/",
+    );
+    expect(getSchoolPortalUrl("colegio-esperanca")).toBe(
+      "https://colegio-esperanca.portal-siga.com/portal?escola=colegio-esperanca",
+    );
+  });
+
+  it("slug inválido não gera website e o portal fica no SIGA principal", async () => {
+    const { getSchoolWebsiteUrl, getSchoolPortalUrl, ECOSYSTEM_URLS } = await loadAdminUrls({
+      NODE_ENV: "production",
+    });
+    expect(getSchoolWebsiteUrl("evil.com/x")).toBeNull();
+    expect(getSchoolWebsiteUrl()).toBeNull();
+    expect(getSchoolPortalUrl("evil.com/x")).toBe(`${ECOSYSTEM_URLS.siga}/portal`);
+  });
+
+  it("em desenvolvimento usa o caminho partilhado do SIGA local", async () => {
+    const { getSchoolWebsiteUrl, getSchoolPortalUrl } = await loadAdminUrls({
+      NODE_ENV: "development",
+    });
+    expect(getSchoolWebsiteUrl("liceu")).toBe("http://localhost:3006/escolas/liceu/");
+    expect(getSchoolPortalUrl("liceu")).toBe("http://localhost:3006/portal?escola=liceu");
+  });
+});

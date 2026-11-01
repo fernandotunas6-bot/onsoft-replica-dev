@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { MediaFrame } from "@/components/ui/media-frame";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import { useTenant } from "@/features/saas/tenant-context";
 import { useAppearance } from "@/lib/appearance";
 import { isReadableBrandColor, isValidBrandHex, normalizeBrandHex } from "@/lib/brand-tokens";
@@ -367,8 +367,8 @@ export function DigitalIdentityPanel() {
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-muted/60 p-1">
+      <Tabs layout="sidebar" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList aria-label="Secções da identidade digital">
           <TabsTrigger value="portal" className="text-xs gap-1.5">
             <Globe className="size-3.5" />
             Portal
@@ -386,462 +386,471 @@ export function DigitalIdentityPanel() {
             Branding
           </TabsTrigger>
         </TabsList>
-
-        {/* 1. ABA PORTAL */}
-        <TabsContent value="portal" className="space-y-4 pt-4">
-          <div className="rounded-xl border bg-card p-5 shadow-sm space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success">
-                  <span className="size-1.5 rounded-full bg-success animate-pulse" />
-                  Portal Activo
-                </span>
-                <h4 className="mt-2 text-sm font-semibold text-foreground">
-                  Endereço Oficial da Instituição
-                </h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Este é o link direto para acesso de alunos, encarregados, professores e
-                  secretaria.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-2">
-              <div className="relative flex-1 w-full">
-                <Input
-                  aria-label="Endereço do subdomínio"
-                  readOnly
-                  value={currentSubdomainUrl}
-                  className="font-mono text-xs bg-muted/50 pr-20 select-all"
-                />
-              </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(currentSubdomainUrl, "Endereço")}
-                  className="text-xs flex-1 sm:flex-none gap-1.5"
-                >
-                  <Copy className="size-3.5" />
-                  Copiar
-                </Button>
-                <Button
-                  size="sm"
-                  asChild
-                  className="text-xs flex-1 sm:flex-none gap-1.5 bg-primary text-primary-foreground"
-                >
-                  <a href={currentSubdomainUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="size-3.5" />
-                    Abrir Portal
-                  </a>
-                </Button>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t text-xs text-muted-foreground flex items-center justify-between">
-              <span>Subdomínio configurado via DNS Wildcard Cloudflare</span>
-              <span className="font-mono text-[11px]">SSL/TLS Activo</span>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* 2. ABA DOMÍNIO PERSONALIZADO */}
-        <TabsContent value="dominio" className="space-y-4 pt-4">
-          {!hasCustomDomainAccess ? (
-            <div className="rounded-xl border border-warning/30 bg-warning/5 p-5 text-center space-y-3">
-              <div className="mx-auto size-10 rounded-full bg-warning/10 flex items-center justify-center text-warning">
-                <Lock className="size-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-foreground">
-                  Domínio Personalizado (Ex.: portal.colegio.ao)
-                </h4>
-                <p className="text-xs text-muted-foreground max-w-md mx-auto mt-1">
-                  Permita que a sua comunidade escolar aceda ao SIGA directamente através do domínio
-                  próprio da sua instituição.
-                </p>
-              </div>
-              <Button
-                size="sm"
-                asChild
-                className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
-              >
-                <a href={getPricingUrl()} target="_blank" rel="noreferrer">
-                  <Sparkles className="size-3.5" />
-                  Actualizar para Plano Premium
-                  <ArrowRight className="size-3.5" />
-                </a>
-              </Button>
-            </div>
-          ) : (
-            <div className="rounded-xl border bg-card p-5 space-y-4">
-              <div>
-                <h4 className="text-sm font-semibold text-foreground">Conectar Domínio Próprio</h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Introduza o domínio ou subdomínio que pretende apontar para o SIGA.
-                </p>
+        <TabsPanels>
+          {/* 1. ABA PORTAL */}
+          <TabsContent value="portal" className="space-y-4 pt-4">
+            <div className="rounded-xl border bg-card p-5 shadow-sm space-y-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success">
+                    <span className="size-1.5 rounded-full bg-success animate-pulse" />
+                    Portal Activo
+                  </span>
+                  <h4 className="mt-2 text-sm font-semibold text-foreground">
+                    Endereço Oficial da Instituição
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Este é o link direto para acesso de alunos, encarregados, professores e
+                    secretaria.
+                  </p>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="custom-domain" className="text-xs">
-                  Nome de Domínio
-                </Label>
-                <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row items-center gap-2">
+                <div className="relative flex-1 w-full">
                   <Input
-                    id="custom-domain"
-                    placeholder="portal.colegioesperanca.ao"
-                    value={customDomainInput}
-                    onChange={(e) => setCustomDomainInput(e.target.value)}
-                    className="font-mono text-xs"
-                    disabled={isVerifyingDomain}
+                    aria-label="Endereço do subdomínio"
+                    readOnly
+                    value={currentSubdomainUrl}
+                    className="font-mono text-xs bg-muted/50 pr-20 select-all"
                   />
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(currentSubdomainUrl, "Endereço")}
+                    className="text-xs flex-1 sm:flex-none gap-1.5"
+                  >
+                    <Copy className="size-3.5" />
+                    Copiar
+                  </Button>
                   <Button
                     size="sm"
-                    onClick={handleVerifyCustomDomain}
-                    disabled={isVerifyingDomain || !customDomainInput.trim()}
-                    className="text-xs shrink-0 gap-1.5"
+                    asChild
+                    className="text-xs flex-1 sm:flex-none gap-1.5 bg-primary text-primary-foreground"
                   >
-                    {isVerifyingDomain ? (
-                      <LoaderCircle className="size-3.5 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="size-3.5" />
-                    )}
-                    Verificar DNS
+                    <a href={currentSubdomainUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="size-3.5" />
+                      Abrir Portal
+                    </a>
                   </Button>
                 </div>
               </div>
 
-              {dnsInstructions && domainVerificationStatus !== "success" && (
-                <div className="rounded-lg bg-muted/50 p-3 space-y-3 border text-xs">
-                  <div className="font-semibold text-foreground">
-                    Instruções de Apontamento DNS:
-                  </div>
-                  <div className="grid grid-cols-1 gap-2 font-mono text-[11px]">
-                    <div className="grid grid-cols-[80px_1fr] items-center">
-                      <span className="text-muted-foreground">CNAME (nome):</span>
-                      <div className="flex items-center justify-between bg-background p-1.5 rounded border">
-                        <span>{dnsInstructions.cnameHost}</span>
-                        <Copy
-                          className="size-3 cursor-pointer text-muted-foreground hover:text-foreground"
-                          onClick={() => copyToClipboard(dnsInstructions.cnameHost || "", "Nome")}
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-[80px_1fr] items-center">
-                      <span className="text-muted-foreground">Destino:</span>
-                      <div className="flex items-center justify-between bg-background p-1.5 rounded border">
-                        <span>{dnsInstructions.cnameTarget}</span>
-                        <Copy
-                          className="size-3 cursor-pointer text-muted-foreground hover:text-foreground"
-                          onClick={() =>
-                            copyToClipboard(dnsInstructions.cnameTarget || "", "Destino")
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Opcionalmente, pode configurar um TXT no host{" "}
-                    <strong>{dnsInstructions.txtHost}</strong> com o valor{" "}
-                    <strong>{dnsInstructions.txtValue}</strong>.
+              <div className="pt-2 border-t text-xs text-muted-foreground flex items-center justify-between">
+                <span>Subdomínio configurado via DNS Wildcard Cloudflare</span>
+                <span className="font-mono text-[11px]">SSL/TLS Activo</span>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* 2. ABA DOMÍNIO PERSONALIZADO */}
+          <TabsContent value="dominio" className="space-y-4 pt-4">
+            {!hasCustomDomainAccess ? (
+              <div className="rounded-xl border border-warning/30 bg-warning/5 p-5 text-center space-y-3">
+                <div className="mx-auto size-10 rounded-full bg-warning/10 flex items-center justify-center text-warning">
+                  <Lock className="size-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Domínio Personalizado (Ex.: portal.colegio.ao)
+                  </h4>
+                  <p className="text-xs text-muted-foreground max-w-md mx-auto mt-1">
+                    Permita que a sua comunidade escolar aceda ao SIGA directamente através do
+                    domínio próprio da sua instituição.
                   </p>
                 </div>
-              )}
-
-              {domainVerificationStatus === "success" && (
-                <div className="flex items-center gap-2 text-xs text-success bg-success/10 p-2.5 rounded-lg border border-success/20">
-                  <CheckCircle2 className="size-4 shrink-0" />
-                  <span>Domínio validado com sucesso. Certificado SSL provisionado e activo.</span>
-                </div>
-              )}
-
-              {domainVerificationStatus === "pending" && (
-                <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 p-2.5 rounded-lg border border-warning/20">
-                  <LoaderCircle className="size-4 shrink-0 animate-spin" />
-                  <span>A aguardar propagação DNS. Pode levar até 24 horas.</span>
-                </div>
-              )}
-
-              {domainVerificationStatus === "error" && (
-                <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20">
-                  <AlertCircle className="size-4 shrink-0" />
-                  <span>
-                    Erro ao verificar os registos DNS. Verifique a configuração e tente novamente.
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* 3. ABA E-MAIL INSTITUCIONAL */}
-        <TabsContent value="email" className="space-y-4 pt-4">
-          <div className="rounded-xl border bg-card p-5 space-y-4">
-            <div>
-              <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                E-mail Institucional da Escola
-                {emailRouteActive && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-success/15 text-success">
-                    Activo
-                  </span>
-                )}
-              </h4>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Endereço de representação oficial com encaminhamento automático para a direção.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Endereço Institucional</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  aria-label="E-mail institucional"
-                  readOnly
-                  value={institutionalEmail}
-                  className="font-mono text-xs bg-muted/40"
-                />
                 <Button
-                  aria-label="Copiar e-mail institucional"
-                  variant="outline"
-                  size="icon"
-                  className="size-9 shrink-0"
-                  onClick={() => copyToClipboard(institutionalEmail, "E-mail")}
+                  size="sm"
+                  asChild
+                  className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
                 >
-                  <Copy className="size-3.5" />
+                  <a href={getPricingUrl()} target="_blank" rel="noreferrer">
+                    <Sparkles className="size-3.5" />
+                    Actualizar para Plano Premium
+                    <ArrowRight className="size-3.5" />
+                  </a>
                 </Button>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-xl border bg-card p-5 space-y-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Conectar Domínio Próprio
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Introduza o domínio ou subdomínio que pretende apontar para o SIGA.
+                  </p>
+                </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="forwarding-email" className="text-xs font-medium">
-                Encaminhar Mensagens Para
-              </Label>
-              <Input
-                id="forwarding-email"
-                type="email"
-                value={forwardingEmail}
-                onChange={(e) => setForwardingEmail(e.target.value)}
-                placeholder="colegio@gmail.com"
-                className="text-xs"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Todas as mensagens enviadas para {institutionalEmail} serão entregues neste
-                endereço.
-              </p>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="custom-domain" className="text-xs">
+                    Nome de Domínio
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="custom-domain"
+                      placeholder="portal.colegioesperanca.ao"
+                      value={customDomainInput}
+                      onChange={(e) => setCustomDomainInput(e.target.value)}
+                      className="font-mono text-xs"
+                      disabled={isVerifyingDomain}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleVerifyCustomDomain}
+                      disabled={isVerifyingDomain || !customDomainInput.trim()}
+                      className="text-xs shrink-0 gap-1.5"
+                    >
+                      {isVerifyingDomain ? (
+                        <LoaderCircle className="size-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="size-3.5" />
+                      )}
+                      Verificar DNS
+                    </Button>
+                  </div>
+                </div>
 
-            <div className="pt-2 flex justify-end">
-              <Button
-                size="sm"
-                onClick={handleSaveEmailRoute}
-                disabled={isSavingEmail || !forwardingEmail.trim()}
-                className="text-xs gap-1.5"
-              >
-                {isSavingEmail ? (
-                  <LoaderCircle className="size-3.5 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="size-3.5" />
+                {dnsInstructions && domainVerificationStatus !== "success" && (
+                  <div className="rounded-lg bg-muted/50 p-3 space-y-3 border text-xs">
+                    <div className="font-semibold text-foreground">
+                      Instruções de Apontamento DNS:
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 font-mono text-[11px]">
+                      <div className="grid grid-cols-[80px_1fr] items-center">
+                        <span className="text-muted-foreground">CNAME (nome):</span>
+                        <div className="flex items-center justify-between bg-background p-1.5 rounded border">
+                          <span>{dnsInstructions.cnameHost}</span>
+                          <Copy
+                            className="size-3 cursor-pointer text-muted-foreground hover:text-foreground"
+                            onClick={() => copyToClipboard(dnsInstructions.cnameHost || "", "Nome")}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-[80px_1fr] items-center">
+                        <span className="text-muted-foreground">Destino:</span>
+                        <div className="flex items-center justify-between bg-background p-1.5 rounded border">
+                          <span>{dnsInstructions.cnameTarget}</span>
+                          <Copy
+                            className="size-3 cursor-pointer text-muted-foreground hover:text-foreground"
+                            onClick={() =>
+                              copyToClipboard(dnsInstructions.cnameTarget || "", "Destino")
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Opcionalmente, pode configurar um TXT no host{" "}
+                      <strong>{dnsInstructions.txtHost}</strong> com o valor{" "}
+                      <strong>{dnsInstructions.txtValue}</strong>.
+                    </p>
+                  </div>
                 )}
-                Salvar Configurações de E-mail
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
 
-        {/* 4. ABA BRANDING */}
-        <TabsContent value="branding" className="space-y-4 pt-4">
-          {!hasAdvancedBrandingAccess ? (
-            <div className="rounded-xl border border-warning/30 bg-warning/5 p-5 text-center space-y-3">
-              <div className="mx-auto size-10 rounded-full bg-warning/10 flex items-center justify-center text-warning">
-                <Lock className="size-5" />
+                {domainVerificationStatus === "success" && (
+                  <div className="flex items-center gap-2 text-xs text-success bg-success/10 p-2.5 rounded-lg border border-success/20">
+                    <CheckCircle2 className="size-4 shrink-0" />
+                    <span>
+                      Domínio validado com sucesso. Certificado SSL provisionado e activo.
+                    </span>
+                  </div>
+                )}
+
+                {domainVerificationStatus === "pending" && (
+                  <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 p-2.5 rounded-lg border border-warning/20">
+                    <LoaderCircle className="size-4 shrink-0 animate-spin" />
+                    <span>A aguardar propagação DNS. Pode levar até 24 horas.</span>
+                  </div>
+                )}
+
+                {domainVerificationStatus === "error" && (
+                  <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20">
+                    <AlertCircle className="size-4 shrink-0" />
+                    <span>
+                      Erro ao verificar os registos DNS. Verifique a configuração e tente novamente.
+                    </span>
+                  </div>
+                )}
               </div>
-              <div>
-                <h4 className="text-sm font-semibold text-foreground">Branding Institucional</h4>
-                <p className="text-xs text-muted-foreground max-w-md mx-auto mt-1">
-                  Personalize o portal com as cores e o logótipo da sua escola para oferecer uma
-                  experiência imersiva à comunidade escolar.
-                </p>
-              </div>
-              <Button
-                size="sm"
-                asChild
-                className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
-              >
-                <a href={getPricingUrl()} target="_blank" rel="noreferrer">
-                  <Sparkles className="size-3.5" />
-                  Actualizar para Plano Premium
-                  <ArrowRight className="size-3.5" />
-                </a>
-              </Button>
-            </div>
-          ) : (
+            )}
+          </TabsContent>
+
+          {/* 3. ABA E-MAIL INSTITUCIONAL */}
+          <TabsContent value="email" className="space-y-4 pt-4">
             <div className="rounded-xl border bg-card p-5 space-y-4">
               <div>
-                <h4 className="text-sm font-semibold text-foreground">
-                  Personalização Visual do Portal
+                <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  E-mail Institucional da Escola
+                  {emailRouteActive && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-success/15 text-success">
+                      Activo
+                    </span>
+                  )}
                 </h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Cores institucionais e identidade visual exibida aos alunos e famílias.
+                  Endereço de representação oficial com encaminhamento automático para a direção.
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="portal-title" className="text-xs">
-                  Título do Portal
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Endereço Institucional</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    aria-label="E-mail institucional"
+                    readOnly
+                    value={institutionalEmail}
+                    className="font-mono text-xs bg-muted/40"
+                  />
+                  <Button
+                    aria-label="Copiar e-mail institucional"
+                    variant="outline"
+                    size="icon"
+                    className="size-9 shrink-0"
+                    onClick={() => copyToClipboard(institutionalEmail, "E-mail")}
+                  >
+                    <Copy className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="forwarding-email" className="text-xs font-medium">
+                  Encaminhar Mensagens Para
                 </Label>
                 <Input
-                  id="portal-title"
-                  value={portalTitle}
-                  onChange={(e) => setPortalTitle(e.target.value)}
+                  id="forwarding-email"
+                  type="email"
+                  value={forwardingEmail}
+                  onChange={(e) => setForwardingEmail(e.target.value)}
+                  placeholder="colegio@gmail.com"
                   className="text-xs"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs">Logótipo da Escola</Label>
-                <div className="flex items-center gap-4">
-                  {logoUrl ? (
-                    <div className="size-12 rounded border flex items-center justify-center overflow-hidden bg-background">
-                      <MediaFrame
-                        src={logoUrl}
-                        alt="Logo"
-                        ratio="1/1"
-                        rounded="rounded"
-                        className="size-full"
-                        imgClassName="object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="size-12 rounded border border-dashed flex items-center justify-center bg-muted/30">
-                      <span className="text-[11px] text-muted-foreground text-center leading-tight">
-                        Sem Logo
-                      </span>
-                    </div>
-                  )}
-                  <div>
-                    <Label
-                      htmlFor="logo-upload"
-                      className="cursor-pointer inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <Upload className="size-3.5" />
-                      Enviar Logótipo
-                    </Label>
-                    <input
-                      id="logo-upload"
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      className="hidden"
-                      onChange={handleLogoUpload}
-                      disabled={isSavingBranding}
-                    />
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      PNG, JPG ou WebP (máx. 2 MB). Altura recomendada: 64px.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="primary-color" className="text-xs">
-                    Cor Primária
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      aria-label="Cor primária, em hexadecimal"
-                      type="color"
-                      id="primary-color"
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="size-8 rounded border cursor-pointer bg-transparent"
-                    />
-                    <Input
-                      aria-label="Cor primária, em hexadecimal"
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="font-mono text-xs"
-                    />
-                  </div>
-                  {isValidBrandHex(primaryColor) && !isReadableBrandColor(primaryColor) ? (
-                    <p className="text-[11px] text-warning">
-                      Contraste baixo para botões — o SIGA bloqueará o guardar.
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="secondary-color" className="text-xs">
-                    Cor Secundária (sidebar)
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      aria-label="Cor secundária, em hexadecimal"
-                      type="color"
-                      id="secondary-color"
-                      value={secondaryColor}
-                      onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="size-8 rounded border cursor-pointer bg-transparent"
-                    />
-                    <Input
-                      aria-label="Cor secundária, em hexadecimal"
-                      value={secondaryColor}
-                      onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="font-mono text-xs"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-secondary/40 p-3">
-                <p className="text-[11px] font-semibold text-muted-foreground">Pré-visualização</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span
-                    className="inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold"
-                    style={{
-                      backgroundColor: isValidBrandHex(primaryColor) ? primaryColor : "#2563EB",
-                      color: "#fff",
-                    }}
-                  >
-                    Botão primário
-                  </span>
-                  <span
-                    className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium"
-                    style={{
-                      borderColor: isValidBrandHex(primaryColor) ? primaryColor : "#2563EB",
-                      color: isValidBrandHex(primaryColor) ? primaryColor : "#2563EB",
-                    }}
-                  >
-                    Link
-                  </span>
-                  <span
-                    className="inline-flex h-8 items-center rounded-md px-3 text-xs font-medium text-primary-foreground"
-                    style={{
-                      backgroundColor: isValidBrandHex(secondaryColor) ? secondaryColor : "#1E293B",
-                    }}
-                  >
-                    Sidebar
-                  </span>
-                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Todas as mensagens enviadas para {institutionalEmail} serão entregues neste
+                  endereço.
+                </p>
               </div>
 
               <div className="pt-2 flex justify-end">
                 <Button
                   size="sm"
-                  onClick={handleSaveBranding}
-                  disabled={isSavingBranding}
+                  onClick={handleSaveEmailRoute}
+                  disabled={isSavingEmail || !forwardingEmail.trim()}
                   className="text-xs gap-1.5"
                 >
-                  {isSavingBranding ? (
+                  {isSavingEmail ? (
                     <LoaderCircle className="size-3.5 animate-spin" />
                   ) : (
                     <CheckCircle2 className="size-3.5" />
                   )}
-                  Guardar Branding
+                  Salvar Configurações de E-mail
                 </Button>
               </div>
             </div>
-          )}
-        </TabsContent>
+          </TabsContent>
+
+          {/* 4. ABA BRANDING */}
+          <TabsContent value="branding" className="space-y-4 pt-4">
+            {!hasAdvancedBrandingAccess ? (
+              <div className="rounded-xl border border-warning/30 bg-warning/5 p-5 text-center space-y-3">
+                <div className="mx-auto size-10 rounded-full bg-warning/10 flex items-center justify-center text-warning">
+                  <Lock className="size-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Branding Institucional</h4>
+                  <p className="text-xs text-muted-foreground max-w-md mx-auto mt-1">
+                    Personalize o portal com as cores e o logótipo da sua escola para oferecer uma
+                    experiência imersiva à comunidade escolar.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  asChild
+                  className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
+                >
+                  <a href={getPricingUrl()} target="_blank" rel="noreferrer">
+                    <Sparkles className="size-3.5" />
+                    Actualizar para Plano Premium
+                    <ArrowRight className="size-3.5" />
+                  </a>
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-xl border bg-card p-5 space-y-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Personalização Visual do Portal
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Cores institucionais e identidade visual exibida aos alunos e famílias.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="portal-title" className="text-xs">
+                    Título do Portal
+                  </Label>
+                  <Input
+                    id="portal-title"
+                    value={portalTitle}
+                    onChange={(e) => setPortalTitle(e.target.value)}
+                    className="text-xs"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Logótipo da Escola</Label>
+                  <div className="flex items-center gap-4">
+                    {logoUrl ? (
+                      <div className="size-12 rounded border flex items-center justify-center overflow-hidden bg-background">
+                        <MediaFrame
+                          src={logoUrl}
+                          alt="Logo"
+                          ratio="1/1"
+                          rounded="rounded"
+                          className="size-full"
+                          imgClassName="object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="size-12 rounded border border-dashed flex items-center justify-center bg-muted/30">
+                        <span className="text-[11px] text-muted-foreground text-center leading-tight">
+                          Sem Logo
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <Label
+                        htmlFor="logo-upload"
+                        className="cursor-pointer inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <Upload className="size-3.5" />
+                        Enviar Logótipo
+                      </Label>
+                      <input
+                        id="logo-upload"
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                        disabled={isSavingBranding}
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        PNG, JPG ou WebP (máx. 2 MB). Altura recomendada: 64px.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="primary-color" className="text-xs">
+                      Cor Primária
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        aria-label="Cor primária, em hexadecimal"
+                        type="color"
+                        id="primary-color"
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        className="size-8 rounded border cursor-pointer bg-transparent"
+                      />
+                      <Input
+                        aria-label="Cor primária, em hexadecimal"
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        className="font-mono text-xs"
+                      />
+                    </div>
+                    {isValidBrandHex(primaryColor) && !isReadableBrandColor(primaryColor) ? (
+                      <p className="text-[11px] text-warning">
+                        Contraste baixo para botões — o SIGA bloqueará o guardar.
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="secondary-color" className="text-xs">
+                      Cor Secundária (sidebar)
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        aria-label="Cor secundária, em hexadecimal"
+                        type="color"
+                        id="secondary-color"
+                        value={secondaryColor}
+                        onChange={(e) => setSecondaryColor(e.target.value)}
+                        className="size-8 rounded border cursor-pointer bg-transparent"
+                      />
+                      <Input
+                        aria-label="Cor secundária, em hexadecimal"
+                        value={secondaryColor}
+                        onChange={(e) => setSecondaryColor(e.target.value)}
+                        className="font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border bg-secondary/40 p-3">
+                  <p className="text-[11px] font-semibold text-muted-foreground">
+                    Pré-visualização
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span
+                      className="inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold"
+                      style={{
+                        backgroundColor: isValidBrandHex(primaryColor) ? primaryColor : "#2563EB",
+                        color: "#fff",
+                      }}
+                    >
+                      Botão primário
+                    </span>
+                    <span
+                      className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium"
+                      style={{
+                        borderColor: isValidBrandHex(primaryColor) ? primaryColor : "#2563EB",
+                        color: isValidBrandHex(primaryColor) ? primaryColor : "#2563EB",
+                      }}
+                    >
+                      Link
+                    </span>
+                    <span
+                      className="inline-flex h-8 items-center rounded-md px-3 text-xs font-medium text-primary-foreground"
+                      style={{
+                        backgroundColor: isValidBrandHex(secondaryColor)
+                          ? secondaryColor
+                          : "#1E293B",
+                      }}
+                    >
+                      Sidebar
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <Button
+                    size="sm"
+                    onClick={handleSaveBranding}
+                    disabled={isSavingBranding}
+                    className="text-xs gap-1.5"
+                  >
+                    {isSavingBranding ? (
+                      <LoaderCircle className="size-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="size-3.5" />
+                    )}
+                    Guardar Branding
+                  </Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </TabsPanels>
       </Tabs>
     </div>
   );

@@ -62,11 +62,14 @@ O daemon rejeita origens desconhecidas (incluindo `null`), Host diferente do end
 
 ## macOS
 
-A app usa o WebKit do sistema (o motor do Safari instalado). O SIGA, a janela local e o
-Tailwind 4 são compilados para o Safari 16.4 ou mais recente; com um Safari mais antigo
-o ecrã aparece, mas o código não arranca (portal, PIN e entrada sem resposta). Por isso:
+A app usa o WebKit do sistema. Atenção: num MacBook Intel com o Safari 17 instalado, a
+app continuou com um motor anterior ao 16.4 (27/10/2026: páginas partiam com «Unexpected
+token '{'», dos blocos `static {}` das classes). Por isso o SIGA é compilado para o
+Safari 15.4 ou mais recente (`target` do cliente em `vite.config.ts`; 15.4 é o primeiro
+com `@layer`, de que o Tailwind 4 precisa) e não usa lookbehind nas expressões
+regulares. Com um motor mais antigo o ecrã aparece, mas o código não arranca. Por isso:
 
-- `minimumSystemVersion` é `11.0` (o macOS 10.15 não recebe Safari 16.4);
+- `minimumSystemVersion` é `11.0`;
 - `public/browser-check.js` (cópia igual em `desktop/public/`) corre antes do resto e,
   num motor antigo, explica como actualizar o Safari em Actualização de Software
   (Monterey → Safari 17, Big Sur → Safari 16.6). Serve também o navegador;

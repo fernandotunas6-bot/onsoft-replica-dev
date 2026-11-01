@@ -47,6 +47,37 @@ describe("impacto de eliminar/desactivar, contado no servidor", () => {
     expect(impact.blocker).toMatch(/Reatribua/);
   });
 
+  it("disciplinas de turmas arquivadas já não prendem o professor", async () => {
+    const { db } = memoryDb({
+      class_subjects: [
+        { school_id: S, teacher_id: "p1", class_group_id: "t-arq", status: "active" },
+        { school_id: S, teacher_id: "p1", class_group_id: "t-arq", status: "active" },
+      ],
+      class_groups: [
+        { school_id: S, id: "t-arq", status: "archived" },
+        // A mesma turma arquivada noutra escola não decide nada aqui.
+        { school_id: "escola-b", id: "t-viva", status: "archived" },
+      ],
+    });
+    const impact = await teacherDeletionImpact(db, S, "p1");
+    expect(impact).toMatchObject({ impacts: [], blocker: null });
+
+    const { db: mixed } = memoryDb({
+      class_subjects: [
+        { school_id: S, teacher_id: "p1", class_group_id: "t-arq", status: "active" },
+        { school_id: S, teacher_id: "p1", class_group_id: "t-viva", status: "active" },
+      ],
+      class_groups: [
+        { school_id: S, id: "t-arq", status: "archived" },
+        { school_id: S, id: "t-viva", status: "active" },
+        { school_id: "escola-b", id: "t-viva", status: "archived" },
+      ],
+    });
+    const blocked = await teacherDeletionImpact(mixed, S, "p1");
+    expect(blocked.impacts).toEqual([{ label: "disciplina(s) activa(s) atribuída(s)", count: 1 }]);
+    expect(blocked.blocker).toMatch(/Reatribua/);
+  });
+
   it("avaliação conta só as notas lançadas", async () => {
     const { db } = memoryDb({
       siga_assessment_scores: [

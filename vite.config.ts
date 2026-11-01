@@ -50,6 +50,11 @@ export default defineConfig({
     environments: {
       client: {
         build: {
+          // Mínimo: Safari 15.4 (o primeiro com `@layer`, de que o Tailwind 4 precisa). A app
+          // SIGA Desktop usa o motor do sistema, e há Mac que ficam no 15.4–16.3 mesmo com o
+          // Safari actualizado: sem isto, os blocos `static {}` das classes partiam páginas
+          // com «Unexpected token '{'». O public/browser-check.js avisa abaixo deste mínimo.
+          target: ["chrome99", "edge99", "firefox97", "safari15.4"],
           rolldownOptions: {
             output: {
               codeSplitting: {
@@ -84,6 +89,16 @@ export default defineConfig({
      * Nunca definir isto num workflow de publicação.
      */
     preset: process.env["SIGA_NITRO_PRESET"] ?? "cloudflare-module",
+    /**
+     * Ensaio local com a compressão da produção: a Cloudflare serve os assets
+     * comprimidos (br/gzip), o servidor Node não comprime nada. Sem isto o
+     * Lighthouse do CI media o CSS e o JS em bruto (CSS de 232 KB a bloquear o
+     * primeiro desenho) e falhava por uma condição que a produção não tem. Só no
+     * `node-server`: o build de publicação não muda nem ganha ficheiros .br/.gz.
+     */
+    ...(process.env["SIGA_NITRO_PRESET"] === "node-server"
+      ? { compressPublicAssets: { gzip: true, brotli: true } }
+      : {}),
     // Nomes sem hash: prazo finito, para uma substituição chegar aos visitantes.
     // Nitro gera também o _headers dos assets Cloudflare a partir destas regras.
     ...publicAssetCache,

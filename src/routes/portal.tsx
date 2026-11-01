@@ -14,12 +14,13 @@ export const Route = createFileRoute("/portal")({
   validateSearch: z.object({
     escola: z.string().max(50).optional(),
     vista: z.enum(["estudante"]).optional(),
+    seccao: z.enum(["financeiro"]).optional(),
   }),
   head: () => ({ meta: [{ title: "Portal académico · SIGA Plus" }] }),
   component: PortalPage,
 });
 function PortalPage() {
-  const { escola, vista } = Route.useSearch();
+  const { escola, vista, seccao } = Route.useSearch();
   const account = useCurrentAccount();
   const target = account.schools.find((school) => school.schoolSlug === escola && school.isActive);
   useEffect(() => {
@@ -35,7 +36,7 @@ function PortalPage() {
           </p>
         }
       >
-        <StudentWebsitePortal />
+        <StudentWebsitePortal initialSection={seccao === "financeiro" ? "financeiro" : ""} />
       </Suspense>
     ) : (
       <Dashboard />

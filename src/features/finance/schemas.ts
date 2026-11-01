@@ -193,3 +193,17 @@ export type SyncStudentToPayflowInput = z.infer<typeof syncStudentToPayflowInput
 export const accountantExportInputSchema = z.object({
   month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Indique o mês (AAAA-MM)."),
 });
+
+/** Lote limitado por pedido, com selecção opcional dentro da turma/ano. */
+export const TUITION_BATCH_LIMIT = 60;
+export const issueTuitionBatchInputSchema = z
+  .object({
+    classGroupId: z.string().guid().optional(),
+    studentIds: z.array(z.string().guid()).min(1).max(TUITION_BATCH_LIMIT).optional(),
+    academicYearId: z.string().guid().optional(),
+    dueOn: z.string().date(),
+    issuedOn: z.string().date().optional(),
+  })
+  .refine((value) => Boolean(value.classGroupId) || Boolean(value.studentIds), {
+    message: "Seleccione uma turma e/ou alunos específicos.",
+  });

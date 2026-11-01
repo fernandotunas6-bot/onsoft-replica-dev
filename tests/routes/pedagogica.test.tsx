@@ -259,6 +259,11 @@ describe("/pedagogica — render", () => {
       expect(screen.getByRole("button", { name: "Turma 10ª A" })).toBeDefined();
     });
     expect(screen.queryByText("Nenhuma turma neste filtro")).toBeNull();
+    expect(
+      screen
+        .getByRole("tablist", { name: "Secções de ensino e aprendizagem" })
+        .getAttribute("aria-orientation"),
+    ).toBe("vertical");
   });
 
   it("a direcção abre na estrutura académica, com o estado real de cada módulo", async () => {

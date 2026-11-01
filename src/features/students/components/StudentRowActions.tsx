@@ -20,7 +20,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { exportPdfTable } from "@/lib/export-pdf-loader";
-import { canReadStudentSection } from "@/features/students/student-sections";
+import {
+  canOpenStudentAccounts,
+  canReadStudentSection,
+} from "@/features/students/student-sections";
 import type { ApplicationRole, ModuleGrantMap } from "@/features/auth/access-policy";
 
 export type StudentQuickAccount = {
@@ -45,6 +48,7 @@ export function StudentRowActions({
   const finance = canReadStudentSection("financeiro", role, grants);
   const academic = canReadStudentSection("academico", role, grants);
   const documents = canReadStudentSection("documentos", role, grants);
+  const studentAccounts = canOpenStudentAccounts(role, grants);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(`${student.registration_number} — ${student.full_name}`);
@@ -121,11 +125,13 @@ export function StudentRowActions({
             </Link>
           </DropdownMenuItem>
         ) : null}
-        <DropdownMenuItem asChild>
-          <Link to="/pessoas/acessos-alunos">
-            <KeyRound className="mr-2 size-4" /> Recuperar / redefinir senha
-          </Link>
-        </DropdownMenuItem>
+        {studentAccounts ? (
+          <DropdownMenuItem asChild>
+            <Link to="/pessoas/acessos-alunos">
+              <KeyRound className="mr-2 size-4" /> Recuperar / redefinir senha
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => void copy()}>
           <Copy className="mr-2 size-4" /> Copiar número e nome

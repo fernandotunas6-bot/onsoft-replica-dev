@@ -21,7 +21,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MediaAvatar } from "@/components/ui/media-frame";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import { getAlumniProfile, verifyAlumniProfile } from "@/features/alumni/server";
 
 export const Route = createFileRoute("/alumni_/$alumniId")({
@@ -238,8 +238,8 @@ function AlumniProfilePage() {
             </Card>
           </aside>
 
-          <Tabs defaultValue="journey" className="space-y-4">
-            <TabsList className="h-auto flex-wrap rounded-2xl bg-muted/60 p-1">
+          <Tabs layout="sidebar" defaultValue="journey" className="space-y-4">
+            <TabsList aria-label="Secções Alumni">
               <TabsTrigger value="journey" className="rounded-xl">
                 Percurso
               </TabsTrigger>
@@ -259,179 +259,182 @@ function AlumniProfilePage() {
                 Relacionamento
               </TabsTrigger>
             </TabsList>
-
-            <TabsContent value="journey">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Experiências e trajectória</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {experiences.length ? (
-                    experiences.map((item) => (
-                      <div key={item.id} className="rounded-2xl border border-border/70 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-bold">{item.title || item.kind}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {item.organization}
-                              {item.location ? ` · ${item.location}` : ""}
-                            </p>
+            <TabsPanels>
+              <TabsContent value="journey">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Experiências e trajectória</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {experiences.length ? (
+                      experiences.map((item) => (
+                        <div key={item.id} className="rounded-2xl border border-border/70 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-bold">{item.title || item.kind}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {item.organization}
+                                {item.location ? ` · ${item.location}` : ""}
+                              </p>
+                            </div>
+                            {item.is_current ? (
+                              <span className="rounded-full bg-success/10 px-2.5 py-1 text-[11px] font-bold text-success">
+                                Actual
+                              </span>
+                            ) : null}
                           </div>
-                          {item.is_current ? (
-                            <span className="rounded-full bg-success/10 px-2.5 py-1 text-[11px] font-bold text-success">
-                              Actual
-                            </span>
+                          {item.description ? (
+                            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                              {item.description}
+                            </p>
                           ) : null}
                         </div>
-                        {item.description ? (
-                          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                            {item.description}
-                          </p>
-                        ) : null}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Ainda não há experiências profissionais ou académicas registadas.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Ainda não há experiências profissionais ou académicas registadas.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-            <TabsContent value="academic">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Histórico académico preservado</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {data.enrollments.length ? (
-                    data.enrollments.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between rounded-xl bg-muted/50 px-4 py-3 text-sm"
-                      >
-                        <span>Matrícula {item.id.slice(0, 8)}</span>
-                        <span className="font-semibold">{item.status}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Sem matrículas históricas localizadas.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="mentoring">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Handshake className="size-5 text-primary" />
-                    Mentorias
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {mentorships.length ? (
-                    mentorships.map((item) => (
-                      <div key={item.id} className="rounded-xl border border-border/70 p-4">
-                        <p className="font-semibold">{item.focus_area}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">Estado: {item.status}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Nenhuma relação de mentoria formal registada.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="opportunities">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Pipeline de oportunidades</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {applications.length ? (
-                    applications.map((item) => (
-                      <div key={item.id} className="rounded-xl border border-border/70 p-4">
-                        <p className="font-semibold">
-                          {item.alumni_opportunities?.title ?? "Oportunidade"}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {item.alumni_opportunities?.organization ?? ""} · {item.status}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Sem candidaturas ou interesses registados.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="events">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CalendarDays className="size-5 text-primary" />
-                    Participação em eventos
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {eventRegistrations.length ? (
-                    eventRegistrations.map((item) => (
-                      <div key={item.id} className="rounded-xl border border-border/70 p-4">
-                        <p className="font-semibold">
-                          {item.alumni_events?.title ?? "Evento Alumni"}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">{item.status}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Sem inscrições em eventos.</p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="engagement">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <History className="size-5 text-primary" />
-                    Linha de relacionamento
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {engagements.length ? (
-                    engagements.map((item) => (
-                      <div key={item.id} className="rounded-xl border border-border/70 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="font-semibold">{item.title}</p>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(item.occurred_at).toLocaleDateString("pt-PT")}
-                          </span>
+              <TabsContent value="academic">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Histórico académico preservado</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {data.enrollments.length ? (
+                      data.enrollments.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between rounded-xl bg-muted/50 px-4 py-3 text-sm"
+                        >
+                          <span>Matrícula {item.id.slice(0, 8)}</span>
+                          <span className="font-semibold">{item.status}</span>
                         </div>
-                        <p className="mt-1 text-xs font-medium text-primary">{item.kind}</p>
-                        {item.notes ? (
-                          <p className="mt-2 text-sm text-muted-foreground">{item.notes}</p>
-                        ) : null}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Ainda não existem interações registadas.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Sem matrículas históricas localizadas.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="mentoring">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Handshake className="size-5 text-primary" />
+                      Mentorias
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {mentorships.length ? (
+                      mentorships.map((item) => (
+                        <div key={item.id} className="rounded-xl border border-border/70 p-4">
+                          <p className="font-semibold">{item.focus_area}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Estado: {item.status}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Nenhuma relação de mentoria formal registada.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="opportunities">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pipeline de oportunidades</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {applications.length ? (
+                      applications.map((item) => (
+                        <div key={item.id} className="rounded-xl border border-border/70 p-4">
+                          <p className="font-semibold">
+                            {item.alumni_opportunities?.title ?? "Oportunidade"}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {item.alumni_opportunities?.organization ?? ""} · {item.status}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Sem candidaturas ou interesses registados.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="events">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CalendarDays className="size-5 text-primary" />
+                      Participação em eventos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {eventRegistrations.length ? (
+                      eventRegistrations.map((item) => (
+                        <div key={item.id} className="rounded-xl border border-border/70 p-4">
+                          <p className="font-semibold">
+                            {item.alumni_events?.title ?? "Evento Alumni"}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">{item.status}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Sem inscrições em eventos.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="engagement">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <History className="size-5 text-primary" />
+                      Linha de relacionamento
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {engagements.length ? (
+                      engagements.map((item) => (
+                        <div key={item.id} className="rounded-xl border border-border/70 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="font-semibold">{item.title}</p>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(item.occurred_at).toLocaleDateString("pt-PT")}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs font-medium text-primary">{item.kind}</p>
+                          {item.notes ? (
+                            <p className="mt-2 text-sm text-muted-foreground">{item.notes}</p>
+                          ) : null}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Ainda não existem interações registadas.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </TabsPanels>
           </Tabs>
         </div>
       </div>

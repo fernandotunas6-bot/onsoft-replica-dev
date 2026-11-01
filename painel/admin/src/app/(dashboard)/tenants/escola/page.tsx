@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getSigaSchoolUrl } from "@/lib/ecosystem-urls"
+import { getSchoolPortalUrl, getSchoolWebsiteUrl } from "@/lib/ecosystem-urls"
 import { setTenantStatus } from "@/lib/saas-api"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import {
@@ -178,10 +178,17 @@ export default function TenantDetailPage() {
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw className="size-4" /> Actualizar
           </Button>
+          {t && getSchoolWebsiteUrl(t.slug) ? (
+            <Button variant="outline" size="sm" asChild>
+              <a href={getSchoolWebsiteUrl(t.slug) ?? undefined} target="_blank" rel="noopener noreferrer">
+                Website da escola <ExternalLink className="size-4" />
+              </a>
+            </Button>
+          ) : null}
           {t ? (
             <Button variant="outline" size="sm" asChild>
-              <a href={getSigaSchoolUrl(t.slug)}>
-                Abrir no SIGA <ExternalLink className="size-4" />
+              <a href={getSchoolPortalUrl(t.slug)} target="_blank" rel="noopener noreferrer">
+                Portal SIGA Plus <ExternalLink className="size-4" />
               </a>
             </Button>
           ) : null}

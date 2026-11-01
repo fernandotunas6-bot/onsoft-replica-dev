@@ -17,7 +17,7 @@ import { PageHeader, StatGrid } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import {
   listAlumni,
   listAlumniEvents,
@@ -268,8 +268,8 @@ function AlumniOperationsPage() {
           </Card>
         </StatGrid>
 
-        <Tabs defaultValue="opportunities" className="space-y-4">
-          <TabsList className="h-auto flex-wrap rounded-2xl bg-muted/60 p-1">
+        <Tabs layout="sidebar" defaultValue="opportunities" className="space-y-4">
+          <TabsList aria-label="Secções Alumni">
             <TabsTrigger value="opportunities" className="rounded-xl">
               Oportunidades
             </TabsTrigger>
@@ -283,288 +283,293 @@ function AlumniOperationsPage() {
               Contribuições
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="opportunities">
-            <Card>
-              <CardHeader>
-                <CardTitle>Publicar oportunidade</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <Input
-                  id="opp-title"
-                  aria-label="Título da oportunidade"
-                  value={opportunityTitle}
-                  onChange={(e) => setOpportunityTitle(e.target.value)}
-                  placeholder="Título da oportunidade"
-                />
-                <Input
-                  id="opp-org"
-                  aria-label="Empresa ou organização"
-                  value={opportunityOrg}
-                  onChange={(e) => setOpportunityOrg(e.target.value)}
-                  placeholder="Empresa / organização"
-                />
-                <select
-                  id="opp-type"
-                  aria-label="Tipo de oportunidade"
-                  value={opportunityType}
-                  onChange={(e) => setOpportunityType(e.target.value as typeof opportunityType)}
-                  className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
-                >
-                  <option value="job">Emprego</option>
-                  <option value="internship">Estágio</option>
-                  <option value="scholarship">Bolsa</option>
-                  <option value="mentoring">Mentoria</option>
-                  <option value="business">Negócio</option>
-                  <option value="volunteer">Voluntariado</option>
-                  <option value="event">Evento</option>
-                  <option value="other">Outra</option>
-                </select>
-                <div className="md:col-span-2">
-                  <Button
-                    onClick={() => opportunityMutation.mutate()}
-                    disabled={!opportunityTitle.trim() || opportunityMutation.isPending}
+          <TabsPanels>
+            <TabsContent value="opportunities">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Publicar oportunidade</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <Input
+                    id="opp-title"
+                    aria-label="Título da oportunidade"
+                    value={opportunityTitle}
+                    onChange={(e) => setOpportunityTitle(e.target.value)}
+                    placeholder="Título da oportunidade"
+                  />
+                  <Input
+                    id="opp-org"
+                    aria-label="Empresa ou organização"
+                    value={opportunityOrg}
+                    onChange={(e) => setOpportunityOrg(e.target.value)}
+                    placeholder="Empresa / organização"
+                  />
+                  <select
+                    id="opp-type"
+                    aria-label="Tipo de oportunidade"
+                    value={opportunityType}
+                    onChange={(e) => setOpportunityType(e.target.value as typeof opportunityType)}
+                    className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
                   >
-                    <Plus className="mr-2 size-4" />
-                    Publicar oportunidade
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="events">
-            <Card>
-              <CardHeader>
-                <CardTitle>Criar evento Alumni</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <Input
-                  id="event-title"
-                  aria-label="Nome do evento"
-                  value={eventTitle}
-                  onChange={(e) => setEventTitle(e.target.value)}
-                  placeholder="Nome do evento"
-                />
-                <Input
-                  id="event-location"
-                  aria-label="Local ou cidade do evento"
-                  value={eventLocation}
-                  onChange={(e) => setEventLocation(e.target.value)}
-                  placeholder="Local / cidade"
-                />
-                <Input
-                  id="event-start"
-                  aria-label="Data e hora de início do evento"
-                  type="datetime-local"
-                  value={eventStart}
-                  onChange={(e) => setEventStart(e.target.value)}
-                />
-                <div className="md:col-span-2">
-                  <Button
-                    onClick={() => eventMutation.mutate()}
-                    disabled={!eventTitle.trim() || !eventStart || eventMutation.isPending}
-                  >
-                    <CalendarPlus className="mr-2 size-4" />
-                    Publicar evento
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="surveys">
-            <Card>
-              <CardHeader>
-                <CardTitle>Construtor de Tracer Study</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Input
-                  id="survey-title"
-                  aria-label="Título da pesquisa"
-                  value={surveyTitle}
-                  onChange={(e) => setSurveyTitle(e.target.value)}
-                  placeholder="Título da pesquisa"
-                />
-                {questions.map((question, index) => (
-                  <div
-                    key={question.id}
-                    className="grid gap-3 rounded-2xl border border-border/60 p-4 md:grid-cols-[minmax(0,1fr)_180px_auto]"
-                  >
-                    <Input
-                      id={`question-label-${question.id}`}
-                      aria-label={`Enunciado da pergunta ${index + 1}`}
-                      value={question.label}
-                      onChange={(e) =>
-                        setQuestions((current) =>
-                          current.map((item, i) =>
-                            i === index ? { ...item, label: e.target.value } : item,
-                          ),
-                        )
-                      }
-                      placeholder={`Pergunta ${index + 1}`}
-                    />
-                    <select
-                      id={`question-type-${question.id}`}
-                      aria-label={`Tipo de resposta da pergunta ${index + 1}`}
-                      value={question.type}
-                      onChange={(e) =>
-                        setQuestions((current) =>
-                          current.map((item, i) =>
-                            i === index
-                              ? { ...item, type: e.target.value as QuestionDraft["type"] }
-                              : item,
-                          ),
-                        )
-                      }
-                      className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                    <option value="job">Emprego</option>
+                    <option value="internship">Estágio</option>
+                    <option value="scholarship">Bolsa</option>
+                    <option value="mentoring">Mentoria</option>
+                    <option value="business">Negócio</option>
+                    <option value="volunteer">Voluntariado</option>
+                    <option value="event">Evento</option>
+                    <option value="other">Outra</option>
+                  </select>
+                  <div className="md:col-span-2">
+                    <Button
+                      onClick={() => opportunityMutation.mutate()}
+                      disabled={!opportunityTitle.trim() || opportunityMutation.isPending}
                     >
-                      <option value="text">Texto</option>
-                      <option value="textarea">Texto longo</option>
-                      <option value="number">Número</option>
-                      <option value="select">Selecção</option>
-                      <option value="multiselect">Múltipla selecção</option>
-                      <option value="boolean">Sim/Não</option>
-                      <option value="date">Data</option>
-                    </select>
-                    <label className="flex items-center gap-2 text-xs font-semibold">
-                      <input
-                        id={`question-required-${question.id}`}
-                        aria-label="Pergunta obrigatória"
-                        type="checkbox"
-                        checked={question.required}
-                        onChange={(e) =>
-                          setQuestions((current) =>
-                            current.map((item, i) =>
-                              i === index ? { ...item, required: e.target.checked } : item,
-                            ),
-                          )
-                        }
-                      />
-                      Obrigatória
-                    </label>
-                    {["select", "multiselect"].includes(question.type) ? (
-                      <textarea
-                        id={`question-options-${question.id}`}
-                        aria-label="Opções de resposta, uma por linha"
-                        className="min-h-20 rounded-xl border border-input bg-background p-3 text-sm md:col-span-3"
-                        value={question.options}
-                        onChange={(e) =>
-                          setQuestions((current) =>
-                            current.map((item, i) =>
-                              i === index ? { ...item, options: e.target.value } : item,
-                            ),
-                          )
-                        }
-                        placeholder="Uma opção por linha"
-                      />
-                    ) : null}
+                      <Plus className="mr-2 size-4" />
+                      Publicar oportunidade
+                    </Button>
                   </div>
-                ))}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      setQuestions((current) => [
-                        ...current,
-                        {
-                          id: `q${current.length + 1}`,
-                          label: "",
-                          type: "text",
-                          required: false,
-                          options: "",
-                        },
-                      ])
-                    }
-                  >
-                    <Plus className="mr-2 size-4" />
-                    Adicionar pergunta
-                  </Button>
-                  <Button
-                    onClick={() => surveyMutation.mutate()}
-                    disabled={
-                      !surveyTitle.trim() ||
-                      !questions.some((q) => q.label.trim()) ||
-                      surveyMutation.isPending
-                    }
-                  >
-                    <ClipboardList className="mr-2 size-4" />
-                    Publicar tracer study
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <TabsContent value="impact">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Coins className="size-5 text-primary" />
-                  Registar contribuição Alumni
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <select
-                  id="contribution-alumni"
-                  aria-label="Seleccionar Alumni"
-                  value={contributionAlumniId}
-                  onChange={(e) => setContributionAlumniId(e.target.value)}
-                  className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
-                >
-                  <option value="">Seleccionar Alumni…</option>
-                  {(alumniQuery.data ?? []).map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.full_name} · {row.student_number}
-                    </option>
+            <TabsContent value="events">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Criar evento Alumni</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <Input
+                    id="event-title"
+                    aria-label="Nome do evento"
+                    value={eventTitle}
+                    onChange={(e) => setEventTitle(e.target.value)}
+                    placeholder="Nome do evento"
+                  />
+                  <Input
+                    id="event-location"
+                    aria-label="Local ou cidade do evento"
+                    value={eventLocation}
+                    onChange={(e) => setEventLocation(e.target.value)}
+                    placeholder="Local / cidade"
+                  />
+                  <Input
+                    id="event-start"
+                    aria-label="Data e hora de início do evento"
+                    type="datetime-local"
+                    value={eventStart}
+                    onChange={(e) => setEventStart(e.target.value)}
+                  />
+                  <div className="md:col-span-2">
+                    <Button
+                      onClick={() => eventMutation.mutate()}
+                      disabled={!eventTitle.trim() || !eventStart || eventMutation.isPending}
+                    >
+                      <CalendarPlus className="mr-2 size-4" />
+                      Publicar evento
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="surveys">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Construtor de Tracer Study</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Input
+                    id="survey-title"
+                    aria-label="Título da pesquisa"
+                    value={surveyTitle}
+                    onChange={(e) => setSurveyTitle(e.target.value)}
+                    placeholder="Título da pesquisa"
+                  />
+                  {questions.map((question, index) => (
+                    <div
+                      key={question.id}
+                      className="grid gap-3 rounded-2xl border border-border/60 p-4 md:grid-cols-[minmax(0,1fr)_180px_auto]"
+                    >
+                      <Input
+                        id={`question-label-${question.id}`}
+                        aria-label={`Enunciado da pergunta ${index + 1}`}
+                        value={question.label}
+                        onChange={(e) =>
+                          setQuestions((current) =>
+                            current.map((item, i) =>
+                              i === index ? { ...item, label: e.target.value } : item,
+                            ),
+                          )
+                        }
+                        placeholder={`Pergunta ${index + 1}`}
+                      />
+                      <select
+                        id={`question-type-${question.id}`}
+                        aria-label={`Tipo de resposta da pergunta ${index + 1}`}
+                        value={question.type}
+                        onChange={(e) =>
+                          setQuestions((current) =>
+                            current.map((item, i) =>
+                              i === index
+                                ? { ...item, type: e.target.value as QuestionDraft["type"] }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="text">Texto</option>
+                        <option value="textarea">Texto longo</option>
+                        <option value="number">Número</option>
+                        <option value="select">Selecção</option>
+                        <option value="multiselect">Múltipla selecção</option>
+                        <option value="boolean">Sim/Não</option>
+                        <option value="date">Data</option>
+                      </select>
+                      <label className="flex items-center gap-2 text-xs font-semibold">
+                        <input
+                          id={`question-required-${question.id}`}
+                          aria-label="Pergunta obrigatória"
+                          type="checkbox"
+                          checked={question.required}
+                          onChange={(e) =>
+                            setQuestions((current) =>
+                              current.map((item, i) =>
+                                i === index ? { ...item, required: e.target.checked } : item,
+                              ),
+                            )
+                          }
+                        />
+                        Obrigatória
+                      </label>
+                      {["select", "multiselect"].includes(question.type) ? (
+                        <textarea
+                          id={`question-options-${question.id}`}
+                          aria-label="Opções de resposta, uma por linha"
+                          className="min-h-20 rounded-xl border border-input bg-background p-3 text-sm md:col-span-3"
+                          value={question.options}
+                          onChange={(e) =>
+                            setQuestions((current) =>
+                              current.map((item, i) =>
+                                i === index ? { ...item, options: e.target.value } : item,
+                              ),
+                            )
+                          }
+                          placeholder="Uma opção por linha"
+                        />
+                      ) : null}
+                    </div>
                   ))}
-                </select>
-                <select
-                  id="contribution-type"
-                  aria-label="Tipo de contribuição"
-                  value={contributionType}
-                  onChange={(e) => setContributionType(e.target.value as typeof contributionType)}
-                  className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
-                >
-                  <option value="donation">Doação</option>
-                  <option value="sponsorship">Patrocínio</option>
-                  <option value="scholarship">Bolsa</option>
-                  <option value="in_kind">Em espécie</option>
-                  <option value="volunteer_hours">Horas de voluntariado</option>
-                  <option value="other">Outra</option>
-                </select>
-                <Input
-                  id="contribution-value"
-                  aria-label={
-                    contributionType === "volunteer_hours" ? "Horas de voluntariado" : "Valor em Kz"
-                  }
-                  type="number"
-                  min="0"
-                  value={contributionValue}
-                  onChange={(e) => setContributionValue(e.target.value)}
-                  placeholder={contributionType === "volunteer_hours" ? "Horas" : "Valor em Kz"}
-                />
-                <Input
-                  id="contribution-designation"
-                  aria-label="Finalidade ou projecto"
-                  value={contributionDesignation}
-                  onChange={(e) => setContributionDesignation(e.target.value)}
-                  placeholder="Finalidade / projecto"
-                />
-                <div className="md:col-span-2">
-                  <Button
-                    onClick={() => contributionMutation.mutate()}
-                    disabled={
-                      !contributionAlumniId || !contributionValue || contributionMutation.isPending
-                    }
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setQuestions((current) => [
+                          ...current,
+                          {
+                            id: `q${current.length + 1}`,
+                            label: "",
+                            type: "text",
+                            required: false,
+                            options: "",
+                          },
+                        ])
+                      }
+                    >
+                      <Plus className="mr-2 size-4" />
+                      Adicionar pergunta
+                    </Button>
+                    <Button
+                      onClick={() => surveyMutation.mutate()}
+                      disabled={
+                        !surveyTitle.trim() ||
+                        !questions.some((q) => q.label.trim()) ||
+                        surveyMutation.isPending
+                      }
+                    >
+                      <ClipboardList className="mr-2 size-4" />
+                      Publicar tracer study
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="impact">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Coins className="size-5 text-primary" />
+                    Registar contribuição Alumni
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <select
+                    id="contribution-alumni"
+                    aria-label="Seleccionar Alumni"
+                    value={contributionAlumniId}
+                    onChange={(e) => setContributionAlumniId(e.target.value)}
+                    className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
                   >
-                    <Handshake className="mr-2 size-4" />
-                    Registar impacto
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    <option value="">Seleccionar Alumni…</option>
+                    {(alumniQuery.data ?? []).map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.full_name} · {row.student_number}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    id="contribution-type"
+                    aria-label="Tipo de contribuição"
+                    value={contributionType}
+                    onChange={(e) => setContributionType(e.target.value as typeof contributionType)}
+                    className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="donation">Doação</option>
+                    <option value="sponsorship">Patrocínio</option>
+                    <option value="scholarship">Bolsa</option>
+                    <option value="in_kind">Em espécie</option>
+                    <option value="volunteer_hours">Horas de voluntariado</option>
+                    <option value="other">Outra</option>
+                  </select>
+                  <Input
+                    id="contribution-value"
+                    aria-label={
+                      contributionType === "volunteer_hours"
+                        ? "Horas de voluntariado"
+                        : "Valor em Kz"
+                    }
+                    type="number"
+                    min="0"
+                    value={contributionValue}
+                    onChange={(e) => setContributionValue(e.target.value)}
+                    placeholder={contributionType === "volunteer_hours" ? "Horas" : "Valor em Kz"}
+                  />
+                  <Input
+                    id="contribution-designation"
+                    aria-label="Finalidade ou projecto"
+                    value={contributionDesignation}
+                    onChange={(e) => setContributionDesignation(e.target.value)}
+                    placeholder="Finalidade / projecto"
+                  />
+                  <div className="md:col-span-2">
+                    <Button
+                      onClick={() => contributionMutation.mutate()}
+                      disabled={
+                        !contributionAlumniId ||
+                        !contributionValue ||
+                        contributionMutation.isPending
+                      }
+                    >
+                      <Handshake className="mr-2 size-4" />
+                      Registar impacto
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </TabsPanels>
         </Tabs>
       </div>
     </AppShell>
