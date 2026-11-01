@@ -161,6 +161,31 @@ ao job «Auditoria de dependências».
 workflow publicou a 31/10; o HTTPS do domínio fica por confirmar. Fechar só com a
 decisão do proprietário.
 
+## 4d. Storage e desempenho da base
+
+- **Storage (6 buckets):** `school-logos` é público para leitura; escrever exige
+  `school_logo_folder_ok` (secretaria/direcção da escola activa, pasta da própria escola ou
+  tenant). `avatars`: lê o próprio ou colegas da mesma escola; escreve só o próprio.
+  `siga-files`, `school-private` e `school-exports`: privados, por escola. `billing-proofs`:
+  sem políticas (só servidor). Sem achados.
+- **Alertas de desempenho (lidos na íntegra):** só informativos: 227 chaves estrangeiras sem
+  índice e 212 índices nunca usados. Avaliar por tabela com volume; não criar nem apagar
+  índices em massa.
+
+## 4e. PRs abertas (34) contra a `main` actual
+
+Fusão de ensaio local (`git merge-tree`, sem alterar nada) contra `d3c3f154`:
+
+| Grupo                        | PRs                                                                                     | Estado                                                                                   |
+| ---------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Fundem limpo                 | #325 (1 commit), #342 (docs), #403 (CI, 3 ficheiros), #405, #408                        | #403, #405 e #408 são rascunhos à espera de QA/staging                                   |
+| Conflito leve, recentes      | #421 (1), #423 (2), #424 (1), #404 (1), #392 (3, base noutro ramo)                      | Merge da `main` e CI; #421/#423 são de acessibilidade                                    |
+| Conflito médio               | #275, #277, #291, #338, #339, #375, #345 (18)                                           | Rever uma a uma; #345 integra trabalho da #338                                           |
+| Antigas, > 900 commits atrás | #35, #116, #119, #128, #130, #132, #133, #136, #154, #200, #205, #206, #210, #211, #212 | 4–116 ficheiros em conflito; recriar a partir da `main` só o que ainda faltar, ou fechar |
+
+O `git cherry` só reconhece como já integrados 2 commits da #392 e 3 da #136: as fusões por
+squash escondem duplicações, por isso «em conflito» não prova que o trabalho falta na `main`.
+
 ## 5. Pendências do proprietário
 
 - Domínios personalizados `www.`, `admin.` e `docs.portal-siga.com` nos projectos Pages.
