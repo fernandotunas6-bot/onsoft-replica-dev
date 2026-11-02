@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { signInWithIdentifierFn } from "@/features/access/server";
 import { mobileRespond } from "@/features/mobile/api-response";
 import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
+import { readJsonBodyLimited } from "@/lib/read-json-body";
 
 // style-check: route-exempt — API da app móvel (SIGA Plus Flutter, modo SIGA).
+const MAX_LOGIN_JSON_BYTES = 16 * 1024;
 
 /**
  * Entrada na app móvel com o identificador do SIGA: e-mail, B.I., telefone ou o
@@ -27,7 +29,13 @@ export const Route = createFileRoute("/api/mobile/login")({
     handlers: {
       OPTIONS: async ({ request }) => corsPreflight(request),
       POST: async ({ request }) => {
-        const body = (await request.json().catch(() => null)) as MobileLoginBody | null;
+        // Evita consumir corpos arbitrariamente grandes na rota pública de login.
+        const parsed = await readJsonBodyLimited(request, MAX_LOGIN_JSON_BYTES);
+        if (!parsed.ok && parsed.reason === "too_large") {
+          return jsonWithCors(request, { error: "payload_too_large" }, { status: 413, noStore: true });
+        }
+        // Preserva a validação definitiva do esquema já usada no portal.
+        const body = (parsed.ok ? parsed.value : null) as MobileLoginBody | null;
         let result: Awaited<ReturnType<typeof signInWithIdentifierFn>>;
         try {
           result = await signInWithIdentifierFn({
@@ -39,19 +47,21 @@ export const Route = createFileRoute("/api/mobile/login")({
           } as never);
         } catch (error) {
           // Entrada inválida (422) e falhas inesperadas: a resposta comum das rotas móveis.
-          return mobileRespond(request, "api/mobile/login", async () => {
+          const response = await mobileRespond(request, "api/mobile/login", async () => {
             throw error;
           });
+          response.headers.set("Cache-Control", "no-store");
+          return response;
         }
         if (result.ok) {
           return jsonWithCors(request, {
             access_token: result.accessToken,
             refresh_token: result.refreshToken,
-          });
+          }, { noStore: true });
         }
         const status =
           result.error === "rate_limited" ? 429 : result.error === "unavailable" ? 503 : 401;
-        return jsonWithCors(request, { error: result.error }, { status });
+        return jsonWithCors(request, { error: result.error }, { status, noStore: true });
       },
     },
   },
