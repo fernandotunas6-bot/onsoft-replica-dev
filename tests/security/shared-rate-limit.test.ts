@@ -20,9 +20,7 @@ describe("limite de tentativas partilhado", () => {
   it("deduplica chaves antes da RPC para evitar bloqueios e contagens repetidos", async () => {
     const consume = vi.fn(async () => true);
     const options = { windowMs: 1000, max: 2 };
-    expect(await consumeRateLimit(["ip:41.63.0.9", "ip:41.63.0.9"], options, consume)).toBe(
-      true,
-    );
+    expect(await consumeRateLimit(["ip:41.63.0.9", "ip:41.63.0.9"], options, consume)).toBe(true);
     expect(consume).toHaveBeenCalledTimes(1);
     const [hashes] = consume.mock.calls[0] as unknown as [string[]];
     expect(hashes).toHaveLength(1);
