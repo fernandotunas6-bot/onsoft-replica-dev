@@ -186,6 +186,19 @@ A CI da fase anterior foi aprovada no SHA `284db625` (run `41479958412`), com **
 
 **Trabalho futuro para Claude:** rever uma migração **aditiva e versionada** que faça a própria RPC negar ou lançar erro para `max_hits < 1`, `window_seconds < 1` e `key_hashes` nulos/vazios em vez de `return true`; documentar compatibilidade com todos os consumidores, parametrização existente, advisory locks e rollback. Esta revisão SQL exige staging independente e testes de concorrência PostgreSQL real antes de produzir DDL. O guard do servidor não substitui validação na base.
 
+### PostgreSQL 17 isolado no GitHub Actions — sem branch Supabase paga (02/11/2026)
+
+**Bloqueio real de infra:** depois de o utilizador confirmar a criação da branch `siga-security-staging-20261102`, o Supabase voltou a cotar **US$ 0,01344 por hora**, mas a API recusou a criação com `PaymentRequiredException: Branching is supported only on the Pro plan or above`. O projecto SGA não dispõe dessa funcionalidade no plano actual. Uma consulta posterior a `list_branches` confirmou que existe somente `main`. **Não houve criação, migração ou alteração de dados de produção.** A aceitação do custo por hora, por si só, não activa o plano Pro; a mudança de plano exige uma decisão de assinatura separada.
+
+**Alternativa implementada na PR sem usar credenciais do Supabase:**
+- `.github/workflows/security-postgres.yml` — job independente `Rate limiting distribuído — PostgreSQL 17 isolado`, usando a imagem oficial Postgres 17 como serviço efémero do GitHub Actions. A BD fixture `siga_security_ci` e uma senha fictícia são usadas apenas dentro do runner. Nenhuma ligação ao origin, Supabase, Cloudflare ou escola real.
+- `tests/sql/postgres-real-shared-rate-limit.mjs` — rejeita URLs que não apontem para `127.0.0.1`/`localhost` e a BD fixture exacta; aplica a migração histórica **real** `20260927170000_shared_rate_limit.sql` ao PostgreSQL efémero; verifica que só `service_role` tem `EXECUTE` da RPC e que esta não pode ler directamente a tabela; executa **12 pedidos concorrentes com limite 3**, exigindo 3 aceites, 9 recusados e exactamente 3 registos; confirma atomicidade multi-chave e deduplicação.
+- **Evidência verificada:** https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/41490726643, SHA `10e985e1830738bb5f9014d5de5e55a3b87b35db`, **success**. O log diz `postgres-real-shared-rate-limit: concorrência, atomicidade, RBAC e RLS aprovados`. A CI normal da PR tem execução separada e precisa de aprovação própria.
+
+**Limites expressos:** este PostgreSQL efémero comprova a lógica SQL e concorrência real da RPC, **não** testa Supabase Auth, 2FA/AAL2, Storage, sessões móveis, políticas da aplicação completa, latência/429 de Cloudflare ou comunicação de alertas. O workflow E2E @live continua bloqueado por falta de um projecto de staging independente configurado com segredos próprios. Não usar o PostgreSQL CI como substituto de homologação pré-produção.
+
+**Próximas opções sem risco:** manter Postgres 17 no CI para segurança de SQL; ou obter um projecto Supabase de staging independente por um plano que o permita, sem copiar dados pessoais, configurar `STAGING_SUPABASE_*` apenas como segredos do GitHub Environment `staging` e executar E2E reais. Não apontar `@live` para o projecto SGA de produção nem reactivar outros projectos sem verificar finalidade e isolamento. O GitHub Actions utiliza minutos de CI sujeitos às condições do plano da conta.
+
 ## 4. Validação obrigatória antes de integrar
 
 No checkout desta branch, num ambiente com as dependências instaladas:
