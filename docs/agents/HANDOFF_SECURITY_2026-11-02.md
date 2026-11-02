@@ -63,6 +63,19 @@ Referências do Advisor:
 
 **Interpretação:** o Advisor dá alertas para investigar, não prova por si só de acesso indevido ou exploração. Nenhum SQL foi executado para alterar o estado.
 
+### Revisão read-only preliminar de funções privilegiadas
+
+Uma consulta apenas a `pg_proc`/`pg_get_functiondef` (sem alterar o esquema nem ler registos escolares) confirmou `SECURITY DEFINER` e `EXECUTE` pelo papel `authenticated` para:
+
+| Função | Natureza | Observação inicial |
+| --- | --- | --- |
+| `public.merge_school_subjects(uuid,uuid,uuid[])` | Muta dados académicos | Referencia `auth.uid()` e define `search_path`; **ainda não foi comprovado que verifica os três argumentos na mesma escola e o cargo autorizado** |
+| `public.hr_redeem_teacher_qr_secure(text,float8,float8,float8)` | Operação de presença | Referencia `auth.uid()` e define `search_path`; confirmar ligação do token, escola, sessão e utilizador |
+| `public.is_school_member(uuid)` | Verificação de vínculo | Referencia `auth.uid()` e define `search_path`; conhecida por incluir alunos e encarregados, não usar isoladamente para dados sensíveis |
+| `public.can_manage_students()` | Verificação de permissão | Não contém referência directa a `auth.uid()` na definição, embora possa delegar a outra função; inspeccionar chamadas internas e contexto |
+
+O Supabase Advisor indica **18** funções nesta categoria. As restantes também exigem uma matriz de dependências e chamadas antes de se decidir revogar `EXECUTE` ou mudar para `SECURITY INVOKER`. **Não concluir vulnerabilidade apenas pela existência do aviso**. Priorizar testes cruzados em staging e nunca mudar privilégios de produção directamente.
+
 ## 3. Implementação realizada nesta branch
 
 **Alteração A — limite de JSON para a entrada móvel:** `src/lib/read-json-body.ts` disponibiliza `readJsonBodyLimited(request, maxBytes)`. A verificação não confia apenas em `Content-Length`: mede o corpo real em streaming e cancela a leitura ao ultrapassar o limite. Responde com `too_large` ou `invalid_json`. A rota `src/routes/api/mobile/login.tsx` limita o pedido a 16 KiB e devolve HTTP 413 sem invocar o serviço de autenticação quando o corpo excede esse limite. O JSON malformado continua a ser tratado pela validação existente do login, por compatibilidade.
