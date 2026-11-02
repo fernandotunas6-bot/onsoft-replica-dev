@@ -66,6 +66,16 @@ try {
   // Migração REAL, sem alterar a migração histórica nem o Supabase.
   await sql.unsafe(migration);
 
+  // O teste verifica explicitamente os dois indicadores de RLS, além dos
+  // GRANT/REVOKE e da proibição de SELECT directo por service_role.
+  const [tableSecurity] = await sql`
+    SELECT relrowsecurity AS enabled, relforcerowsecurity AS forced
+    FROM pg_class
+    WHERE oid = 'public.siga_rate_limit_hits'::regclass
+  `;
+  assert.equal(tableSecurity.enabled, true, "RLS tem de estar activo");
+  assert.equal(tableSecurity.forced, true, "RLS tem de estar forçado");
+
   const permissions = await sql`
     SELECT grantee, privilege_type
     FROM information_schema.role_routine_grants
