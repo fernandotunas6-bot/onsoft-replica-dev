@@ -14,9 +14,13 @@ const migration = readFileSync(
 );
 
 const start = migration.indexOf("CREATE OR REPLACE FUNCTION public.current_school_id()");
-const grant = "GRANT EXECUTE ON FUNCTION public.current_school_id() TO authenticated, service_role;";
+const grant =
+  "GRANT EXECUTE ON FUNCTION public.current_school_id() TO authenticated, service_role;";
 const end = migration.indexOf(grant, start);
-assert.ok(start >= 0 && end > start, "a migração deve definir current_school_id com os seus grants");
+assert.ok(
+  start >= 0 && end > start,
+  "a migração deve definir current_school_id com os seus grants",
+);
 const actualFunction = migration.slice(start, end + grant.length);
 
 const db = new PGlite();
@@ -89,18 +93,9 @@ assert.equal(await current(ADMIN_A, { "x-siga-school-id": A }), A);
 assert.equal(await current(DUAL, { "x-siga-school-id": B }), B);
 
 // Tentativas de falsificar o cabeçalho não podem selecionar outra escola.
-await assert.rejects(
-  current(ADMIN_A, { "x-siga-school-id": B }),
-  /Sem vínculo activo/,
-);
-await assert.rejects(
-  current(USER_B, { "x-siga-school-id": A }),
-  /Sem vínculo activo/,
-);
-await assert.rejects(
-  current(NONE, { "x-siga-school-id": A }),
-  /Sem vínculo activo/,
-);
+await assert.rejects(current(ADMIN_A, { "x-siga-school-id": B }), /Sem vínculo activo/);
+await assert.rejects(current(USER_B, { "x-siga-school-id": A }), /Sem vínculo activo/);
+await assert.rejects(current(NONE, { "x-siga-school-id": A }), /Sem vínculo activo/);
 await assert.rejects(
   current(ADMIN_A, { "x-siga-school-id": "nao-e-uuid" }),
   /Escola seleccionada inválida/,
@@ -111,21 +106,13 @@ await db.query(
   "UPDATE public.school_memberships SET status='inactive' WHERE user_id=$1 AND school_id=$2",
   [DUAL, B],
 );
-await assert.rejects(
-  current(DUAL, { "x-siga-school-id": B }),
-  /Sem vínculo activo/,
-);
+await assert.rejects(current(DUAL, { "x-siga-school-id": B }), /Sem vínculo activo/);
 assert.equal(await current(DUAL), A);
 
 // Nem papel anon, nem bypass de SELECT à tabela por autenticados.
+await assert.rejects(current(ADMIN_A, { "x-siga-school-id": A }, "anon"), /permission denied/);
 await assert.rejects(
-  current(ADMIN_A, { "x-siga-school-id": A }, "anon"),
-  /permission denied/,
-);
-await assert.rejects(
-  withRole("authenticated", ADMIN_A, {}, () =>
-    db.query("SELECT * FROM public.school_memberships"),
-  ),
+  withRole("authenticated", ADMIN_A, {}, () => db.query("SELECT * FROM public.school_memberships")),
   /permission denied/,
 );
 
