@@ -75,13 +75,25 @@ Referências do Advisor:
 
 **Sem alterações:** SQL/migrações, perfis, autenticação Supabase, sessões, permissões, RLS, planos de pagamento, frontend, dependências, Cloudflare, WAF, DNS, proxy, balanceamento ou segredos.
 
+### Extensão de implementação — continuação de 02/11/2026
+
+**Alteração C — criação pública de escolas:** `src/routes/api/saas/signup.tsx` usa o leitor limitado de JSON com tecto de **128 KiB**, devolvendo `413` antes de validar ou provisionar uma escola quando o corpo é demasiado grande. Continua a utilizar o mesmo esquema Zod, antirrobô, comprovação de e-mail e limitador partilhado. Todas as respostas (sucesso e erros) recebem `Cache-Control: no-store`: o resultado comercial pode conter ligação de acesso do administrador e nunca deve ser armazenado em cache partilhada.
+
+**Alteração D — receptor de relatórios CSP:** `src/lib/csp.ts` substitui `request.text()` ilimitado pelo leitor de JSON que mede bytes UTF-8 durante a leitura. Mantém as respostas anteriores: `204` para relatório aceite ou inválido, `405` para método incorrecto, `413` para corpo maior que **16 KiB**. Não activa CSP bloqueante nem altera a política de conteúdo.
+
+**Testes desta extensão:**
+- `tests/security/public-signup-boundary.test.ts`: payload válido, inválido, grande, no-store e rate limit do negócio (mock, sem gravação).
+- `tests/security/csp.test.ts`: prova de rejeição de 20 KiB Unicode real, mesmo quando o comprimento do texto JavaScript é inferior ao limite em bytes.
+
+**Atenção:** a CI de 02/11 foi aprovada no commit `5d7806f87858002adff22fe8636994b8256ad7d6` (**antes** desta extensão). A CI e testes dos novos commits precisam de aprovação própria. Não extrapolar o resultado da execução anterior.
+
 ## 4. Validação obrigatória antes de integrar
 
 No checkout desta branch, num ambiente com as dependências instaladas:
 
 ```sh
 bun install --frozen-lockfile
-bunx vitest run tests/security/read-json-body.test.ts tests/security/mobile-login-boundary.test.ts tests/api/mobile-login.test.ts tests/saas/ecosystem-cors.test.ts
+bunx vitest run tests/security/read-json-body.test.ts tests/security/mobile-login-boundary.test.ts tests/security/public-signup-boundary.test.ts tests/security/csp.test.ts tests/api/mobile-login.test.ts tests/saas/ecosystem-cors.test.ts tests/saas/signup-payload-contract.test.ts
 npm run typecheck
 npm run lint
 npm run build
