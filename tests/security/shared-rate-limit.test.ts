@@ -43,6 +43,12 @@ describe("limite de tentativas partilhado", () => {
     expect(consume).not.toHaveBeenCalled();
   });
 
+  it("nega o acesso com lista de chaves vazia antes de chamar a RPC", async () => {
+    const consume = vi.fn(async () => true);
+    expect(await consumeRateLimit([], { windowMs: 60_000, max: 5 }, consume)).toBe(false);
+    expect(consume).not.toHaveBeenCalled();
+  });
+
   it("respeita a recusa da base", async () => {
     expect(await consumeRateLimit(["k"], { windowMs: 1000, max: 1 }, async () => false)).toBe(
       false,
