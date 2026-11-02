@@ -23,6 +23,44 @@ describe("limite de tentativas partilhado", () => {
     );
   });
 
+  it("regista uma falha partilhada sem PII, no máximo uma vez por cinco minutos", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2040-01-01T00:00:00Z"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const key = "ip:41.63.0.9 email:private@example.com";
+      const opts = { windowMs: 60_000, max: 8 };
+      const unavailable = async () => null;
+      await consumeRateLimit([key], opts, unavailable);
+      await consumeRateLimit([key], opts, unavailable);
+      const fallbackWarnings = () =>
+        warn.mock.calls.filter(([event]) => event === "security.rate_limit.shared_unavailable");
+      expect(fallbackWarnings()).toHaveLength(1);
+      expect(JSON.stringify(fallbackWarnings())).not.toContain("41.63.0.9");
+      expect(JSON.stringify(fallbackWarnings())).not.toContain("private@example.com");
+      expect(JSON.stringify(fallbackWarnings())).not.toContain("ip:");
+
+      vi.advanceTimersByTime(5 * 60_000 + 1);
+      await consumeRateLimit([key], opts, unavailable);
+      expect(fallbackWarnings()).toHaveLength(2);
+    } finally {
+      warn.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it("não emite alerta quando o contador partilhado responde", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const opts = { windowMs: 60_000, max: 2 };
+      await consumeRateLimit(["key-allowed"], opts, async () => true);
+      await consumeRateLimit(["key-denied"], opts, async () => false);
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("sem a base, cai no limite em memória (nunca fica sem limite)", async () => {
     const unavailable = async () => null;
     const key = `fallback-${Math.random()}`;
