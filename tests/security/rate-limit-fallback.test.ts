@@ -36,6 +36,10 @@ describe("fallback local do rate limiting", () => {
     expect(checkRateLimit([key], options)).toBe(false);
   });
 
+  it("recusa tentativas sem chave em vez de permitir bypass por erro do chamador", () => {
+    expect(checkRateLimit([], { windowMs: 60_000, max: 5 })).toBe(false);
+  });
+
   it("recusa configuração inválida em vez de permitir tentativas ilimitadas", () => {
     expect(checkRateLimit(["invalid-config"], { windowMs: 0, max: 5 })).toBe(false);
     expect(checkRateLimit(["invalid-config"], { windowMs: 1000, max: 0 })).toBe(false);
