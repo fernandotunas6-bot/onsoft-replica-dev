@@ -28,7 +28,8 @@ const migration = readFileSync(
   "utf8",
 );
 const start = migration.indexOf("CREATE OR REPLACE FUNCTION public.current_school_id()");
-const grant = "GRANT EXECUTE ON FUNCTION public.current_school_id() TO authenticated, service_role;";
+const grant =
+  "GRANT EXECUTE ON FUNCTION public.current_school_id() TO authenticated, service_role;";
 const end = migration.indexOf(grant, start);
 assert.ok(start >= 0 && end > start, "A migração original tem de incluir a função e os grants.");
 
@@ -121,10 +122,7 @@ try {
   );
   assert.equal(await current("authenticated", DUAL), A);
 
-  await assert.rejects(
-    current("anon", ADMIN_A, { "x-siga-school-id": A }),
-    /permission denied/i,
-  );
+  await assert.rejects(current("anon", ADMIN_A, { "x-siga-school-id": A }), /permission denied/i);
   await assert.rejects(
     sql.begin(async (tx) => {
       await tx.unsafe("SET LOCAL ROLE authenticated");
