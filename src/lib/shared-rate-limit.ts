@@ -76,7 +76,9 @@ export async function consumeRateLimit(
   consume: Consume = consumeInDatabase,
 ): Promise<boolean> {
   if (!validLimitOptions(options)) return false;
-  if (!keys.length) return true;
+  // Sem chave de controlo, nenhuma tentativa ficaria registada:
+  // recusar em vez de permitir pedidos ilimitados por erro do chamador.
+  if (!keys.length) return false;
   // A base já deduplica no INSERT; fazer o mesmo antes do RPC evita bloqueios
   // advisory repetidos e mantém paridade com o fallback por isolado.
   const uniqueKeys = [...new Set(keys)];
