@@ -111,13 +111,23 @@ O Supabase Advisor indica **18** funções nesta categoria. As restantes também
 
 **Atenção:** a CI de 02/11 foi aprovada no commit `5d7806f87858002adff22fe8636994b8256ad7d6` (**antes** desta extensão). A CI e testes dos novos commits precisam de aprovação própria. Não extrapolar o resultado da execução anterior.
 
+### Extensão de implementação — cache móvel e fallback de rate limiting (02/11/2026)
+
+**Alteração E — dados móveis privados sem cache:** `src/features/mobile/api-response.ts` centraliza `Cache-Control: no-store` em todas as respostas construídas por `mobileRespond` (sucesso, sessão expirada, erro MFA, validação e falha inesperada). O endpoint de login móvel já tem tratamento próprio, implementado nesta PR. `tests/api/mobile-profile.test.ts` agora verifica o cabeçalho em leitura de perfil e validação 422. Importante: outras rotas móveis que construam `Response` directamente precisam de inventário, porque não passam pelo helper central.
+
+**Alteração F — memória do fallback de rate limit:** `src/lib/rate-limit.ts` preserva a janela deslizante e a API existente, mas limpa as chaves expiradas e limita o armazenamento a **50 000 chaves por isolado**. Quando a RPC `siga_rate_limit_consume` não responde e o limite local está saturado, `checkRateLimit` recusa novas chaves (**fail-closed**) para evitar memória sem limite. Esse comportamento pode negar pedidos legítimos durante um ataque de cardinalidade elevada, por isso é obrigação operacional monitorizar a RPC e investigar indisponibilidades, em vez de tratar o fallback como alternativa definitiva. Chaves repetidas num pedido passam a ser deduplicadas. O limite não coordena instâncias diferentes.
+
+**Testes:** `tests/security/rate-limit-fallback.test.ts` cobre expiração, deduplicação, configurações inválidas e saturação. A API mobile tem asserções adicionais nos testes de perfil.
+
+**Histórico de CI:** no SHA `aeb9e3f540398fbf08cc14ab72216a0a3056033e` a execução 41468388110 falhou por **um** teste novo (`public-signup-boundary`, simulação da negação do serviço), com 5 904 aprovados e 25 ignorados. A simulação foi ajustada para lançamento síncrono no SHA `22e567129e5e82a0cb61c98e573ca99c006e3d11`. **Confirmar que o último commit desta branch tem a CI verde antes de declarar a PR pronta.**
+
 ## 4. Validação obrigatória antes de integrar
 
 No checkout desta branch, num ambiente com as dependências instaladas:
 
 ```sh
 bun install --frozen-lockfile
-bunx vitest run tests/security/read-json-body.test.ts tests/security/mobile-login-boundary.test.ts tests/security/public-signup-boundary.test.ts tests/security/csp.test.ts tests/api/mobile-login.test.ts tests/saas/ecosystem-cors.test.ts tests/saas/signup-payload-contract.test.ts
+bunx vitest run tests/security/read-json-body.test.ts tests/security/mobile-login-boundary.test.ts tests/security/public-signup-boundary.test.ts tests/security/csp.test.ts tests/security/rate-limit-fallback.test.ts tests/security/shared-rate-limit.test.ts tests/api/mobile-profile.test.ts tests/api/mobile-login.test.ts tests/saas/ecosystem-cors.test.ts tests/saas/signup-payload-contract.test.ts
 npm run typecheck
 npm run lint
 npm run build
