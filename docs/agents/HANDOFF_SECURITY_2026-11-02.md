@@ -166,6 +166,16 @@ Referência actualizada: https://developers.cloudflare.com/fundamentals/referenc
 6. Auditar ingressos alternativos `workers.dev`/previews sem alterar DNS, WAF nem origin de produção; verificar os caminhos de cliente e protecção de IP.
 7. Anexar ao PR o SHA, IDs dos workflows E2E realmente executados, tabela de resultados por papel/escola e decisão de segurança. **Não fazer merge ou deploy apenas com a CI unitária verde.**
 
+### Defesa em profundidade — preparador do ambiente E2E (02/11/2026)
+
+A CI da fase anterior foi aprovada no SHA `284db625` (run `41479958412`), com **5.942 testes aprovados** e 25 ignorados. Esse resultado confirma o gate estático do workflow, mas **não** substitui um E2E real com staging.
+
+**Alteração J — nenhum @live verde com secret em falta:** `scripts/siga/prepare-ci-env.mjs` passa a sair com erro quando `SIGA_E2E_LIVE=1` ou `true` e `SUPABASE_SECRET_KEY` não foi configurado. Fora do modo live, permanece o skip explícito, para não quebrar verificações locais sem base de dados. Com secret mas sem URL/chave pública, já falhava; mantém-se o bloqueio por `assertSafeE2ETarget` contra a referência da produção antes de escrever `.env`.
+
+**Teste novo:** `tests/security/prepare-ci-env-gate.test.ts` lança o script num processo Node isolado, sem segredos reais nem ligações de rede, e testa os caminhos @live sem secret, não-live sem secret, configuração parcial e referência de produção. Não cria escolas nem credenciais. A CI do SHA que contém esta alteração precisa de aprovação própria.
+
+**Operação real pendente:** a branch Supabase isolada `siga-security-staging-20261102` requer autorização de custo de **US$ 0,01344 por hora** (cotação da API, 02/11/2026). A tentativa de criação sem `confirm_cost_id` foi recusada. **Não foi criada, restaurada nem cobrada nenhuma branch**, e não há autorização expressa de cobrança até agora. Não recolher nem publicar segredos pelo PR. A pesquisa guardada Cloudflare `e17w6yb8t7i11wk2jqg6143i` existe, mas **não é um alerta notificável** até configurar canal, política e ensaio de entrega.
+
 ## 4. Validação obrigatória antes de integrar
 
 No checkout desta branch, num ambiente com as dependências instaladas:
