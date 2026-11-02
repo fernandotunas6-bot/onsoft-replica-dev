@@ -11,8 +11,9 @@ function requestWithBody(body: string, headers?: Record<string, string>) {
 
 describe("JSON de entrada pública com limite efectivo de bytes", () => {
   it("lê um objecto pequeno sem modificar os valores", async () => {
-    expect(await readJsonBodyLimited(requestWithBody('{"identifier":"123","password":"abc"}'), 256))
-      .toEqual({ ok: true, value: { identifier: "123", password: "abc" } });
+    expect(
+      await readJsonBodyLimited(requestWithBody('{"identifier":"123","password":"abc"}'), 256),
+    ).toEqual({ ok: true, value: { identifier: "123", password: "abc" } });
   });
 
   it("rejeita corpo acima do limite mesmo sem Content-Length", async () => {
@@ -30,10 +31,7 @@ describe("JSON de entrada pública com limite efectivo de bytes", () => {
 
   it("não confia num Content-Length subdeclarado", async () => {
     expect(
-      await readJsonBodyLimited(
-        requestWithBody("x".repeat(100), { "content-length": "2" }),
-        32,
-      ),
+      await readJsonBodyLimited(requestWithBody("x".repeat(100), { "content-length": "2" }), 32),
     ).toEqual({ ok: false, reason: "too_large" });
   });
 
@@ -49,7 +47,9 @@ describe("JSON de entrada pública com limite efectivo de bytes", () => {
   });
 
   it("rejeita pedidos sem corpo e configuração inválida", async () => {
-    const empty = new Request("https://escola.portal-siga.com/api/mobile/login", { method: "POST" });
+    const empty = new Request("https://escola.portal-siga.com/api/mobile/login", {
+      method: "POST",
+    });
     expect(await readJsonBodyLimited(empty, 10)).toEqual({ ok: false, reason: "invalid_json" });
     await expect(readJsonBodyLimited(requestWithBody("{}"), 0)).rejects.toThrow(RangeError);
   });
