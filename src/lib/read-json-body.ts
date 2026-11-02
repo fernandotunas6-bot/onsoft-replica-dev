@@ -6,8 +6,7 @@
  * Destinado a entradas públicas sensíveis; não substitui validação Zod.
  */
 export type LimitedJsonResult =
-  | { ok: true; value: unknown }
-  | { ok: false; reason: "invalid_json" | "too_large" };
+  { ok: true; value: unknown } | { ok: false; reason: "invalid_json" | "too_large" };
 
 export async function readJsonBodyLimited(
   request: Request,
