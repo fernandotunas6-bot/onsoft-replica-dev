@@ -44,7 +44,7 @@ describe("E2E real nunca comunica sucesso quando staging está incompleto", () =
     expect(command).toContain("::error::");
     expect(command).toContain("$GITHUB_STEP_SUMMARY");
     expect(command).not.toContain('echo "skip=true"');
-    expect(command).not.toContain('github.event_name');
+    expect(command).not.toContain("github.event_name");
     for (const name of [
       "STAGING_SUPABASE_PROJECT_ID",
       "STAGING_SUPABASE_URL",
