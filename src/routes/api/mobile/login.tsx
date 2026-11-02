@@ -32,7 +32,11 @@ export const Route = createFileRoute("/api/mobile/login")({
         // Evita consumir corpos arbitrariamente grandes na rota pública de login.
         const parsed = await readJsonBodyLimited(request, MAX_LOGIN_JSON_BYTES);
         if (!parsed.ok && parsed.reason === "too_large") {
-          return jsonWithCors(request, { error: "payload_too_large" }, { status: 413, noStore: true });
+          return jsonWithCors(
+            request,
+            { error: "payload_too_large" },
+            { status: 413, noStore: true },
+          );
         }
         // Preserva a validação definitiva do esquema já usada no portal.
         const body = (parsed.ok ? parsed.value : null) as MobileLoginBody | null;
@@ -54,10 +58,14 @@ export const Route = createFileRoute("/api/mobile/login")({
           return response;
         }
         if (result.ok) {
-          return jsonWithCors(request, {
-            access_token: result.accessToken,
-            refresh_token: result.refreshToken,
-          }, { noStore: true });
+          return jsonWithCors(
+            request,
+            {
+              access_token: result.accessToken,
+              refresh_token: result.refreshToken,
+            },
+            { noStore: true },
+          );
         }
         const status =
           result.error === "rate_limited" ? 429 : result.error === "unavailable" ? 503 : 401;
