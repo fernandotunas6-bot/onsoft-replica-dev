@@ -58,6 +58,8 @@ function liveAttempts(key: string, now: number, windowMs: number): number[] {
 
 /** Verdadeiro apenas se TODAS as chaves ainda estiverem dentro do limite. */
 export function checkRateLimit(keys: readonly string[], options: RateLimitOptions): boolean {
+  // Sem uma chave, nada é contado: negar a tentativa, não abrir o limite.
+  if (keys.length === 0) return false;
   if (!Number.isSafeInteger(options.windowMs) || options.windowMs <= 0) return false;
   if (!Number.isSafeInteger(options.max) || options.max <= 0) return false;
   const now = Date.now();
