@@ -12,7 +12,21 @@
  * repetido, muito melhor do que nenhum limite. Uma solução multi-isolado
  * exigiria um contador partilhado (KV/D1/Postgres) — fora de âmbito aqui.
  */
-const attemptsByKey = new Map<string, number[]>();
+/**
+ * A protecção principal é a RPC partilhada. Este fallback só opera quando
+ * essa RPC está indisponível: restringe a memória por isolado para não permitir
+ * que IPs/identificadores distintos causem crescimento ilimitado.
+ *
+ * Quando a capacidade do fallback é atingida, novas chaves são recusadas
+ * (fail-closed). Isto pode limitar utilizadores legítimos durante um ataque
+ * massivo: monitorizar saturação e recuperar o contador partilhado é prioritário.
+ */
+export const MAX_LOCAL_RATE_LIMIT_KEYS = 50_000;
+const SWEEP_INTERVAL_MS = 60_000;
+
+type RateLimitEntry = { attempts: number[]; windowMs: number };
+const attemptsByKey = new Map<string, RateLimitEntry>();
+let lastSweepAt = 0;
 
 export interface RateLimitOptions {
   /** Duração da janela deslizante, em milissegundos. */
@@ -21,13 +35,41 @@ export interface RateLimitOptions {
   max: number;
 }
 
+function sweepExpired(now: number, force = false): void {
+  if (!force && now >= lastSweepAt && now - lastSweepAt < SWEEP_INTERVAL_MS) return;
+  for (const [key, entry] of attemptsByKey) {
+    if (entry.attempts.every((time) => now - time >= entry.windowMs)) {
+      attemptsByKey.delete(key);
+    }
+  }
+  lastSweepAt = now;
+}
+
+/** Retira tentativas antigas da chave sem alterar o resultado do limite. */
+function liveAttempts(key: string, now: number, windowMs: number): number[] {
+  const current = attemptsByKey.get(key);
+  if (!current) return [];
+  const valid = current.attempts.filter((time) => now - time < windowMs);
+  if (!valid.length) attemptsByKey.delete(key);
+  return valid;
+}
+
 /** Verdadeiro apenas se TODAS as chaves ainda estiverem dentro do limite. */
 export function checkRateLimit(keys: readonly string[], options: RateLimitOptions): boolean {
+  if (!Number.isSafeInteger(options.windowMs) || options.windowMs <= 0) return false;
+  if (!Number.isSafeInteger(options.max) || options.max <= 0) return false;
   const now = Date.now();
-  return keys.every((key) => {
-    const attempts = (attemptsByKey.get(key) ?? []).filter((t) => now - t < options.windowMs);
-    return attempts.length < options.max;
-  });
+  sweepExpired(now);
+  let newKeys = 0;
+  for (const key of new Set(keys)) {
+    const attempts = liveAttempts(key, now, options.windowMs);
+    if (attempts.length >= options.max) return false;
+    if (!attemptsByKey.has(key)) newKeys += 1;
+  }
+  if (attemptsByKey.size + newKeys > MAX_LOCAL_RATE_LIMIT_KEYS) {
+    sweepExpired(now, true);
+  }
+  return attemptsByKey.size + newKeys <= MAX_LOCAL_RATE_LIMIT_KEYS;
 }
 
 /** Regista uma tentativa em cada chave (chamar só depois de `checkRateLimit` passar). */
@@ -36,10 +78,16 @@ export function recordRateLimitAttempt(
   options: Pick<RateLimitOptions, "windowMs">,
 ): void {
   const now = Date.now();
-  for (const key of keys) {
-    const attempts = (attemptsByKey.get(key) ?? []).filter((t) => now - t < options.windowMs);
+  sweepExpired(now);
+  for (const key of new Set(keys)) {
+    const attempts = liveAttempts(key, now, options.windowMs);
+    if (!attemptsByKey.has(key) && attemptsByKey.size >= MAX_LOCAL_RATE_LIMIT_KEYS) {
+      // Nunca exceder o tecto, mesmo se outro consumidor ignorar checkRateLimit.
+      sweepExpired(now, true);
+      if (attemptsByKey.size >= MAX_LOCAL_RATE_LIMIT_KEYS) return;
+    }
     attempts.push(now);
-    attemptsByKey.set(key, attempts);
+    attemptsByKey.set(key, { attempts, windowMs: options.windowMs });
   }
 }
 
