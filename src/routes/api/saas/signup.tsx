@@ -14,8 +14,7 @@ const PUBLIC_SIGNUP_RESPONSE = { apps: [...WEB_APPS], noStore: true };
 
 /** Conserva o contrato de erros do registo (incluindo 429), sem expor cache. */
 export function publicSignupErrorResponse(request: Request, error: unknown): Response {
-  const message =
-    error instanceof Error ? error.message : "Não foi possível criar a escola.";
+  const message = error instanceof Error ? error.message : "Não foi possível criar a escola.";
   const status = message.includes("Muitos pedidos") ? 429 : 400;
   return jsonWithCors(request, { error: message }, { ...PUBLIC_SIGNUP_RESPONSE, status });
 }
