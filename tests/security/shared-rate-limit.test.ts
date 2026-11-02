@@ -24,7 +24,7 @@ describe("limite de tentativas partilhado", () => {
       true,
     );
     expect(consume).toHaveBeenCalledTimes(1);
-    const hashes = consume.mock.calls[0][0] as string[];
+    const [hashes] = consume.mock.calls[0] as unknown as [string[]];
     expect(hashes).toHaveLength(1);
     expect(hashes[0]).toMatch(/^[0-9a-f]{64}$/);
   });
