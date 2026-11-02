@@ -122,13 +122,27 @@ Constatações verificadas em `pg_proc`, `pg_get_functiondef` e `pg_constraint`:
 
 **Histórico de CI:** os runs 41468388110 e 41470484198 falharam por uma única asserção de simulação do erro 429 de signup público (restantes testes, auditoria de dependências e build WEB passaram). A hipótese de rejeição/lançamento mockado foi substituída por uma função de conversão HTTP isolada `publicSignupErrorResponse`, com teste directo do código e cabeçalho. **Confirmar a CI do SHA final desta branch** antes de integrar.
 
+### Extensão de implementação — IP de cliente confiável (02/11/2026)
+
+**Alteração G — evitar falsificação de IP nos limites:** `src/lib/request-ip.ts` agora valida endereços IPv4/IPv6 isolados (sem listas, portas, cabeçalhos compostos, zonas IPv6 ou valores malformados) e normaliza IPv6. Em ambientes distintos de `NODE_ENV=development` ou `NODE_ENV=test`, só aceita `CF-Connecting-IP` válido; a ausência/invalidade devolve a chave partilhada `unknown`, nunca `X-Real-IP` ou `X-Forwarded-For` controlados pelo cliente. Em desenvolvimento/testes, preserva fallback válido para não prejudicar os testes locais.
+
+**Alteração H — uma só política para Server Functions:** `src/lib/server-fn-ip.ts` delega agora em `clientIpFromRequest` em vez de usar `getRequestIP({ xForwardedFor: true })`. `tests/lib/request-ip.test.ts` e `tests/lib/server-fn-ip.test.ts` verificam endereço válido, IPv6, spoofing, ausência de cabeçalho, ambiente desconhecido e fallback de testes.
+
+**Riscos e pré-condições:**
+- O identificador `unknown` é uma chave comum de rate limit: se `CF-Connecting-IP` faltar a clientes legítimos em produção, podem ocorrer 429 para vários utilizadores. Antes do merge, verificar em staging o percurso real Cloudflare → Worker, previews, Pages e rotas internas, e medir pedidos sem IP confiável sem guardar endereços nos logs.
+- O cabeçalho `CF-Connecting-IP` **não constitui prova criptográfica** de que o pedido veio de uma borda de confiança. A Cloudflare documenta que, em subrequests do mesmo zone Worker, o endereço pode reflectir `x-real-ip` controlado pelo Worker de origem. Confirmar regras de entrada/restrição de Workers, acesso directo à origem e domínio `workers.dev` antes de confiar neste dado para limites de segurança. Nunca usar IP como substituto de sessão, RLS, MFA ou autorização.
+- Proteger dados escolares não depende de resolver o IP. A autenticação e as verificações por escola devem continuar obrigatórias mesmo que o IP seja `unknown`.
+- Os pedidos HTTP não foram enviados a produção para validar cabeçalhos. A CI da branch deve ser confirmada no **SHA que contém as alterações G/H**, não apenas no SHA `dc74717` (CI anterior **verde**, run `41472471446`: 833 ficheiros de teste, 5.909 testes aprovados, 25 ignorados).
+
+Referência actualizada: https://developers.cloudflare.com/fundamentals/reference/http-headers/#cf-connecting-ip-in-worker-subrequests
+
 ## 4. Validação obrigatória antes de integrar
 
 No checkout desta branch, num ambiente com as dependências instaladas:
 
 ```sh
 bun install --frozen-lockfile
-bunx vitest run tests/security/read-json-body.test.ts tests/security/mobile-login-boundary.test.ts tests/security/public-signup-boundary.test.ts tests/security/csp.test.ts tests/security/rate-limit-fallback.test.ts tests/security/shared-rate-limit.test.ts tests/api/mobile-profile.test.ts tests/api/mobile-login.test.ts tests/saas/ecosystem-cors.test.ts tests/saas/signup-payload-contract.test.ts
+bunx vitest run tests/lib/request-ip.test.ts tests/lib/server-fn-ip.test.ts tests/security/read-json-body.test.ts tests/security/mobile-login-boundary.test.ts tests/security/public-signup-boundary.test.ts tests/security/csp.test.ts tests/security/rate-limit-fallback.test.ts tests/security/shared-rate-limit.test.ts tests/api/mobile-profile.test.ts tests/api/mobile-login.test.ts tests/saas/ecosystem-cors.test.ts tests/saas/signup-payload-contract.test.ts
 npm run typecheck
 npm run lint
 npm run build
