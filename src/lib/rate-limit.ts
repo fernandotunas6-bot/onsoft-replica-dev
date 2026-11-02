@@ -93,9 +93,14 @@ export function recordRateLimitAttempt(
   }
 }
 
-/** Bypass consistente para execuções e2e/CI — em produção, nunca aceita bypass por input do cliente. */
+/**
+ * Bypass apenas em execução local explicitamente de teste/desenvolvimento.
+ * No runtime Worker NODE_ENV pode estar ausente: "não production" NÃO é
+ * prova de ambiente seguro e nunca deve aceitar uma chave fornecida pelo
+ * cliente com o sufixo siga-plus.test como permissão de bypass.
+ */
 export function isRateLimitBypassed(...contextValues: string[]): boolean {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test") {
     return false;
   }
   return (
