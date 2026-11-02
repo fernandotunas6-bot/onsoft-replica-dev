@@ -2,10 +2,10 @@
  * Limite de tentativas partilhado por todas as instâncias do servidor
  * (`siga_rate_limit_consume`, migração 20260927170000).
  *
- * Verifica e regista numa só operação. As chaves vão cifradas (SHA-256): a base
- * nunca guarda IPs nem identificadores em claro. Se a função ainda não existir
- * ou a base não responder, cai no limitador em memória (`rate-limit.ts`) — um
- * limite mais fraco, mas nunca nenhum.
+ * Verifica e regista numa só operação. As chaves são transformadas com SHA-256
+ * antes de ir para a base (hash sem chave, não cifragem nem anonimização forte).
+ * Se a função ainda não existir ou a base não responder, cai no limitador em
+ * memória (`rate-limit.ts`) — um limite mais fraco, mas nunca nenhum.
  */
 import { checkRateLimit, recordRateLimitAttempt, type RateLimitOptions } from "./rate-limit";
 
@@ -16,6 +16,25 @@ async function sha256Hex(value: string) {
 }
 
 type Consume = (keyHashes: string[], windowSeconds: number, max: number) => Promise<boolean | null>;
+
+/**
+ * Apenas um aviso por isolado a cada 5 minutos, sem IP, e-mail, chaves,
+ * hashes, tokens ou detalhes de erros da base. Um aviso de log NÃO equivale
+ * a monitorização nem alerta configurado no Cloudflare: ligar alertas
+ * externos antes de considerar esta falha operacionalmente coberta.
+ */
+const SHARED_LIMIT_WARNING_INTERVAL_MS = 5 * 60_000;
+let lastSharedLimitWarningAt = Number.NEGATIVE_INFINITY;
+
+function reportSharedLimitUnavailable(): void {
+  const now = Date.now();
+  if (now - lastSharedLimitWarningAt < SHARED_LIMIT_WARNING_INTERVAL_MS) return;
+  lastSharedLimitWarningAt = now;
+  console.warn("security.rate_limit.shared_unavailable", {
+    fallback: "local",
+    alert: "Configure monitoring for repeated failures",
+  });
+}
 
 /** Chamada à base; `null` quando não é possível usar o contador partilhado. */
 const consumeInDatabase: Consume = async (keyHashes, windowSeconds, max) => {
@@ -50,6 +69,7 @@ export async function consumeRateLimit(
   const hashes = await Promise.all(keys.map((k) => sha256Hex(k)));
   const shared = await consume(hashes, Math.ceil(options.windowMs / 1000), options.max);
   if (shared !== null) return shared;
+  reportSharedLimitUnavailable();
   if (!checkRateLimit(keys, options)) return false;
   recordRateLimitAttempt(keys, options);
   return true;
