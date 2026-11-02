@@ -56,6 +56,16 @@ describe("E2E real nunca comunica sucesso quando staging está incompleto", () =
     }
   });
 
+  it("executa a preparação do ambiente em modo @live fail-closed", () => {
+    const preparation = steps.find((step) =>
+      step.run?.includes("scripts/siga/prepare-ci-env.mjs"),
+    );
+    expect(preparation).toBeDefined();
+    expect(preparation?.env?.SIGA_E2E_LIVE).toBe("1");
+    expect(preparation?.env?.SUPABASE_SECRET_KEY).toContain("STAGING_SUPABASE_SECRET_KEY");
+    expect(preparation?.if).toContain("steps.secrets.outputs.skip");
+  });
+
   it("mantém o preflight independente antes de qualquer teste com escrita", () => {
     const preflight = steps.find((step) =>
       step.run?.includes("scripts/siga/release-staging-preflight.mjs"),
