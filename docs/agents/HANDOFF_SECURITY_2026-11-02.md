@@ -146,6 +146,26 @@ Referência actualizada: https://developers.cloudflare.com/fundamentals/referenc
 
 **Privacidade:** SHA-256 aplicado a IP/e-mail é **hash sem chave**, não cifragem e não anonimização forte (os possíveis endereços são adivinháveis por dicionário). Manter controlo de acesso e retenção de dados de rate limiting. Uma migração para HMAC com segredo rotativo exige plano de compatibilidade e testes do contador, e fica fora desta PR.
 
+### Fase de homologação — falso verde corrigido (02/11/2026)
+
+**Diagnóstico real da CI:** a execução semanal `41430776705` do workflow `ecosystem-e2e-live.yml` foi classificada como `success`, mas o passo de verificação detectou configuração de staging incompleta e **todos** os passos de setup, preflight, autenticação, Playwright, smoke e E2E @live foram `skipped`. Portanto essa execução **NÃO comprova isolamento multiescola, autenticação nem pagamentos**. Não confundir o verde do agendamento com homologação executada.
+
+**Correcção no workflow:** o passo inicial passa a terminar com código 1 também no agendamento (já falhava na execução manual), com erro explícito e `GITHUB_STEP_SUMMARY` a indicar que E2E não foi executado. Isto transforma a falta de configuração numa falha operacional visível, permitindo a notificação existente. Nenhum teste tenta fazer escrita se faltarem os quatro segredos de staging. `tests/security/e2e-live-workflow-gate.test.ts` valida o YAML, o gate, a rejeição de configuração incompleta e o bloqueio de referência à produção. **Não foram usados dados nem credenciais reais para estes testes unitários.**
+
+**Estado das contas consultadas:** na conta Supabase do SIGA, foi encontrado o projecto de produção SGA activo e um segundo projecto inactivo, sem confirmação de finalidade como staging. **Não se deve reactivar ou usar esse projecto inactivo por suposição.** O workflow exige um projecto isolado explicitamente identificado e credenciais próprias; os segredos do ambiente `staging` não estão completos na execução consultada.
+
+**Cloudflare Workers — visibilidade disponível:** consulta read-only aos metadados de Workers Observability devolveu **0 consultas guardadas e 0 destinos de observabilidade** no âmbito da API consultada; `logpush=false` nas definições do Worker principal. Isso **não demonstra** que Workers Logs estejam desactivados nem que não existam outros mecanismos de alerta. O evento de código `security.rate_limit.shared_unavailable` já foi testado, mas a entrega a um serviço real de alerta/monitorização **continua por provar**.
+
+**Plano de homologação bloqueante para Claude Code:**
+
+1. Confirmar projecto Supabase **de staging independente**, nunca a referência de produção; configurar no ambiente GitHub `staging` exclusivamente os segredos `STAGING_SUPABASE_PROJECT_ID`, `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_PUBLISHABLE_KEY` e `STAGING_SUPABASE_SECRET_KEY`. Não copiar dados pessoais de produção. Verificar `scripts/siga/release-staging-preflight.mjs`.
+2. Executar workflow E2E @live manualmente e **confirmar no resumo/steps** que setup, preflight e pipeline autenticado efectivamente correram; um workflow verde com steps ignorados não constitui evidência.
+3. Usar duas escolas fictícias A e B e contas de staging distintas (admin A, professor A, aluno B, secretaria B, dual-role A/B, vínculo suspenso); verificar token, troca de `x-siga-school-id`, recusa de acesso B→A, revogação, payloads 400/401/403/429 e isolamento em Financeiro/Notas/RH/Arquivos. Não reutilizar dados reais.
+4. Rever `docs/agents/SECURITY_DEFINER_AUDIT_2026-11-02.md` e verificar especialmente `merge_school_subjects` AAL1/AAL2, permissões escolares, parâmetros cruzados, atomicidade, QR de presenças e replay em staging.
+5. Simular **apenas em staging**, com injeção controlada, indisponibilidade de `siga_rate_limit_consume` e verificar que o aviso sem PII aparece na plataforma de logs; configurar recepção, limiar e destino de alerta, provar uma notificação e documentar rollback. Não desligar a RPC em produção.
+6. Auditar ingressos alternativos `workers.dev`/previews sem alterar DNS, WAF nem origin de produção; verificar os caminhos de cliente e protecção de IP.
+7. Anexar ao PR o SHA, IDs dos workflows E2E realmente executados, tabela de resultados por papel/escola e decisão de segurança. **Não fazer merge ou deploy apenas com a CI unitária verde.**
+
 ## 4. Validação obrigatória antes de integrar
 
 No checkout desta branch, num ambiente com as dependências instaladas:
