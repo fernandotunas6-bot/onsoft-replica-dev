@@ -78,7 +78,11 @@ describe("fronteira pública da criação de escolas", () => {
   });
 
   it("preserva rate limiting de negócio e impede cache do erro", async () => {
-    signup.runPublicSchoolSignup.mockRejectedValue(new Error("Muitos pedidos recentes"));
+    // Lança no próprio invocador: a rota tem de capturar a falha do serviço
+    // e devolver 429, em vez de deixar uma rejeição não observada no runner.
+    signup.runPublicSchoolSignup.mockImplementation(() => {
+      throw new Error("Muitos pedidos recentes");
+    });
     const result = await postSignup(JSON.stringify(valid));
     expect(result.status).toBe(429);
     expect(result.headers.get("Cache-Control")).toBe("no-store");
