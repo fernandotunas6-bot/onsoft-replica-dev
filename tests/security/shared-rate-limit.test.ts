@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 
 describe("limite de tentativas partilhado", () => {
-  it("usa o contador da base, com as chaves cifradas (SHA-256)", async () => {
+  it("usa o contador da base com chaves em hash (SHA-256)", async () => {
     const consume = vi.fn(async () => true);
     expect(
       await consumeRateLimit(["bi_lookup:1.2.3.4"], { windowMs: 60_000, max: 10 }, consume),
@@ -15,6 +15,34 @@ describe("limite de tentativas partilhado", () => {
     expect(hashes[0]).toMatch(/^[0-9a-f]{64}$/);
     expect(hashes[0]).not.toContain("1.2.3.4");
     expect([windowSeconds, max]).toEqual([60, 10]);
+  });
+
+  it("deduplica chaves antes da RPC para evitar bloqueios e contagens repetidos", async () => {
+    const consume = vi.fn(async () => true);
+    const options = { windowMs: 1000, max: 2 };
+    expect(await consumeRateLimit(["ip:41.63.0.9", "ip:41.63.0.9"], options, consume)).toBe(
+      true,
+    );
+    expect(consume).toHaveBeenCalledTimes(1);
+    const hashes = consume.mock.calls[0][0] as string[];
+    expect(hashes).toHaveLength(1);
+    expect(hashes[0]).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it.each([
+    { windowMs: 0, max: 10 },
+    { windowMs: -10, max: 10 },
+    { windowMs: Number.NaN, max: 10 },
+    { windowMs: 1000.5, max: 10 },
+    { windowMs: 60_000, max: 0 },
+    { windowMs: 60_000, max: -1 },
+    { windowMs: 60_000, max: Number.POSITIVE_INFINITY },
+    { windowMs: 60_000, max: 2_147_483_648 },
+    { windowMs: 2_147_483_648_000, max: 10 },
+  ])("recusa configuração inválida antes de chegar à RPC: %o", async (options) => {
+    const consume = vi.fn(async () => true);
+    expect(await consumeRateLimit(["ip:41.63.0.9"], options, consume)).toBe(false);
+    expect(consume).not.toHaveBeenCalled();
   });
 
   it("respeita a recusa da base", async () => {
