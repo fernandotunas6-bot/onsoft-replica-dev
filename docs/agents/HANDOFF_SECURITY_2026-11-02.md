@@ -199,6 +199,16 @@ A CI da fase anterior foi aprovada no SHA `284db625` (run `41479958412`), com **
 
 **Próximas opções sem risco:** manter Postgres 17 no CI para segurança de SQL; ou obter um projecto Supabase de staging independente por um plano que o permita, sem copiar dados pessoais, configurar `STAGING_SUPABASE_*` apenas como segredos do GitHub Environment `staging` e executar E2E reais. Não apontar `@live` para o projecto SGA de produção nem reactivar outros projectos sem verificar finalidade e isolamento. O GitHub Actions utiliza minutos de CI sujeitos às condições do plano da conta.
 
+### Protecção do bypass de rate limiting em Workers (02/11/2026)
+
+**Alteração M — não confiar em `NODE_ENV` ausente:** `src/lib/rate-limit.ts` impõe que `isRateLimitBypassed` só permita bypass se `NODE_ENV` for **explicitamente** `test` ou `development`. A regra anterior verificava apenas `NODE_ENV !== production`: quando uma Cloudflare Worker não fornece a variável `NODE_ENV`, uma chave controlada por um utilizador que contivesse `siga-plus.test` podia activar o bypass. Agora valores ausentes/desconhecidos/`staging`/`preview`/`production` negam-no, mesmo com `SIGA_E2E_LIVE=1/true`. Não usar uma variável controlada pelo cliente para activar `NODE_ENV` nem colocar `test`/`development` no deploy de produção.
+
+**Alteração N — nenhuma chave, nenhuma tentativa:** `consumeRateLimit([], ...)` e `checkRateLimit([], ...)` passam a negar acesso, sem consultar RPC, porque uma lista vazia anteriormente nunca registava tentativas. Todos os caminhos públicos auditados até esta fase (BI/login, OTP, criação de escola, verificação de documentos) constroem chaves não vazias. `recordRateLimitAttempt` permanece no-op para vazio por ser uma operação `void`; a guarda de verificação tem de correr antes de registar.
+
+**Regressão adicionada:** `tests/security/access-security.test.ts` verifica a recusa de bypass para `NODE_ENV` ausente, `staging`, `preview` e `production`, incluindo flag E2E e endereço com domínio de testes, e mantém a permissão explícita para os testes locais. `tests/security/shared-rate-limit.test.ts` e `tests/security/rate-limit-fallback.test.ts` verificam recusa com chaves vazias. **Exigir aprovação da CI do novo SHA** antes de comunicar como validado.
+
+**Limite operacional:** isto reduz uma condição de bypass, mas não prova que um cabeçalho `CF-Connecting-IP` seja confiável por qualquer origem; o fluxo `workers.dev`, Workers subrequests, WAF e alarmes continuam a exigir homologação em ambiente isolado. Não integrar enquanto a PR estiver bloqueada por estes itens.
+
 ## 4. Validação obrigatória antes de integrar
 
 No checkout desta branch, num ambiente com as dependências instaladas:
