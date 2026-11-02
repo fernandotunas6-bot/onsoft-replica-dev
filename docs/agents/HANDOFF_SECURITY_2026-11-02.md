@@ -46,7 +46,18 @@ As seguintes verificações foram executadas pelos conectores dos serviços com 
 - DDoS HTTP L7: ruleset presente, **147/148 regras habilitadas** (a contagem inclui assinaturas administradas pelo fornecedor; não configurar 148 regras manualmente).
 - Rate limiting: **1 regra activa** no ruleset de zona, destinada a verificação de credencial vazada. **Não equivale a rate limit geral das rotas de login/OTP/exportação**. Como o plano Free pode limitar a quantidade de regras, priorizar controlo aplicacional distribuído e avaliar cobertura sem substituir a regra existente.
 
-**Pendente de verificar:** TLS Full (strict), HSTS real, DNSSEC/DS, correcta resposta dos hosts, rotas de Worker, acesso `workers.dev`, histórico de falsos positivos, WAF por endpoint e limites da subscrição. Não alterar registros/zonas para apenas “corrigir” um documento antigo.
+**Verificação adicional por API (somente leitura, 02/11):**
+
+| Definição Cloudflare | Valor observado | Decisão recomendada |
+| --- | --- | --- |
+| SSL/TLS Encryption Mode | `full` | Candidato a **Full (strict)**, **somente** após confirmar certificados válidos nas origens e Workers/Pages/domínios personalizados |
+| Minimum TLS Version | `1.0` | Avaliar elevação para **TLS 1.2+** e impacto em dispositivos/integrações antigas; confirmar matrizes de clientes |
+| DNSSEC | `disabled` | Planear habilitação coordenada com o registrador, registos DS e monitoramento, não activar cegamente |
+| Always Use HTTPS | `off` | Auditar regras de redirect já existentes, OAuth/webhooks e subdomínios; garantir HTTP→HTTPS sem loops e só então activar |
+
+**P1 de infraestrutura: não alterar nenhuma destas definições automaticamente.** Fazer inventário de origens e certificados, provar conectividade em staging/teste controlado, preparar snapshots das regras, rollback e validação por hostname; obter autorização para cada alteração de zona. A ausência de `Always Use HTTPS` não comprova ausência de outros redirects HTTP→HTTPS.
+
+**Pendente de verificar:** HSTS real, DNSSEC/DS no registrador, correcta resposta dos hosts, rotas de Worker, acesso `workers.dev`, histórico de falsos positivos, WAF por endpoint e limites da subscrição. Não alterar registos/zonas para apenas “corrigir” um documento antigo.
 
 ### Supabase (SGA)
 
