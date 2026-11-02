@@ -17,6 +17,17 @@ async function sha256Hex(value: string) {
 
 type Consume = (keyHashes: string[], windowSeconds: number, max: number) => Promise<boolean | null>;
 
+// A função PostgreSQL recebe inteiros signed de 32 bits. Nunca enviar valores
+// inválidos: a RPC antiga devolve true se max_hits < 1 (fail-open).
+const POSTGRES_INT_MAX = 2_147_483_647;
+
+function validLimitOptions(options: RateLimitOptions): boolean {
+  if (!Number.isSafeInteger(options.windowMs) || options.windowMs <= 0) return false;
+  if (!Number.isSafeInteger(options.max) || options.max <= 0) return false;
+  return Math.ceil(options.windowMs / 1000) <= POSTGRES_INT_MAX &&
+    options.max <= POSTGRES_INT_MAX;
+}
+
 /**
  * Apenas um aviso por isolado a cada 5 minutos, sem IP, e-mail, chaves,
  * hashes, tokens ou detalhes de erros da base. Um aviso de log NÃO equivale
@@ -65,8 +76,12 @@ export async function consumeRateLimit(
   options: RateLimitOptions,
   consume: Consume = consumeInDatabase,
 ): Promise<boolean> {
+  if (!validLimitOptions(options)) return false;
   if (!keys.length) return true;
-  const hashes = await Promise.all(keys.map((k) => sha256Hex(k)));
+  // A base já deduplica no INSERT; fazer o mesmo antes do RPC evita bloqueios
+  // advisory repetidos e mantém paridade com o fallback por isolado.
+  const uniqueKeys = [...new Set(keys)];
+  const hashes = await Promise.all(uniqueKeys.map((k) => sha256Hex(k)));
   const shared = await consume(hashes, Math.ceil(options.windowMs / 1000), options.max);
   if (shared !== null) return shared;
   reportSharedLimitUnavailable();
