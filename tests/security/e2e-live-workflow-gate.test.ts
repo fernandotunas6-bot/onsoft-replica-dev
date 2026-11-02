@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { load } from "js-yaml";
 import { describe, expect, it } from "vitest";
+import { checkReleaseStagingEnvironment } from "../../scripts/siga/release-staging-preflight.mjs";
 
 type Step = {
   name?: string;
@@ -68,5 +69,43 @@ describe("E2E real nunca comunica sucesso quando staging está incompleto", () =
 
   it("mantém o aviso de falha quando o staging está ausente", () => {
     expect(workflow.jobs.notify.if).toContain("needs.live.result == 'failure'");
+  });
+});
+
+const stagingFixture = {
+  STAGING_SUPABASE_PROJECT_ID: "audittest",
+  STAGING_SUPABASE_URL: "https://audittest.supabase.co",
+  STAGING_SUPABASE_PUBLISHABLE_KEY: "fixture-public",
+  STAGING_SUPABASE_SECRET_KEY: "fixture-secret",
+};
+
+describe("preflight do ambiente isolado — sem rede nem dados reais", () => {
+  it("recusa configuração incompleta antes de executar testes autenticados", () => {
+    expect(() =>
+      checkReleaseStagingEnvironment({
+        ...stagingFixture,
+        STAGING_SUPABASE_SECRET_KEY: "",
+      }),
+    ).toThrow(/Staging incompleto/);
+  });
+
+  it("recusa a referência da produção mesmo com quatro campos preenchidos", () => {
+    expect(() =>
+      checkReleaseStagingEnvironment({
+        ...stagingFixture,
+        STAGING_SUPABASE_PROJECT_ID: "xodgfmxiaunpamctfeea",
+        STAGING_SUPABASE_URL: "https://xodgfmxiaunpamctfeea.supabase.co",
+      }),
+    ).toThrow(/produção/);
+  });
+
+  it("aceita apenas projecto de staging consistente, sem abrir ligações", () => {
+    expect(checkReleaseStagingEnvironment(stagingFixture).projectRef).toBe("audittest");
+    expect(() =>
+      checkReleaseStagingEnvironment({
+        ...stagingFixture,
+        STAGING_SUPABASE_URL: "https://outro.supabase.co",
+      }),
+    ).toThrow(/bloqueado/);
   });
 });
