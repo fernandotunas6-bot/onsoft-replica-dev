@@ -35,8 +35,10 @@ export interface RateLimitOptions {
   max: number;
 }
 
-function sweepExpired(now: number, force = false): void {
-  if (!force && now >= lastSweepAt && now - lastSweepAt < SWEEP_INTERVAL_MS) return;
+function sweepExpired(now: number): void {
+  // Mesmo com a capacidade esgotada, não percorrer 50 000 chaves a cada
+  // pedido abusivo: uma limpeza completa é limitada a uma por minuto.
+  if (now >= lastSweepAt && now - lastSweepAt < SWEEP_INTERVAL_MS) return;
   for (const [key, entry] of attemptsByKey) {
     if (entry.attempts.every((time) => now - time >= entry.windowMs)) {
       attemptsByKey.delete(key);
@@ -67,7 +69,7 @@ export function checkRateLimit(keys: readonly string[], options: RateLimitOption
     if (!attemptsByKey.has(key)) newKeys += 1;
   }
   if (attemptsByKey.size + newKeys > MAX_LOCAL_RATE_LIMIT_KEYS) {
-    sweepExpired(now, true);
+    sweepExpired(now);
   }
   return attemptsByKey.size + newKeys <= MAX_LOCAL_RATE_LIMIT_KEYS;
 }
@@ -83,7 +85,7 @@ export function recordRateLimitAttempt(
     const attempts = liveAttempts(key, now, options.windowMs);
     if (!attemptsByKey.has(key) && attemptsByKey.size >= MAX_LOCAL_RATE_LIMIT_KEYS) {
       // Nunca exceder o tecto, mesmo se outro consumidor ignorar checkRateLimit.
-      sweepExpired(now, true);
+      sweepExpired(now);
       if (attemptsByKey.size >= MAX_LOCAL_RATE_LIMIT_KEYS) return;
     }
     attempts.push(now);
