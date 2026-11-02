@@ -81,11 +81,14 @@ try {
 
   for (const role of ["anon", "authenticated"]) {
     await assert.rejects(
-      asRole(role, (tx) => tx`
-        SELECT public.siga_rate_limit_consume(
-          ARRAY[${key("forbidden")}]::text[], 60, 3
-        )
-      `),
+      asRole(
+        role,
+        (tx) => tx`
+          SELECT public.siga_rate_limit_consume(
+            ARRAY[${key("forbidden")}]::text[], 60, 3
+          )
+        `,
+      ),
       /permission denied/i,
       `RPC acessível indevidamente a ${role}`,
     );
@@ -134,9 +137,7 @@ try {
   // A API no servidor rejeita configuração inválida. A função histórica
   // ainda tem um retorno permissivo para max_hits < 1: corrigir em migração
   // versionada só após staging, sem esconder o risco neste ensaio.
-  console.log(
-    "postgres-real-shared-rate-limit: concorrência, atomicidade, RBAC e RLS aprovados",
-  );
+  console.log("postgres-real-shared-rate-limit: concorrência, atomicidade, RBAC e RLS aprovados");
 } finally {
   await sql.end({ timeout: 5 });
 }
