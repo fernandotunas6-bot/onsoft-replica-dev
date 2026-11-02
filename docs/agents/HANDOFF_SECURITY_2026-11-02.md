@@ -136,13 +136,23 @@ Constatações verificadas em `pg_proc`, `pg_get_functiondef` e `pg_constraint`:
 
 Referência actualizada: https://developers.cloudflare.com/fundamentals/reference/http-headers/#cf-connecting-ip-in-worker-subrequests
 
+### Extensão de implementação — sinal operacional do rate limiting (02/11/2026)
+
+**Alteração I — fallback partilhado observável:** `src/lib/shared-rate-limit.ts` emite `console.warn("security.rate_limit.shared_unavailable", ...)` quando a RPC `siga_rate_limit_consume` não responde e o sistema usa a barreira local. Há supressão por **cinco minutos por isolado**, para evitar um evento por pedido durante uma falha. A mensagem tem apenas o nome do evento e o valor constante `fallback: local`: **sem IP, e-mail, chave, hash, token, erro SQL ou payload de pedidos**. A resposta ao utilizador e os limites continuam iguais.
+
+**Testes de regressão:** `tests/security/shared-rate-limit.test.ts` cobre avisos sem PII, intervalo de supressão e ausência de aviso quando a RPC aprova ou recusa. A CI anterior `41475061815` passou com **5.933 testes** no SHA `d69ee0e`; **é obrigatória uma CI própria no novo SHA**.
+
+**Limites e trabalho pendente:** `console.warn` não cria automaticamente alarmes Cloudflare. O próximo agente deve ligar a pesquisa do evento a métricas/alertas operacionais, preferencialmente com agregação e retenção adequadas, sem usar logs de IP de alunos. O aviso limita-se a cada isolado, portanto **não mede o número global de falhas**. Quando a RPC cai, o fallback por isolado não oferece a mesma garantia distribuída; não proclamar limite efectivo idêntico.
+
+**Privacidade:** SHA-256 aplicado a IP/e-mail é **hash sem chave**, não cifragem e não anonimização forte (os possíveis endereços são adivinháveis por dicionário). Manter controlo de acesso e retenção de dados de rate limiting. Uma migração para HMAC com segredo rotativo exige plano de compatibilidade e testes do contador, e fica fora desta PR.
+
 ## 4. Validação obrigatória antes de integrar
 
 No checkout desta branch, num ambiente com as dependências instaladas:
 
 ```sh
 bun install --frozen-lockfile
-bunx vitest run tests/lib/request-ip.test.ts tests/lib/server-fn-ip.test.ts tests/security/read-json-body.test.ts tests/security/mobile-login-boundary.test.ts tests/security/public-signup-boundary.test.ts tests/security/csp.test.ts tests/security/rate-limit-fallback.test.ts tests/security/shared-rate-limit.test.ts tests/api/mobile-profile.test.ts tests/api/mobile-login.test.ts tests/saas/ecosystem-cors.test.ts tests/saas/signup-payload-contract.test.ts
+bunx vitest run tests/security/shared-rate-limit.test.ts tests/lib/request-ip.test.ts tests/lib/server-fn-ip.test.ts tests/security/read-json-body.test.ts tests/security/mobile-login-boundary.test.ts tests/security/public-signup-boundary.test.ts tests/security/csp.test.ts tests/security/rate-limit-fallback.test.ts tests/security/shared-rate-limit.test.ts tests/api/mobile-profile.test.ts tests/api/mobile-login.test.ts tests/saas/ecosystem-cors.test.ts tests/saas/signup-payload-contract.test.ts
 npm run typecheck
 npm run lint
 npm run build
