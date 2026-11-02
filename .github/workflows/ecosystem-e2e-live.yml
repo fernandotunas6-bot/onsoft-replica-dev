@@ -86,6 +86,7 @@ jobs:
       - name: Configurar Supabase para E2E @live
         if: steps.secrets.outputs.skip != 'true'
         env:
+          SIGA_E2E_LIVE: "1"
           SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
