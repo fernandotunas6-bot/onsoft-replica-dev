@@ -12,6 +12,14 @@ const WEB_APPS = ["web"] as const;
 const MAX_SIGNUP_JSON_BYTES = 128 * 1024;
 const PUBLIC_SIGNUP_RESPONSE = { apps: [...WEB_APPS], noStore: true };
 
+/** Conserva o contrato de erros do registo (incluindo 429), sem expor cache. */
+export function publicSignupErrorResponse(request: Request, error: unknown): Response {
+  const message =
+    error instanceof Error ? error.message : "Não foi possível criar a escola.";
+  const status = message.includes("Muitos pedidos") ? 429 : 400;
+  return jsonWithCors(request, { error: message }, { ...PUBLIC_SIGNUP_RESPONSE, status });
+}
+
 // style-check: route-exempt — API pública de signup comercial (WEB → SIGA).
 
 export const Route = createFileRoute("/api/saas/signup")({
@@ -48,10 +56,7 @@ export const Route = createFileRoute("/api/saas/signup")({
             PUBLIC_SIGNUP_RESPONSE,
           );
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Não foi possível criar a escola.";
-          const status = message.includes("Muitos pedidos") ? 429 : 400;
-          return jsonWithCors(request, { error: message }, { ...PUBLIC_SIGNUP_RESPONSE, status });
+          return publicSignupErrorResponse(request, error);
         }
       },
     },
