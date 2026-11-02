@@ -176,6 +176,16 @@ A CI da fase anterior foi aprovada no SHA `284db625` (run `41479958412`), com **
 
 **Operação real pendente:** a branch Supabase isolada `siga-security-staging-20261102` requer autorização de custo de **US$ 0,01344 por hora** (cotação da API, 02/11/2026). A tentativa de criação sem `confirm_cost_id` foi recusada. **Não foi criada, restaurada nem cobrada nenhuma branch**, e não há autorização expressa de cobrança até agora. Não recolher nem publicar segredos pelo PR. A pesquisa guardada Cloudflare `e17w6yb8t7i11wk2jqg6143i` existe, mas **não é um alerta notificável** até configurar canal, política e ensaio de entrega.
 
+### Defesa do contador partilhado — validação de limites (02/11/2026)
+
+**Alteração K — rejeição prévia de configuração insegura:** `src/lib/shared-rate-limit.ts` valida `windowMs` e `max` como inteiros positivos seguros e compatíveis com o tipo `integer` do PostgreSQL (até 2.147.483.647 segundos/tentativas). Configuração inválida devolve `false` antes da RPC, em vez de confiar numa resposta permissiva do SQL. A migração original `20260927170000_shared_rate_limit.sql` devolve `true` quando `max_hits < 1`; por isso a guarda é necessária no servidor, mesmo que os valores actuais dos endpoints sejam constantes. A consulta ao SQL foi **somente leitura**; não modificar uma migração histórica aplicada nem a produção sem homologação.
+
+**Alteração L — deduplicação por pedido:** a lista de chaves é deduplicada antes de calcular os hashes e entrar na RPC. O SQL já usa `SELECT DISTINCT` ao registar tentativas, e o fallback local usa `Set`. Isto evita locks redundantes quando duas chaves são iguais e mantém o mesmo limite efectivo.
+
+**Regressão:** `tests/security/shared-rate-limit.test.ts` verifica recusa antes da RPC para duração nula, negativa, fraccionária, `NaN`, janela demasiado grande, `max` nulo/negativo/infinito/acima de int32 e deduplicação de chaves. Executar CI completa no **SHA mais recente**; não reportar como aprovado até os jobs terminarem.
+
+**Trabalho futuro para Claude:** rever uma migração **aditiva e versionada** que faça a própria RPC negar ou lançar erro para `max_hits < 1`, `window_seconds < 1` e `key_hashes` nulos/vazios em vez de `return true`; documentar compatibilidade com todos os consumidores, parametrização existente, advisory locks e rollback. Esta revisão SQL exige staging independente e testes de concorrência PostgreSQL real antes de produzir DDL. O guard do servidor não substitui validação na base.
+
 ## 4. Validação obrigatória antes de integrar
 
 No checkout desta branch, num ambiente com as dependências instaladas:
