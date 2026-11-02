@@ -1,6 +1,13 @@
 name: PostgreSQL real — segurança do SIGA Plus
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/security-postgres.yml"
+      - "src/lib/shared-rate-limit.ts"
+      - "tests/sql/postgres-real-shared-rate-limit.mjs"
+      - "supabase/migrations/20260927170000_shared_rate_limit.sql"
   pull_request:
     paths:
       - ".github/workflows/security-postgres.yml"
