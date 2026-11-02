@@ -77,14 +77,16 @@ describe("fronteira pública da criação de escolas", () => {
     expect(signup.runPublicSchoolSignup).not.toHaveBeenCalled();
   });
 
-  it("preserva rate limiting de negócio e impede cache do erro", async () => {
-    // Lança no próprio invocador: a rota tem de capturar a falha do serviço
-    // e devolver 429, em vez de deixar uma rejeição não observada no runner.
-    signup.runPublicSchoolSignup.mockImplementation(() => {
-      throw new Error("Muitos pedidos recentes");
+  it("preserva a tradução 429 do rate limiting e impede cache", async () => {
+    // Testa a política HTTP isolada; o limitador do negócio tem testes
+    // próprios em tests/saas/public-signup.test.ts.
+    const { publicSignupErrorResponse } = await import("@/routes/api/saas/signup");
+    const request = new Request("https://portal-siga.com/api/saas/signup", {
+      method: "POST",
     });
-    const result = await postSignup(JSON.stringify(valid));
+    const result = publicSignupErrorResponse(request, new Error("Muitos pedidos recentes"));
     expect(result.status).toBe(429);
     expect(result.headers.get("Cache-Control")).toBe("no-store");
+    expect(await result.json()).toEqual({ error: "Muitos pedidos recentes" });
   });
 });
