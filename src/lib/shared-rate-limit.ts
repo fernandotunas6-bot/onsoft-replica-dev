@@ -24,8 +24,7 @@ const POSTGRES_INT_MAX = 2_147_483_647;
 function validLimitOptions(options: RateLimitOptions): boolean {
   if (!Number.isSafeInteger(options.windowMs) || options.windowMs <= 0) return false;
   if (!Number.isSafeInteger(options.max) || options.max <= 0) return false;
-  return Math.ceil(options.windowMs / 1000) <= POSTGRES_INT_MAX &&
-    options.max <= POSTGRES_INT_MAX;
+  return Math.ceil(options.windowMs / 1000) <= POSTGRES_INT_MAX && options.max <= POSTGRES_INT_MAX;
 }
 
 /**
