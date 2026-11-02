@@ -74,18 +74,19 @@ Referências do Advisor:
 
 **Interpretação:** o Advisor dá alertas para investigar, não prova por si só de acesso indevido ou exploração. Nenhum SQL foi executado para alterar o estado.
 
-### Revisão read-only preliminar de funções privilegiadas
+### Auditoria read-only das funções privilegiadas (18/18)
 
-Uma consulta apenas a `pg_proc`/`pg_get_functiondef` (sem alterar o esquema nem ler registos escolares) confirmou `SECURITY DEFINER` e `EXECUTE` pelo papel `authenticated` para:
+O inventário completo, testes sugeridos e evidências por função estão em
+[`SECURITY_DEFINER_AUDIT_2026-11-02.md`](./SECURITY_DEFINER_AUDIT_2026-11-02.md).
 
-| Função | Natureza | Observação inicial |
-| --- | --- | --- |
-| `public.merge_school_subjects(uuid,uuid,uuid[])` | Muta dados académicos | Referencia `auth.uid()` e define `search_path`; **ainda não foi comprovado que verifica os três argumentos na mesma escola e o cargo autorizado** |
-| `public.hr_redeem_teacher_qr_secure(text,float8,float8,float8)` | Operação de presença | Referencia `auth.uid()` e define `search_path`; confirmar ligação do token, escola, sessão e utilizador |
-| `public.is_school_member(uuid)` | Verificação de vínculo | Referencia `auth.uid()` e define `search_path`; conhecida por incluir alunos e encarregados, não usar isoladamente para dados sensíveis |
-| `public.can_manage_students()` | Verificação de permissão | Não contém referência directa a `auth.uid()` na definição, embora possa delegar a outra função; inspeccionar chamadas internas e contexto |
+Constatações verificadas em `pg_proc`, `pg_get_functiondef` e `pg_constraint`:
+- As **18** funções com aviso do Supabase Advisor permitem `EXECUTE` a `authenticated`, mas **nenhuma das 18 permite `EXECUTE` a `anon`**. Todas têm `search_path` explícito.
+- `merge_school_subjects` exige utilizador autenticado, **AAL2**, `private.has_permission` para `academic.subjects.manage` na escola indicada e valida que as disciplinas pertencem à escola. Isto melhora a avaliação inicial; **falta testar autenticação cruzada e concorrência em staging**.
+- `current_school_id()` verifica vínculo escolar activo antes de aceitar `x-siga-school-id`. O papel escolar e os testes do professor delegam em funções de contexto que consultam vínculos activos.
+- `member_roles` e `role_permissions` têm FKs compostas com `school_id`, reforçando isolamento multi-tenant em RBAC.
+- A função QR `hr_redeem_teacher_qr_secure` encaminha para `hr_redeem_teacher_qr`, que verifica professor, ocorrência, QR activo e evidência recente, mas ainda precisa de ensaio autenticado de replay, tempo e escola B.
 
-O Supabase Advisor indica **18** funções nesta categoria. As restantes também exigem uma matriz de dependências e chamadas antes de se decidir revogar `EXECUTE` ou mudar para `SECURITY INVOKER`. **Não concluir vulnerabilidade apenas pela existência do aviso**. Priorizar testes cruzados em staging e nunca mudar privilégios de produção directamente.
+**Decisão:** não revogar permissões nem mudar RLS/SQL de produção com base apenas no aviso do Advisor. Preparar testes de duas escolas isoladas em staging, sem tocar em dados reais.
 
 ## 3. Implementação realizada nesta branch
 
@@ -119,7 +120,7 @@ O Supabase Advisor indica **18** funções nesta categoria. As restantes também
 
 **Testes:** `tests/security/rate-limit-fallback.test.ts` cobre expiração, deduplicação, configurações inválidas e saturação. A API mobile tem asserções adicionais nos testes de perfil.
 
-**Histórico de CI:** no SHA `aeb9e3f540398fbf08cc14ab72216a0a3056033e` a execução 41468388110 falhou por **um** teste novo (`public-signup-boundary`, simulação da negação do serviço), com 5 904 aprovados e 25 ignorados. A simulação foi ajustada para lançamento síncrono no SHA `22e567129e5e82a0cb61c98e573ca99c006e3d11`. **Confirmar que o último commit desta branch tem a CI verde antes de declarar a PR pronta.**
+**Histórico de CI:** os runs 41468388110 e 41470484198 falharam por uma única asserção de simulação do erro 429 de signup público (restantes testes, auditoria de dependências e build WEB passaram). A hipótese de rejeição/lançamento mockado foi substituída por uma função de conversão HTTP isolada `publicSignupErrorResponse`, com teste directo do código e cabeçalho. **Confirmar a CI do SHA final desta branch** antes de integrar.
 
 ## 4. Validação obrigatória antes de integrar
 
