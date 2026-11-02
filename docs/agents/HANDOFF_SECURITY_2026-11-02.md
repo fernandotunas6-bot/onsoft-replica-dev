@@ -34,6 +34,35 @@ Ler, por esta ordem:
 | SQL seguro | Cliente Supabase e várias RPCs; `tests/security/` | Auditar consultas SQL dinâmicas, EXECUTE e SECURITY DEFINER; não declarar cobertura total |
 | Hash de palavras-passe | Supabase Auth é fornecedor principal | **Não** substituir por hash artesanal no cliente |
 
+## 2A. Verificações reais READ-ONLY realizadas em 02/11/2026
+
+As seguintes verificações foram executadas pelos conectores dos serviços com acesso autorizado, **sem qualquer mutação**. Isto substitui suposições do ficheiro `docs/cloudflare/OVERVIEW.md` sobre o estado activo.
+
+### Cloudflare (zona portal-siga.com)
+
+- Zona: **active**, plano **Free Website** (confirmado via API).
+- DNS: 13 registos na zona; os hosts `portal-siga.com`, `*.portal-siga.com`, `app`, `www`, `admin`, `docs` e `payflow` aparecem com `proxied=true`. Não inferir destes dados que todas as aplicações respondem correctamente nem que o TLS está adequado.
+- WAF gerido: ruleset presente, **38/38 regras habilitadas**.
+- DDoS HTTP L7: ruleset presente, **147/148 regras habilitadas** (a contagem inclui assinaturas administradas pelo fornecedor; não configurar 148 regras manualmente).
+- Rate limiting: **1 regra activa** no ruleset de zona, destinada a verificação de credencial vazada. **Não equivale a rate limit geral das rotas de login/OTP/exportação**. Como o plano Free pode limitar a quantidade de regras, priorizar controlo aplicacional distribuído e avaliar cobertura sem substituir a regra existente.
+
+**Pendente de verificar:** TLS Full (strict), HSTS real, DNSSEC/DS, correcta resposta dos hosts, rotas de Worker, acesso `workers.dev`, histórico de falsos positivos, WAF por endpoint e limites da subscrição. Não alterar registros/zonas para apenas “corrigir” um documento antigo.
+
+### Supabase (SGA)
+
+A leitura do Security Advisor da base ligada reportou:
+
+- **18 avisos WARN:** `authenticated_security_definer_function_executable`. Analisar **cada assinatura/função**, os `GRANT EXECUTE`, o `search_path` e verificações de pertença/papel; não revogar EXECUTE cegamente porque funções legítimas `public` podem depender delas.
+- **1 aviso WARN:** `auth_leaked_password_protection`. Avaliar activação no painel Auth e o impacto nos fluxos de criação/recuperação, políticas de passwords e licenciamento, sem desactivar o login existente.
+- **90 INFO:** `rls_enabled_no_policy`. Pode indicar intencionalmente tabelas **server-only**; nem sempre é vulnerabilidade. Confirmar schemas expostos, `GRANT`, RLS, `service_role` e fluxos esperados antes de abrir políticas.
+
+Referências do Advisor:
+- https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable
+- https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+- https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy
+
+**Interpretação:** o Advisor dá alertas para investigar, não prova por si só de acesso indevido ou exploração. Nenhum SQL foi executado para alterar o estado.
+
 ## 3. Implementação realizada nesta branch
 
 **Alteração A — limite de JSON para a entrada móvel:** `src/lib/read-json-body.ts` disponibiliza `readJsonBodyLimited(request, maxBytes)`. A verificação não confia apenas em `Content-Length`: mede o corpo real em streaming e cancela a leitura ao ultrapassar o limite. Responde com `too_large` ou `invalid_json`. A rota `src/routes/api/mobile/login.tsx` limita o pedido a 16 KiB e devolve HTTP 413 sem invocar o serviço de autenticação quando o corpo excede esse limite. O JSON malformado continua a ser tratado pela validação existente do login, por compatibilidade.
