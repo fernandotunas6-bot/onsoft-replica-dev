@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 'Verificar configuração do staging (manual: falhar, nunca omitir)'
+      - name: 'Verificar configuração do staging (falhar se estiver incompleto)'
         id: secrets
         env:
           STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
@@ -38,15 +38,16 @@ jobs:
             fi
           done
           if [ "$missing" -eq 1 ]; then
-            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-              echo "::error::Homologação manual bloqueada: staging incompleto."
-              exit 1
-            fi
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Agendamento semanal omitido: configurar staging antes de validar."
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### E2E @live: staging incompleto — não executado"
+              echo "- A validação de isolamento entre escolas NÃO foi realizada."
+              echo "- Configurar os quatro segredos STAGING_SUPABASE_* no ambiente staging."
+              echo "- Voltar a executar depois de confirmar uma base independente da produção."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Staging incompleto: E2E não executado; falhar no agendamento e na execução manual."
+            exit 1
           fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
         if: steps.secrets.outputs.skip != 'true'
