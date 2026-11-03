@@ -36,14 +36,18 @@ O **dono do Google Cloud** deve abrir:
    confirmar que Google está activo e que o **mesmo Web Client ID** consta dos IDs
    permitidos. Não é necessário alterar o segredo OAuth se já funciona.
 4. [GitHub — Environment variables](https://github.com/fernandotunas6-bot/onsoft-replica-dev/settings/environments):
-   no ambiente `production`, criar a variável pública
-   `VITE_GOOGLE_CLIENT_ID` com o valor `....apps.googleusercontent.com`.
-   Criar opcionalmente `VITE_GOOGLE_ALLOWED_ORIGINS` como CSV de origens exactas;
-   por omissão só `https://portal-siga.com`.
-   **Não** usar `Client secret` nem valores `service_role` em variáveis VITE.
-5. Fazer deploy por GitHub Actions após configuração: a variável VITE é lida
-   durante o **build**; alterar apenas bindings do Worker na Cloudflare não activa
-   o botão já compilado.
+   a pipeline de produção usa por omissão o **Web Client ID público** já fornecido
+   pelo proprietário em Setembro de 2026. O valor pode ser substituído em
+   `VITE_GOOGLE_CLIENT_ID` se o cliente for rodado ou revogado.
+   `VITE_GOOGLE_ALLOWED_ORIGINS` aceita uma lista CSV de origens exactas;
+   por omissão, apenas `https://portal-siga.com` usa GIS.
+   `VITE_GOOGLE_IDENTITY_ENABLED=false` força o regresso ao OAuth clássico no
+   próximo build; a configuração por omissão é `true`.
+   **Nunca** colocar `Client secret` nem `service_role` em variáveis VITE.
+5. A configuração é aplicada **durante o build** pelo GitHub Actions, não
+   apenas nas bindings do Worker na Cloudflare. Antes de considerar a activação
+   validada, confirmar no Google Cloud que o OAuth Web Client ID está autorizado
+   para `https://portal-siga.com` e testar o login real no browser.
 
 ## Aceitação e publicação
 - Abrir `https://portal-siga.com` sem sessão em Android e desktop; confirmar
@@ -61,7 +65,7 @@ O **dono do Google Cloud** deve abrir:
   as origens aceites no Google Cloud e teste real com uma conta.
 
 ## Reversão
-Retirar `VITE_GOOGLE_CLIENT_ID` do ambiente production e fazer novo build/deploy.
+Definir `VITE_GOOGLE_IDENTITY_ENABLED=false` em `production` e fazer novo build/deploy.
 O botão antigo e todas as sessões Supabase permanecem disponíveis. Nunca
 desactivar o Google provider no Supabase para esta reversão.
 

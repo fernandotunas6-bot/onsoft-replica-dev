@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { webcrypto } from "node:crypto";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   GoogleIdentityButton,
@@ -8,9 +8,13 @@ import {
   isGoogleIdentityOriginAllowed,
 } from "@/components/auth/GoogleIdentityButton";
 
+const googleAuth = vi.hoisted(() => ({ signInWithIdToken: vi.fn() }));
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { auth: googleAuth } }));
+
 beforeAll(() => vi.stubGlobal("crypto", webcrypto));
 afterEach(() => {
   cleanup();
+  vi.clearAllMocks();
   vi.unstubAllEnvs();
   delete (window as Window & { google?: unknown }).google;
 });
@@ -45,9 +49,12 @@ describe("login Google com identidade SIGA Plus", () => {
     vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "public-client.apps.googleusercontent.com");
     vi.stubEnv("VITE_GOOGLE_ALLOWED_ORIGINS", window.location.origin);
     let receivedNonce: string | undefined;
+    let onCredential: ((response: { credential?: string }) => void) | undefined;
+    googleAuth.signInWithIdToken.mockResolvedValue({ error: null });
     const initialize = vi.fn(
       (options: { nonce: string; callback: (response: { credential?: string }) => void }) => {
         receivedNonce = options.nonce;
+        onCredential = options.callback;
       },
     );
     const renderButton = vi.fn((element: HTMLElement) => {
@@ -72,5 +79,37 @@ describe("login Google com identidade SIGA Plus", () => {
     expect(screen.queryByText("OAuth anterior")).toBeNull();
     expect(receivedNonce).toMatch(/^[a-f0-9]{64}$/);
     expect(renderButton).toHaveBeenCalledOnce();
+
+    await act(async () => onCredential?.({ credential: "test-id-token" }));
+    await waitFor(() => expect(googleAuth.signInWithIdToken).toHaveBeenCalledOnce());
+    const request = googleAuth.signInWithIdToken.mock.calls[0]?.[0];
+    expect(request).toMatchObject({ provider: "google", token: "test-id-token" });
+    const digest = await webcrypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(request.nonce),
+    );
+    expect(Buffer.from(digest).toString("hex")).toBe(receivedNonce);
+
+    fireEvent.click(screen.getByRole("button", { name: /Problemas com o Google/i }));
+    expect(screen.getByText("OAuth anterior")).toBeTruthy();
+    onCredential?.({ credential: "ignored-after-switch" });
+    expect(googleAuth.signInWithIdToken).toHaveBeenCalledOnce();
+  });
+
+  it("mantém o OAuth antigo quando o novo login está desactivado", () => {
+    vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "public-client.apps.googleusercontent.com");
+    vi.stubEnv("VITE_GOOGLE_ALLOWED_ORIGINS", window.location.origin);
+    vi.stubEnv("VITE_GOOGLE_IDENTITY_ENABLED", "false");
+
+    render(
+      <GoogleIdentityButton
+        mode="signin"
+        disabled={false}
+        fallback={<button type="button">OAuth anterior</button>}
+        onError={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("OAuth anterior")).toBeTruthy();
+    expect(screen.queryByTestId("google-identity-button")).toBeNull();
   });
 });
