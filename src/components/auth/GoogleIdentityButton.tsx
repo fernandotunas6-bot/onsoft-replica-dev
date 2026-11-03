@@ -128,17 +128,22 @@ export function GoogleIdentityButton({
       "https://portal-siga.com",
   );
   const isAllowed =
+    hydrated &&
     typeof window !== "undefined" &&
     Boolean(clientId) &&
     isGoogleIdentityOriginAllowed(window.location.origin, allowedOrigins) &&
     !window.location.pathname.startsWith("/.lovable/oauth/consent");
   const container = useRef<HTMLDivElement>(null);
+  const [hydrated, setHydrated] = useState(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const disabledRef = useRef(disabled);
   disabledRef.current = disabled;
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
+
+  // Match the server-rendered fallback on the first browser render (SSR hydration).
+  useEffect(() => setHydrated(true), []);
 
   useEffect(() => {
     if (!isAllowed) return;
