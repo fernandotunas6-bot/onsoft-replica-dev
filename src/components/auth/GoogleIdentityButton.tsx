@@ -151,7 +151,7 @@ export function GoogleIdentityButton({
   useEffect(() => setHydrated(true), []);
 
   useEffect(() => {
-    if (!isAllowed) return;
+    if (!isAllowed || showFallback) return;
     let active = true;
     let authenticating = false;
 
@@ -208,7 +208,7 @@ export function GoogleIdentityButton({
     return () => {
       active = false;
     };
-  }, [clientId, isAllowed, mode]);
+  }, [clientId, isAllowed, mode, showFallback]);
 
   if (!isAllowed || failed || showFallback) return <>{fallback}</>;
   return (
