@@ -40,15 +40,30 @@ describe("Rate Limit Security Hardening", () => {
     expect(isRateLimitBypassed("regular")).toBe(false);
   });
 
-  it("preserves explicit local test and development allowances", () => {
-    process.env.NODE_ENV = "test";
-    delete process.env.SIGA_E2E_LIVE;
-    expect(isRateLimitBypassed("user@siga-plus.test")).toBe(true);
-    expect(isRateLimitBypassed("regular@example.com")).toBe(false);
+  it("does not let user-controlled identifiers bypass limits in local test or development", () => {
+    for (const environment of ["test", "development"]) {
+      process.env.NODE_ENV = environment;
+      delete process.env.SIGA_E2E_LIVE;
+      expect(isRateLimitBypassed("user@siga-plus.test")).toBe(false);
+      expect(isRateLimitBypassed("ip:192.0.2.1:siga-plus.test")).toBe(false);
+      expect(isRateLimitBypassed("bi_login_identifier:siga-plus.test")).toBe(false);
+      expect(isRateLimitBypassed("regular@example.com")).toBe(false);
+    }
+  });
 
+  it.each(["1", "true"])("permits local E2E only with explicit opt-in %s", (flag) => {
     process.env.NODE_ENV = "development";
-    process.env.SIGA_E2E_LIVE = "1";
+    process.env.SIGA_E2E_LIVE = flag;
     expect(isRateLimitBypassed("local-development")).toBe(true);
+    expect(isRateLimitBypassed("user@siga-plus.test")).toBe(true);
+  });
+
+  it("never treats malformed E2E flags as opt-in", () => {
+    process.env.NODE_ENV = "test";
+    for (const flag of ["0", "yes", "TRUE", "true ", ""]) {
+      process.env.SIGA_E2E_LIVE = flag;
+      expect(isRateLimitBypassed("user@siga-plus.test")).toBe(false);
+    }
   });
 
   it("allows test bypass strictly when not in production or when SIGA_E2E_LIVE is explicitly set", () => {
