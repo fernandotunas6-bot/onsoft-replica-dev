@@ -209,6 +209,14 @@ A CI da fase anterior foi aprovada no SHA `284db625` (run `41479958412`), com **
 
 **Limite operacional:** isto reduz uma condição de bypass, mas não prova que um cabeçalho `CF-Connecting-IP` seja confiável por qualquer origem; o fluxo `workers.dev`, Workers subrequests, WAF e alarmes continuam a exigir homologação em ambiente isolado. Não integrar enquanto a PR estiver bloqueada por estes itens.
 
+### Bypass local condicionado exclusivamente por opt-in explícito (03/11/2026)
+
+**Alteração O — dados do cliente nunca autorizam bypass:** a função `isRateLimitBypassed` já exigia `NODE_ENV=test/development`, mas ainda aceitava qualquer identificador contendo `siga-plus.test` como autorização de ignorar o limite. Um ambiente de desenvolvimento ou preview exposto na Internet poderia receber e-mails/identificadores construídos por atacantes. A autorização de bypass agora exige **as duas condições simultâneas**: `NODE_ENV` explicitamente `test` ou `development` **e** `SIGA_E2E_LIVE` com valor exacto `1` ou `true`. Endereços, IPs, códigos de aluno ou nomes de domínio vindos do pedido não influenciam a decisão. Os parâmetros da função foram mantidos por compatibilidade, mas são intencionalmente ignorados.
+
+**Regressão:** `tests/security/access-security.test.ts` testa o sufixo `siga-plus.test` em ambientes locais sem opt-in, flags malformadas (`yes`, `TRUE`, `true `, `0`), autorização explícita com `1/true` e recusa em `production`/`staging`/`preview` e `NODE_ENV` ausente. A alteração não foi publicada; o último SHA só pode ser chamado de aprovado quando a CI geral e PostgreSQL passarem.
+
+**Higiene operacional:** `SIGA_E2E_LIVE` é um sinal de teste interno e não pode ser derivado de cabeçalhos HTTP, e-mails, número de estudante nem parâmetros de URL. Em produção, usar sempre build com `NODE_ENV=production`, sem expor a flag E2E. Rever periodicamente os bindings Cloudflare. Um E2E homologado deve testar os próprios limites; não assumir bypass.
+
 ## 4. Validação obrigatória antes de integrar
 
 No checkout desta branch, num ambiente com as dependências instaladas:
