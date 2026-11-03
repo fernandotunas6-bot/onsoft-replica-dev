@@ -121,6 +121,7 @@ export function GoogleIdentityButton({
   fallback,
   onError,
 }: GoogleIdentityButtonProps) {
+  const [hydrated, setHydrated] = useState(false);
   const clientId = String(import.meta.env["VITE_GOOGLE_CLIENT_ID"] ?? "").trim();
   const allowedOrigins = String(
     import.meta.env["VITE_GOOGLE_ALLOWED_ORIGINS"] ??
@@ -134,7 +135,6 @@ export function GoogleIdentityButton({
     isGoogleIdentityOriginAllowed(window.location.origin, allowedOrigins) &&
     !window.location.pathname.startsWith("/.lovable/oauth/consent");
   const container = useRef<HTMLDivElement>(null);
-  const [hydrated, setHydrated] = useState(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const disabledRef = useRef(disabled);
