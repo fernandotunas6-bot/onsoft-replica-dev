@@ -36,6 +36,7 @@ import {
 } from "@/features/auth/trusted-device";
 import { AuthBrandIntro } from "./AuthBrandIntro";
 import { AuthCaptcha } from "./AuthCaptcha";
+import { GoogleIdentityButton } from "./GoogleIdentityButton";
 import { mapSignInError } from "@/features/auth/sign-in-error";
 import {
   createContext,
@@ -1004,6 +1005,11 @@ export function AuthGate({
                   ou
                   <span className="h-px flex-1 bg-border" />
                 </div>
+                <GoogleIdentityButton
+                  mode={mode}
+                  disabled={submitting || resetting || sendingMagicLink}
+                  onError={setError}
+                  fallback={
                 <Button
                   type="button"
                   variant="outline"
@@ -1031,6 +1037,8 @@ export function AuthGate({
                   </svg>
                   {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
                 </Button>
+                  }
+                />
               </>
             )}
 
