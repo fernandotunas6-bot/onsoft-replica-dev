@@ -46,7 +46,7 @@ function loadGoogleIdentity(): Promise<GoogleIdentity> {
   const ready = googleIdentity();
   if (ready) return Promise.resolve(ready);
   if (!googleScriptPromise) {
-    googleScriptPromise = new Promise((resolve, reject) => {
+    googleScriptPromise = new Promise<GoogleIdentity>((resolve, reject) => {
       const existing = document.querySelector<HTMLScriptElement>(
         'script[data-siga-google-identity="true"]',
       );
