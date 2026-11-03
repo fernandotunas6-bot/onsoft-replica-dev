@@ -56,7 +56,8 @@ function loadGoogleIdentity(): Promise<GoogleIdentity> {
         if (api) resolve(api);
         else reject(new Error("Google Identity Services não ficou disponível."));
       };
-      const onError = () => reject(new Error("Não foi possível carregar o Google Identity Services."));
+      const onError = () =>
+        reject(new Error("Não foi possível carregar o Google Identity Services."));
       script.addEventListener("load", onLoad, { once: true });
       script.addEventListener("error", onError, { once: true });
       if (!existing) {
@@ -89,10 +90,7 @@ export async function createGoogleIdentityNonce(): Promise<{ raw: string; hashed
  * Google only accepts explicitly registered HTTPS origins (no wildcard
  * subdomains). An exact origin allowlist avoids breaking school/custom domains.
  */
-export function isGoogleIdentityOriginAllowed(
-  browserOrigin: string,
-  originsCsv: string,
-): boolean {
+export function isGoogleIdentityOriginAllowed(browserOrigin: string, originsCsv: string): boolean {
   return originsCsv
     .split(",")
     .map((value) => value.trim())
@@ -100,7 +98,10 @@ export function isGoogleIdentityOriginAllowed(
     .some((value) => {
       try {
         const url = new URL(value);
-        return url.origin === browserOrigin && (url.protocol === "https:" || url.hostname === "localhost");
+        return (
+          url.origin === browserOrigin &&
+          (url.protocol === "https:" || url.hostname === "localhost")
+        );
       } catch {
         return false;
       }
