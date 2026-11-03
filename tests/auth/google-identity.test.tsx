@@ -44,12 +44,10 @@ describe("login Google com identidade SIGA Plus", () => {
   it("troca o fallback pelo botão oficial quando o client ID e a origem são válidos", async () => {
     vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "public-client.apps.googleusercontent.com");
     vi.stubEnv("VITE_GOOGLE_ALLOWED_ORIGINS", window.location.origin);
-    let initOptions:
-      | { nonce: string; callback: (response: { credential?: string }) => void }
-      | undefined;
+    let receivedNonce: string | undefined;
     const initialize = vi.fn(
       (options: { nonce: string; callback: (response: { credential?: string }) => void }) => {
-        initOptions = options;
+        receivedNonce = options.nonce;
       },
     );
     const renderButton = vi.fn((element: HTMLElement) => {
@@ -72,7 +70,7 @@ describe("login Google com identidade SIGA Plus", () => {
     );
     await screen.findByText("Botão Google oficial");
     expect(screen.queryByText("OAuth anterior")).toBeNull();
-    expect(initOptions?.nonce).toMatch(/^[a-f0-9]{64}$/);
+    expect(receivedNonce).toMatch(/^[a-f0-9]{64}$/);
     expect(renderButton).toHaveBeenCalledOnce();
   });
 });
