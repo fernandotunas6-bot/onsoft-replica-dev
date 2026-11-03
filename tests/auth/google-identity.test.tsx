@@ -42,7 +42,7 @@ describe("login Google com identidade SIGA Plus", () => {
     vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "public-client.apps.googleusercontent.com");
     vi.stubEnv("VITE_GOOGLE_ALLOWED_ORIGINS", window.location.origin);
     let initOptions: { nonce: string; callback: (response: { credential?: string }) => void } | undefined;
-    const initialize = vi.fn((options) => { initOptions = options; });
+    const initialize = vi.fn((options: { nonce: string; callback: (response: { credential?: string }) => void }) => { initOptions = options; });
     const renderButton = vi.fn((element: HTMLElement) => {
       const button = document.createElement("button");
       button.textContent = "Botão Google oficial";
