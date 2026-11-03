@@ -123,6 +123,9 @@ export function GoogleIdentityButton({
   onError,
 }: GoogleIdentityButtonProps) {
   const [hydrated, setHydrated] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
+  // Emergency rollback: keep every previous Google OAuth flow available.
+  const enabled = String(import.meta.env["VITE_GOOGLE_IDENTITY_ENABLED"] ?? "true") !== "false";
   const clientId = String(import.meta.env["VITE_GOOGLE_CLIENT_ID"] ?? "").trim();
   const allowedOrigins = String(
     import.meta.env["VITE_GOOGLE_ALLOWED_ORIGINS"] ??
@@ -130,6 +133,7 @@ export function GoogleIdentityButton({
       "https://portal-siga.com",
   );
   const isAllowed =
+    enabled &&
     hydrated &&
     typeof window !== "undefined" &&
     Boolean(clientId) &&
@@ -206,15 +210,24 @@ export function GoogleIdentityButton({
     };
   }, [clientId, isAllowed, mode]);
 
-  if (!isAllowed || failed) return <>{fallback}</>;
+  if (!isAllowed || failed || showFallback) return <>{fallback}</>;
   return (
     <div className={disabled ? "pointer-events-none opacity-50" : undefined} aria-busy={!ready}>
       <div
         ref={container}
-        className={ready ? "flex min-h-[44px] w-full items-center justify-center" : "hidden"}
+        className={ready ? "mt-4 flex min-h-[44px] w-full items-center justify-center" : "hidden"}
         data-testid="google-identity-button"
       />
       {!ready ? fallback : null}
+      {ready ? (
+        <button
+          type="button"
+          className="mt-2 w-full text-center text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:underline"
+          onClick={() => setShowFallback(true)}
+        >
+          Problemas com o Google? Usar outro método
+        </button>
+      ) : null}
     </div>
   );
 }
