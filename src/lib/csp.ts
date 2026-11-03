@@ -19,8 +19,8 @@ export const CSP_REPORT_PATH = "/api/public/csp-report";
 
 const DIRECTIVES: ReadonlyArray<readonly [string, string]> = [
   ["default-src", "'self'"],
-  ["script-src", "'self' 'unsafe-inline'"],
-  ["style-src", "'self' 'unsafe-inline'"],
+  ["script-src", "'self' 'unsafe-inline' https://accounts.google.com/gsi/client"],
+  ["style-src", "'self' 'unsafe-inline' https://accounts.google.com/gsi/style"],
   ["font-src", "'self' data:"],
   ["img-src", "'self' data: blob: https:"],
   [
@@ -31,11 +31,12 @@ const DIRECTIVES: ReadonlyArray<readonly [string, string]> = [
       "wss://*.supabase.co",
       "https://*.portal-siga.com",
       "https://*.googleapis.com",
+      "https://accounts.google.com/gsi/",
       "https://api.pwnedpasswords.com",
       "https://api.github.com",
     ].join(" "),
   ],
-  ["frame-src", "'self'"],
+  ["frame-src", "'self' https://accounts.google.com/gsi/"],
   ["worker-src", "'self' blob:"],
   ["manifest-src", "'self'"],
   ["media-src", "'self' blob: data:"],
