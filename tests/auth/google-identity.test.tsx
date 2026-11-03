@@ -23,7 +23,9 @@ describe("login Google com identidade SIGA Plus", () => {
     expect(isGoogleIdentityOriginAllowed("https://ispab.portal-siga.com", list)).toBe(true);
     expect(isGoogleIdentityOriginAllowed("https://outra.portal-siga.com", list)).toBe(false);
     expect(isGoogleIdentityOriginAllowed("https://portal-siga.com.evil.example", list)).toBe(false);
-    expect(isGoogleIdentityOriginAllowed("http://portal-siga.com", "http://portal-siga.com")).toBe(false);
+    expect(isGoogleIdentityOriginAllowed("http://portal-siga.com", "http://portal-siga.com")).toBe(
+      false,
+    );
     expect(isGoogleIdentityOriginAllowed("https://portal-siga.com", "")).toBe(false);
   });
 
@@ -38,11 +40,18 @@ describe("login Google com identidade SIGA Plus", () => {
     const expected = Buffer.from(actual).toString("hex");
     expect(first.hashed).toBe(expected);
   });
+
   it("troca o fallback pelo botão oficial quando o client ID e a origem são válidos", async () => {
     vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "public-client.apps.googleusercontent.com");
     vi.stubEnv("VITE_GOOGLE_ALLOWED_ORIGINS", window.location.origin);
-    let initOptions: { nonce: string; callback: (response: { credential?: string }) => void } | undefined;
-    const initialize = vi.fn((options: { nonce: string; callback: (response: { credential?: string }) => void }) => { initOptions = options; });
+    let initOptions:
+      | { nonce: string; callback: (response: { credential?: string }) => void }
+      | undefined;
+    const initialize = vi.fn(
+      (options: { nonce: string; callback: (response: { credential?: string }) => void }) => {
+        initOptions = options;
+      },
+    );
     const renderButton = vi.fn((element: HTMLElement) => {
       const button = document.createElement("button");
       button.textContent = "Botão Google oficial";
@@ -66,5 +75,4 @@ describe("login Google com identidade SIGA Plus", () => {
     expect(initOptions?.nonce).toMatch(/^[a-f0-9]{64}$/);
     expect(renderButton).toHaveBeenCalledOnce();
   });
-
 });
