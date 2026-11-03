@@ -1,12 +1,19 @@
 // @vitest-environment jsdom
 import { webcrypto } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
+  GoogleIdentityButton,
   createGoogleIdentityNonce,
   isGoogleIdentityOriginAllowed,
 } from "@/components/auth/GoogleIdentityButton";
 
 beforeAll(() => vi.stubGlobal("crypto", webcrypto));
+afterEach(() => {
+  cleanup();
+  vi.unstubAllEnvs();
+  delete (window as Window & { google?: unknown }).google;
+});
 afterAll(() => vi.unstubAllGlobals());
 
 describe("login Google com identidade SIGA Plus", () => {
@@ -31,4 +38,33 @@ describe("login Google com identidade SIGA Plus", () => {
     const expected = Buffer.from(actual).toString("hex");
     expect(first.hashed).toBe(expected);
   });
+  it("troca o fallback pelo botão oficial quando o client ID e a origem são válidos", async () => {
+    vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "public-client.apps.googleusercontent.com");
+    vi.stubEnv("VITE_GOOGLE_ALLOWED_ORIGINS", window.location.origin);
+    let initOptions: { nonce: string; callback: (response: { credential?: string }) => void } | undefined;
+    const initialize = vi.fn((options) => { initOptions = options; });
+    const renderButton = vi.fn((element: HTMLElement) => {
+      const button = document.createElement("button");
+      button.textContent = "Botão Google oficial";
+      element.appendChild(button);
+    });
+    Object.defineProperty(window, "google", {
+      configurable: true,
+      value: { accounts: { id: { initialize, renderButton } } },
+    });
+
+    render(
+      <GoogleIdentityButton
+        mode="signin"
+        disabled={false}
+        fallback={<button type="button">OAuth anterior</button>}
+        onError={vi.fn()}
+      />,
+    );
+    await screen.findByText("Botão Google oficial");
+    expect(screen.queryByText("OAuth anterior")).toBeNull();
+    expect(initOptions?.nonce).toMatch(/^[a-f0-9]{64}$/);
+    expect(renderButton).toHaveBeenCalledOnce();
+  });
+
 });
