@@ -96,18 +96,16 @@ export function recordRateLimitAttempt(
 }
 
 /**
- * Bypass apenas em execução local explicitamente de teste/desenvolvimento.
- * No runtime Worker NODE_ENV pode estar ausente: "não production" NÃO é
- * prova de ambiente seguro e nunca deve aceitar uma chave fornecida pelo
- * cliente com o sufixo siga-plus.test como permissão de bypass.
+ * Bypass apenas em execução local explicitamente de teste/desenvolvimento
+ * com opt-in do ambiente SIGA_E2E_LIVE. Uma chave, e-mail, domínio ou IP
+ * fornecido pelo cliente NUNCA pode activar o bypass, mesmo em preview/dev.
+ *
+ * Mantém argumentos opcionais por compatibilidade com os consumidores, mas
+ * ignora-os intencionalmente: dados do pedido não são sinal de autorização.
  */
-export function isRateLimitBypassed(...contextValues: string[]): boolean {
+export function isRateLimitBypassed(..._contextValues: string[]): boolean {
   if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test") {
     return false;
   }
-  return (
-    process.env.SIGA_E2E_LIVE === "1" ||
-    process.env.SIGA_E2E_LIVE === "true" ||
-    contextValues.some((value) => value.includes("siga-plus.test"))
-  );
+  return process.env.SIGA_E2E_LIVE === "1" || process.env.SIGA_E2E_LIVE === "true";
 }
