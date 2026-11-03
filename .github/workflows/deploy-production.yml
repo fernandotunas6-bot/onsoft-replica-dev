@@ -222,6 +222,11 @@ jobs:
           # mostra o widget e o Supabase Auth (captcha activo) recusa todos os logins
           # por senha; o WEB também a usa no registo de escolas.
           VITE_HCAPTCHA_SITE_KEY: ${{ vars.VITE_HCAPTCHA_SITE_KEY }}
+          # Browser-only Google Web Client ID: not a secret. Leave empty until
+          # Google Cloud has the exact JavaScript origins registered and verified.
+          # On missing value, the existing OAuth redirect remains active.
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_ALLOWED_ORIGINS: ${{ vars.VITE_GOOGLE_ALLOWED_ORIGINS || 'https://portal-siga.com' }}
 
       - name: Confirmar DNS da plataforma (raiz, app e wildcard)
         run: npm run siga:check-dns
