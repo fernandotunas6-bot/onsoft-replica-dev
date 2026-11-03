@@ -84,7 +84,10 @@ describe("login Google com identidade SIGA Plus", () => {
     await waitFor(() => expect(googleAuth.signInWithIdToken).toHaveBeenCalledOnce());
     const request = googleAuth.signInWithIdToken.mock.calls[0]?.[0];
     expect(request).toMatchObject({ provider: "google", token: "test-id-token" });
-    const digest = await webcrypto.subtle.digest("SHA-256", new TextEncoder().encode(request.nonce));
+    const digest = await webcrypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(request.nonce),
+    );
     expect(Buffer.from(digest).toString("hex")).toBe(receivedNonce);
 
     fireEvent.click(screen.getByRole("button", { name: /Problemas com o Google/i }));
@@ -92,6 +95,7 @@ describe("login Google com identidade SIGA Plus", () => {
     onCredential?.({ credential: "ignored-after-switch" });
     expect(googleAuth.signInWithIdToken).toHaveBeenCalledOnce();
   });
+
   it("mantém o OAuth antigo quando o novo login está desactivado", () => {
     vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "public-client.apps.googleusercontent.com");
     vi.stubEnv("VITE_GOOGLE_ALLOWED_ORIGINS", window.location.origin);
@@ -108,5 +112,4 @@ describe("login Google com identidade SIGA Plus", () => {
     expect(screen.getByText("OAuth anterior")).toBeTruthy();
     expect(screen.queryByTestId("google-identity-button")).toBeNull();
   });
-
 });
