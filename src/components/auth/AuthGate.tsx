@@ -788,228 +788,228 @@ export function AuthGate({
               <div className="mt-6">
                 <Suspense
                   fallback={
-                        <p role="status" className="text-sm text-muted-foreground">
-                          A preparar verificação de segurança…
-                        </p>
-                      }
-                    >
-                      <MfaChallenge
-                        factors={mfaFactors}
-                        intro="Confirme que é você. Neste dispositivo fica válido em todas as escolas e painéis, e só volta a ser pedido daqui a 30 dias, se terminar a sessão ou se o navegador mudar."
-                        cancelLabel="Usar outra conta"
-                        onCancel={() => {
-                          setMfaFactors(null);
-                          void supabase.auth.signOut({ scope: "local" });
-                        }}
-                        onVerified={async (method) => {
-                          const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-                          if (assurance.data?.currentLevel !== "aal2") {
-                            throw new Error("A verificação não elevou a sessão. Tente novamente.");
-                          }
-                          const { data: sessionData } = await supabase.auth.getSession();
-                          if (!sessionData.session) {
-                            throw new Error("A sessão não ficou disponível após a verificação.");
-                          }
-                          const userId = sessionData.session.user.id;
-                          localStorage.setItem(activityKey(userId), String(Date.now()));
-                          trustDevice(userId);
-                          setSession(sessionData.session);
-                          setMfaFactors(null);
-                          if (method === "code" && !mfaFactors.passkeyId) offerPasskey();
-                        }}
-                      />
-                    </Suspense>
-                  </div>
-                ) : null}
-
-                <form
-                  className="mt-6 space-y-4"
-                  onSubmit={signIn}
-                  aria-busy={submitting}
-                  hidden={Boolean(mfaFactors) || mode === "signup"}
+                    <p role="status" className="text-sm text-muted-foreground">
+                      A preparar verificação de segurança…
+                    </p>
+                  }
                 >
-                  <div className="space-y-1.5">
-                    <Label htmlFor="login-email" className="text-xs font-medium">
-                      {studentNumberLogin
-                        ? "Email, Nº de BI ou Nº de aluno"
-                        : "Email ou Nº de BI / NIF"}
-                    </Label>
-                    <div className="relative">
-                      <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        id="login-email"
-                        name="email"
-                        type="text"
-                        autoComplete="username"
-                        required
-                        defaultValue={rememberedEmail}
-                        className="pl-9 h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
-                        placeholder={
-                          studentNumberLogin
-                            ? "utilizador@escola.ao, 004212984LA042 ou 1260001"
-                            : "utilizador@escola.ao ou 004212984LA042"
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <Label htmlFor="login-password" className="text-xs font-medium">
-                        Senha
-                      </Label>
-                      <button
-                        type="button"
-                        className="inline-flex min-h-[44px] items-center justify-center rounded-md px-2 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60"
-                        onClick={() => void resetPassword()}
-                        disabled={resetting || submitting || sendingMagicLink}
-                      >
-                        {resetting ? "A enviar…" : "Esqueceu a senha?"}
-                      </button>
-                    </div>
-                    <div className="relative">
-                      <LockKeyhole className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        id="login-password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        autoComplete="current-password"
-                        required
-                        minLength={8}
-                        className="pr-11 pl-9 h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
-                        placeholder="••••••••"
-                      />
-                      <button
-                        type="button"
-                        className="absolute top-1/2 right-1.5 flex size-[28px] -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
-                        onClick={() => setShowPassword((value) => !value)}
-                        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                      >
-                        {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      name="remember"
-                      aria-label="Lembrar email"
-                      defaultChecked={Boolean(rememberedEmail)}
-                      className="size-3.5 rounded border-input text-primary focus:ring-primary"
-                    />
-                    Lembrar email neste dispositivo
-                  </label>
-                  <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
-                  <Button
-                    type="submit"
-                    className="w-full gap-2 h-[44px] text-[14px] font-semibold"
-                    disabled={submitting || resetting || sendingMagicLink}
-                  >
-                    {submitting ? (
-                      <LoaderCircle className="size-4 animate-spin" />
-                    ) : (
-                      <LockKeyhole className="size-4" />
-                    )}
-                    {submitting ? "A entrar…" : "Entrar no Portal"}
-                  </Button>
+                  <MfaChallenge
+                    factors={mfaFactors}
+                    intro="Confirme que é você. Neste dispositivo fica válido em todas as escolas e painéis, e só volta a ser pedido daqui a 30 dias, se terminar a sessão ou se o navegador mudar."
+                    cancelLabel="Usar outra conta"
+                    onCancel={() => {
+                      setMfaFactors(null);
+                      void supabase.auth.signOut({ scope: "local" });
+                    }}
+                    onVerified={async (method) => {
+                      const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+                      if (assurance.data?.currentLevel !== "aal2") {
+                        throw new Error("A verificação não elevou a sessão. Tente novamente.");
+                      }
+                      const { data: sessionData } = await supabase.auth.getSession();
+                      if (!sessionData.session) {
+                        throw new Error("A sessão não ficou disponível após a verificação.");
+                      }
+                      const userId = sessionData.session.user.id;
+                      localStorage.setItem(activityKey(userId), String(Date.now()));
+                      trustDevice(userId);
+                      setSession(sessionData.session);
+                      setMfaFactors(null);
+                      if (method === "code" && !mfaFactors.passkeyId) offerPasskey();
+                    }}
+                  />
+                </Suspense>
+              </div>
+            ) : null}
+
+            <form
+              className="mt-6 space-y-4"
+              onSubmit={signIn}
+              aria-busy={submitting}
+              hidden={Boolean(mfaFactors) || mode === "signup"}
+            >
+              <div className="space-y-1.5">
+                <Label htmlFor="login-email" className="text-xs font-medium">
+                  {studentNumberLogin
+                    ? "Email, Nº de BI ou Nº de aluno"
+                    : "Email ou Nº de BI / NIF"}
+                </Label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="login-email"
+                    name="email"
+                    type="text"
+                    autoComplete="username"
+                    required
+                    defaultValue={rememberedEmail}
+                    className="pl-9 h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
+                    placeholder={
+                      studentNumberLogin
+                        ? "utilizador@escola.ao, 004212984LA042 ou 1260001"
+                        : "utilizador@escola.ao ou 004212984LA042"
+                    }
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="login-password" className="text-xs font-medium">
+                    Senha
+                  </Label>
                   <button
                     type="button"
-                    className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-60"
-                    onClick={() => void sendMagicLink()}
-                    disabled={sendingMagicLink || submitting || resetting}
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-md px-2 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60"
+                    onClick={() => void resetPassword()}
+                    disabled={resetting || submitting || sendingMagicLink}
                   >
-                    {sendingMagicLink ? "A enviar link…" : "Ou entrar sem senha por link de e-mail"}
+                    {resetting ? "A enviar…" : "Esqueceu a senha?"}
                   </button>
-                </form>
+                </div>
+                <div className="relative">
+                  <LockKeyhole className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="login-password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    required
+                    minLength={8}
+                    className="pr-11 pl-9 h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    className="absolute top-1/2 right-1.5 flex size-[28px] -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowPassword((value) => !value)}
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  name="remember"
+                  aria-label="Lembrar email"
+                  defaultChecked={Boolean(rememberedEmail)}
+                  className="size-3.5 rounded border-input text-primary focus:ring-primary"
+                />
+                Lembrar email neste dispositivo
+              </label>
+              <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
+              <Button
+                type="submit"
+                className="w-full gap-2 h-[44px] text-[14px] font-semibold"
+                disabled={submitting || resetting || sendingMagicLink}
+              >
+                {submitting ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <LockKeyhole className="size-4" />
+                )}
+                {submitting ? "A entrar…" : "Entrar no Portal"}
+              </Button>
+              <button
+                type="button"
+                className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-60"
+                onClick={() => void sendMagicLink()}
+                disabled={sendingMagicLink || submitting || resetting}
+              >
+                {sendingMagicLink ? "A enviar link…" : "Ou entrar sem senha por link de e-mail"}
+              </button>
+            </form>
 
-                {mode === "signup" && !mfaFactors ? (
-                  <form className="mt-6 space-y-4" onSubmit={signUp} aria-busy={submitting}>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="signup-name" className="text-xs font-medium">
-                        Nome completo
-                      </Label>
-                      <Input
-                        id="signup-name"
-                        name="fullName"
-                        autoComplete="name"
-                        required
-                        minLength={3}
-                        maxLength={160}
-                        className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="signup-email" className="text-xs font-medium">
-                        E-mail
-                      </Label>
-                      <Input
-                        id="signup-email"
-                        name="email"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
-                        placeholder="nome@exemplo.ao"
-                      />
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="signup-password" className="text-xs font-medium">
-                          Senha
-                        </Label>
-                        <Input
-                          id="signup-password"
-                          name="password"
-                          type="password"
-                          autoComplete="new-password"
-                          required
-                          minLength={8}
-                          className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="signup-confirm" className="text-xs font-medium">
-                          Confirmar senha
-                        </Label>
-                        <Input
-                          id="signup-confirm"
-                          name="confirmPassword"
-                          type="password"
-                          autoComplete="new-password"
-                          required
-                          minLength={8}
-                          className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-[11px] leading-4 text-muted-foreground">
-                      Criar conta não dá acesso a nenhuma escola. Depois de entrar, poderá configurar a
-                      sua escola ou pedir acesso à secretaria da escola a que pertence.
-                    </p>
-                    <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
-                    <Button
-                      type="submit"
-                      className="w-full gap-2 h-[44px] text-[14px] font-semibold"
-                      disabled={submitting}
-                    >
-                      {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-                      {submitting ? "A criar conta…" : "Criar conta"}
-                    </Button>
-                  </form>
-                ) : null}
+            {mode === "signup" && !mfaFactors ? (
+              <form className="mt-6 space-y-4" onSubmit={signUp} aria-busy={submitting}>
+                <div className="space-y-1.5">
+                  <Label htmlFor="signup-name" className="text-xs font-medium">
+                    Nome completo
+                  </Label>
+                  <Input
+                    id="signup-name"
+                    name="fullName"
+                    autoComplete="name"
+                    required
+                    minLength={3}
+                    maxLength={160}
+                    className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="signup-email" className="text-xs font-medium">
+                    E-mail
+                  </Label>
+                  <Input
+                    id="signup-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
+                    placeholder="nome@exemplo.ao"
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-password" className="text-xs font-medium">
+                      Senha
+                    </Label>
+                    <Input
+                      id="signup-password"
+                      name="password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-confirm" className="text-xs font-medium">
+                      Confirmar senha
+                    </Label>
+                    <Input
+                      id="signup-confirm"
+                      name="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] leading-4 text-muted-foreground">
+                  Criar conta não dá acesso a nenhuma escola. Depois de entrar, poderá configurar a
+                  sua escola ou pedir acesso à secretaria da escola a que pertence.
+                </p>
+                <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
+                <Button
+                  type="submit"
+                  className="w-full gap-2 h-[44px] text-[14px] font-semibold"
+                  disabled={submitting}
+                >
+                  {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                  {submitting ? "A criar conta…" : "Criar conta"}
+                </Button>
+              </form>
+            ) : null}
 
-                {/* Durante o código 2FA só há um caminho: confirmar ou usar outra conta. */}
-                {mfaFactors ? null : (
-                  <>
-                    <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
-                      <span className="h-px flex-1 bg-border" />
-                      ou
-                      <span className="h-px flex-1 bg-border" />
-                    </div>
-                    <GoogleIdentityButton
-                      mode={mode}
-                      disabled={submitting || resetting || sendingMagicLink}
-                      onError={setError}
-                      fallback={
+            {/* Durante o código 2FA só há um caminho: confirmar ou usar outra conta. */}
+            {mfaFactors ? null : (
+              <>
+                <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
+                  <span className="h-px flex-1 bg-border" />
+                  ou
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+                <GoogleIdentityButton
+                  mode={mode}
+                  disabled={submitting || resetting || sendingMagicLink}
+                  onError={setError}
+                  fallback={
                     <Button
                       type="button"
                       variant="outline"
