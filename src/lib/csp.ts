@@ -1,3 +1,5 @@
+import { readJsonBodyLimited } from "./read-json-body";
+
 /**
  * Content-Security-Policy do SIGA, por agora só em modo de relatório
  * (`Content-Security-Policy-Report-Only`): o browser não bloqueia nada, só
@@ -115,16 +117,14 @@ export async function handleCspReport(request: Request): Promise<Response> {
   if (request.method !== "POST") {
     return new Response(null, { status: 405, headers: { Allow: "POST" } });
   }
-  const declared = Number(request.headers.get("content-length") ?? "0");
-  if (declared > MAX_REPORT_BYTES) return new Response(null, { status: 413 });
-  try {
-    const text = await request.text();
-    if (text.length > MAX_REPORT_BYTES) return new Response(null, { status: 413 });
-    for (const violation of parseCspReports(JSON.parse(text))) {
-      console.warn(`[csp] ${JSON.stringify(violation)}`);
-    }
-  } catch {
-    // Relatório mal formado: nada a registar.
+  // Os relatórios chegam de browsers não autenticados. A medição de bytes
+  // durante a leitura cobre pedidos chunked e Content-Length subdeclarado.
+  const parsed = await readJsonBodyLimited(request, MAX_REPORT_BYTES);
+  if (!parsed.ok) {
+    return new Response(null, { status: parsed.reason === "too_large" ? 413 : 204 });
+  }
+  for (const violation of parseCspReports(parsed.value)) {
+    console.warn(`[csp] ${JSON.stringify(violation)}`);
   }
   return new Response(null, { status: 204 });
 }
