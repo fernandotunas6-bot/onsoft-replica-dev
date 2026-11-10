@@ -35,7 +35,7 @@ export default defineConfig({
   },
 
   themeConfig: {
-    logo: '/logo.svg',
+    logo: { src: '/brand/siga-plus-icon.png', alt: '' },
 
     nav: [
       { text: 'Guia', link: '/guide/' },
@@ -265,7 +265,7 @@ export default defineConfig({
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }],
     ['link', { rel: 'shortcut icon', href: '/favicon.png' }],
-    ['link', { rel: 'apple-touch-icon', href: '/favicon.png' }],
+    ['link', { rel: 'apple-touch-icon', href: '/brand/siga-plus-icon.png' }],
     ['meta', { name: 'theme-color', content: '#5f6368' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:locale', content: 'pt_PT' }],
