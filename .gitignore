@@ -87,5 +87,8 @@ client_secret_*.json
 
 # School website assets are rebuilt from painel/escolas before SIGA dev/build.
 /public/_school-website/
+# Cache npm do PayFlow: painel/payflow/.npmrc usa um caminho relativo, por isso
+# `npm run payflow:install` (npm ci --prefix) cria-a na raiz do repositório.
+/.sites-runtime/
 /.ispab-demo-runner.mjs
 /.ispab-demo-result/
