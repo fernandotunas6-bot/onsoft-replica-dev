@@ -24,12 +24,27 @@ import { renderRoute, routeComponentOf } from "./_harness";
  * 5. Requisitos de senha em tempo real desbloqueiam "Atualizar Senha" só
  *    quando todos batem certo, e a submissão chama `updateUser` com a senha
  *    (sem espaços à volta) e mostra o ecrã de sucesso.
+ * 6. Conta com 2FA: o Supabase só aceita a nova senha numa sessão aal2
+ *    (supabase/auth#1766) e o link de recuperação dá aal1. Pede-se o segundo
+ *    factor antes de gravar — também quando é o servidor a recusar.
  */
 
 const exchangeCodeForSessionMock = vi.fn();
 const verifyOtpMock = vi.fn();
 const getSessionMock = vi.fn();
 const updateUserMock = vi.fn();
+const noSecondFactor = async () => ({
+  data: { currentLevel: "aal1", nextLevel: "aal1" },
+  error: null,
+});
+const aalMock = vi.fn(noSecondFactor);
+const noFactors = async () => ({ data: { totp: [], webauthn: [] }, error: null });
+const listFactorsMock = vi.fn(noFactors);
+const challengeMock = vi.fn(async (_input: unknown) => ({
+  data: { id: "challenge-1" },
+  error: null,
+}));
+const mfaVerifyMock = vi.fn(async (_input: unknown) => ({ data: {}, error: null }));
 // Sem rede nos testes: a verificação de fugas (HaveIBeenPwned) é simulada.
 const exposureMock = vi.fn(async (_password: string): Promise<number | null> => 0);
 vi.mock("@/lib/pwned-password", () => ({
@@ -53,9 +68,33 @@ vi.mock("@/integrations/supabase/client", () => ({
         authStateCallback = cb;
         return { data: { subscription: { unsubscribe: unsubscribeMock } } };
       },
+      mfa: {
+        getAuthenticatorAssuranceLevel: () => aalMock(),
+        listFactors: () => listFactorsMock(),
+        challenge: (input: unknown) => challengeMock(input),
+        verify: (input: unknown) => mfaVerifyMock(input),
+      },
     },
   },
 }));
+
+const withTotp = async () => ({
+  data: { totp: [{ id: "totp-1", status: "verified" }], webauthn: [] },
+  error: null,
+});
+const needsSecondFactor = async () => ({
+  data: { currentLevel: "aal1", nextLevel: "aal2" },
+  error: null,
+});
+
+async function fillValidPassword() {
+  const passwordInput = await screen.findByLabelText("Nova senha");
+  fireEvent.change(passwordInput, { target: { value: "Senha123!" } });
+  fireEvent.change(screen.getByLabelText("Confirmar nova senha"), {
+    target: { value: "Senha123!" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /Atualizar Senha/ }));
+}
 
 async function loadPage(): Promise<ComponentType> {
   const mod = await import("@/routes/auth.reset-password");
@@ -69,6 +108,8 @@ function navigateTo(url: string) {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  aalMock.mockImplementation(noSecondFactor);
+  listFactorsMock.mockImplementation(noFactors);
   vi.useRealTimers();
   authStateCallback = null;
   window.history.pushState(null, "", "/");
@@ -197,5 +238,61 @@ describe("/auth/reset-password", () => {
       ),
     );
     expect(updateUserMock).not.toHaveBeenCalled();
+  });
+
+  it("conta com 2FA: pede o código antes de gravar e só depois chama updateUser", async () => {
+    navigateTo("/auth/reset-password?code=abc123");
+    exchangeCodeForSessionMock.mockResolvedValue({ error: null });
+    aalMock.mockImplementation(needsSecondFactor);
+    listFactorsMock.mockImplementation(withTotp);
+    updateUserMock.mockResolvedValue({ error: null });
+
+    const Page = await loadPage();
+    renderRoute(Page);
+    await fillValidPassword();
+
+    const codeInput = await screen.findByLabelText("Código da aplicação autenticadora");
+    expect(updateUserMock).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText("Nova senha")).toBeNull();
+
+    fireEvent.change(codeInput, { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar código" }));
+
+    await waitFor(() =>
+      expect(mfaVerifyMock).toHaveBeenCalledWith({
+        factorId: "totp-1",
+        challengeId: "challenge-1",
+        code: "123456",
+      }),
+    );
+    await waitFor(() => expect(updateUserMock).toHaveBeenCalledWith({ password: "Senha123!" }));
+    await waitFor(() => expect(screen.getByText("Senha atualizada com sucesso!")).toBeDefined());
+  });
+
+  it("recusa insufficient_aal do servidor: mostra a confirmação em vez de um erro", async () => {
+    navigateTo("/auth/reset-password?code=abc123");
+    exchangeCodeForSessionMock.mockResolvedValue({ error: null });
+    // A consulta antes de gravar ainda não vê o factor; o servidor recusa.
+    aalMock.mockImplementationOnce(noSecondFactor).mockImplementation(needsSecondFactor);
+    listFactorsMock.mockImplementation(withTotp);
+    updateUserMock
+      .mockResolvedValueOnce({
+        error: {
+          code: "insufficient_aal",
+          message: "AAL2 session is required to update email or password when MFA is enabled.",
+        },
+      })
+      .mockResolvedValueOnce({ error: null });
+
+    const Page = await loadPage();
+    renderRoute(Page);
+    await fillValidPassword();
+
+    const codeInput = await screen.findByLabelText("Código da aplicação autenticadora");
+    fireEvent.change(codeInput, { target: { value: "654321" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar código" }));
+
+    await waitFor(() => expect(updateUserMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByText("Senha atualizada com sucesso!")).toBeDefined());
   });
 });

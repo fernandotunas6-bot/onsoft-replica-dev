@@ -73,6 +73,30 @@ export async function listVerificationFactors(): Promise<VerificationFactors> {
   };
 }
 
+/**
+ * Factores a confirmar antes de mudar a senha. Numa conta com 2FA verificado, o
+ * Supabase Auth só aceita a alteração numa sessão aal2 (supabase/auth#1766), mesmo
+ * com a confirmação no início de sessão desligada: o link de recuperação e a
+ * reautenticação por senha dão aal1. `null` quando a sessão actual já serve.
+ */
+export async function factorsForSensitiveChange(): Promise<VerificationFactors | null> {
+  const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (error) throw error;
+  if (data?.nextLevel !== "aal2" || data.currentLevel === "aal2") return null;
+  const factors = await listVerificationFactors();
+  return factors.passkeyId || factors.totpId ? factors : null;
+}
+
+/** O servidor recusou a alteração por faltar o segundo factor (aal1 numa conta com 2FA). */
+export function isInsufficientAalError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  if ((error as { code?: unknown }).code === "insufficient_aal") return true;
+  const message = (error as { message?: unknown }).message;
+  return (
+    typeof message === "string" && /insufficient[_ ]aal|aal2 session is required/i.test(message)
+  );
+}
+
 /** Mensagem curta para o ecrã quando o browser ou o servidor recusam a chave. */
 export function passkeyErrorMessage(error: unknown): string {
   const name = (error as { name?: unknown } | null)?.name;
