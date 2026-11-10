@@ -38,7 +38,14 @@ const noSecondFactor = async () => ({
   error: null,
 });
 const aalMock = vi.fn(noSecondFactor);
-const noFactors = async () => ({ data: { totp: [], webauthn: [] }, error: null });
+type FactorList = {
+  data: { totp: Array<{ id: string; status: string }>; webauthn: Array<{ id: string }> };
+  error: null;
+};
+const noFactors = async (): Promise<FactorList> => ({
+  data: { totp: [], webauthn: [] },
+  error: null,
+});
 const listFactorsMock = vi.fn(noFactors);
 const challengeMock = vi.fn(async (_input: unknown) => ({
   data: { id: "challenge-1" },
@@ -78,7 +85,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-const withTotp = async () => ({
+const withTotp = async (): Promise<FactorList> => ({
   data: { totp: [{ id: "totp-1", status: "verified" }], webauthn: [] },
   error: null,
 });
