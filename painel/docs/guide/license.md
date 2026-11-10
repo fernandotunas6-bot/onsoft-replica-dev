@@ -1,39 +1,25 @@
-# Licença Proprietária e Comercial SIGA Plus
+# Licença e termos
 
-Informações sobre os termos de uso, validação e licenciamento fechado da plataforma.
+## SIGA Plus
 
-## Termos da Licença Proprietária
+O SIGA Plus é software proprietário, disponibilizado como serviço (SaaS) às escolas que o
+contratam. O código e os pacotes não podem ser redistribuídos, sublicenciados nem
+descompilados. Os dados que a escola introduz (alunos, pautas, documentos, registos
+financeiros) pertencem à escola e ficam isolados das outras instituições (Termos de serviço,
+cláusula 6).
 
-O software **SIGA Plus** é uma solução **Proprietária Comercial**. O uso da plataforma é exclusivamente concedido sob licença institucional atribuída e validada através do **Painel Admin Central**.
+Os termos de utilização e a política de privacidade em vigor são os publicados no portal
+comercial («Termos de serviço» e «Privacidade», no rodapé). Em caso de diferença, prevalecem
+esses textos.
 
-### Direitos Concedidos ao Cliente
+Planos, renovações e mudanças de plano tratam-se na área do cliente do SIGA Plus
+(«Assinatura e plano») ou com a equipa, pelo [suporte](/guide/support).
 
-- **Uso Institucional Restrito** - Utilização da plataforma na instituição de ensino ou empresa licenciada.
-- **Configuração e Personalização** - Ajustes de parâmetros internos, logótipos e esquemas de cores de acordo com os perfis institucionais.
-- **Acessos por Perfis Limitados** - Atribuição de permissões granulares no Painel Admin do Cliente para administradores locais, secretarias, docentes e operadores.
+## Bibliotecas de terceiros
 
-### Restrições de Licenciamento
+A interface usa bibliotecas de código aberto, que mantêm as licenças dos seus autores,
+entre elas:
 
-- **Proibição de Redistribuição** - É expressamente proibido partilhar, vender, sublicenciar ou redistribuir o código-fonte ou pacotes do SIGA Plus.
-- **Proibição de Engenharia Reversa** - Proibida qualquer tentativa de decompilação, descompilação ou quebra do sistema de validação de licenças.
-- **Uso Dependente de Ativação** - Cada instância da aplicação necessita de registo e aprovação prévia emitida pelo **Painel Admin Central**.
-
-## Arquitetura de Aprovação & Validação
-
-1. **Submissão da Instância** - Após a instalação local, o sistema envia o pedido de ativação com o identificador único da instituição.
-2. **Aprovação Central** - O Administrador Central (SGA Core) analisa e aprova a submissão no Painel Admin Central.
-3. **Desbloqueio de Funcionalidades** - O Painel Admin do Cliente recebe o token de assinatura digital, ativando os módulos contratados de acordo com os níveis de permissão.
-
-## Licenças de Bibliotecas de Terceiros
-
-As bibliotecas utilizadas na construção da interface permanecem sob as respetivas licenças dos seus autores:
-- **React / Next.js / Vite** - Licença MIT
-- **Tailwind CSS** - Licença MIT
-- **Radix UI / shadcn/ui** - Licença MIT
-- **Lucide Icons** - Licença ISC
-
-## Suporte e Gestão de Licenças
-
-Para renovação de subscrições, adição de novos módulos ou suporte técnico corporativo:
-- **Painel Admin Central**: Módulo de Gestão de Clientes e Licenças
-- **Atendimento Institucional**: Contrate o departamento de suporte oficial SIGA Plus
+- React, Vite, Next.js, VitePress — licença MIT
+- Tailwind CSS, Radix UI, shadcn/ui — licença MIT
+- Lucide (ícones) — licença ISC

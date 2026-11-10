@@ -9,7 +9,7 @@ import { getDocsUrl, getSigaLoginUrl } from "@/lib/ecosystem-urls"
 
 const STEPS = [
   { title: "Ver planos", href: "/pricing", doneHint: "Escolher código de plano" },
-  { title: "Criar escola", href: "/start", doneHint: "Wizard · trial 14 dias" },
+  { title: "Criar escola", href: "/start", doneHint: "Assistente guiado · 14 dias de avaliação" },
   { title: "Ler onboarding", href: getDocsUrl("/web/onboarding-pos-criacao.html"), external: true, doneHint: "Ano lectivo e propinas" },
   { title: "Entrar no SIGA", href: getSigaLoginUrl(), external: true, doneHint: "Operação diária" },
 ]
@@ -18,7 +18,7 @@ export default function TasksPage() {
   return (
     <MarketingLayout
       title="Checklist: criar a escola"
-      description="Passos reais do funil comercial WEB → SIGA. Não é a lista demo do template."
+      description="Os passos para pôr a sua escola a funcionar com o SIGA Plus."
       eyebrow="Onboarding"
     >
       <div className="container mx-auto max-w-2xl space-y-6 px-4 py-10 sm:px-6">

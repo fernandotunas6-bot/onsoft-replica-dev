@@ -189,9 +189,7 @@ export function LandingNavbar() {
             <div className="flex h-full flex-col">
               <SheetHeader className="space-y-0 border-b p-4 pb-2">
                 <div className="flex items-center gap-2">
-                  <div className="rounded-lg bg-primary/10 p-2">
-                    <Logo size={16} />
-                  </div>
+                  <Logo size={28} />
                   <SheetTitle className="text-lg font-semibold">SIGA Plus</SheetTitle>
                   <div className="ml-auto flex items-center gap-2">
                     <Button

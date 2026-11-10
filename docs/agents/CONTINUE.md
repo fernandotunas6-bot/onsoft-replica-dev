@@ -1,5 +1,28 @@
 # Handoff — continuar o SIGA
 
+## Análise crítica do ecossistema e correcções — 10/11/2026
+
+Ramo `claude/intelligent-bell-sw3qo4` (base `main` `2a13b02`). Achados, números antes/depois,
+pendências do proprietário e limites em
+[21 — análise crítica do ecossistema](../auditoria/21-analise-critica-ecossistema-2026-11-10.md).
+Sem SQL, deploy nem escritas na produção.
+
+- **2FA e senha (SIGA):** contas com 2FA verificado só mudam a senha numa sessão aal2
+  (supabase/auth#1766). `/auth/reset-password` e `PasswordChangeForm` pedem agora o segundo
+  factor (`MfaChallenge`) antes de `updateUser`, também perante `insufficient_aal`.
+  Auxiliares em `features/auth/verification.ts` (`factorsForSensitiveChange`,
+  `isInsufficientAalError`). Não usar `pendingMfaFactors` para isto: esse segue a preferência
+  de 2FA no login, e a regra do servidor não.
+- **Cabeçalhos de segurança:** `public/_headers` no WEB, ADMIN e DOC; `headers()` no
+  `next.config.ts` do PayFlow (no vinext usar grupos de regex: `/(.*)`, não `/:path*`).
+- **WEB/ADMIN/DOC:** fora os formulários falsos (`/auth/forgot-password`, `/mail`), a
+  recuperação de senha sem saída do ADMIN (vai para a do SIGA), o logótipo de carrinho do
+  modelo (ícone oficial em `public/brand/`), 19 páginas do modelo no DOC (com
+  `_redirects`) e as ligações mortas (o build do DOC falha com elas).
+- Contratos: `tests/security/pages-security-headers.test.ts`, `tests/saas/ecosystem-brand.test.ts`,
+  `tests/saas/docs-structure.test.ts`, `tests/saas/admin-login-safety.test.ts`,
+  `painel/payflow/tests/security-headers.test.mjs`.
+
 ## Ecossistema: cinco destinos, jornada da escola nova e ligações — 01/11/2026
 
 Ramo `claude/cool-goldberg-syajnp`. Os cinco destinos estão publicados em `b38509db`

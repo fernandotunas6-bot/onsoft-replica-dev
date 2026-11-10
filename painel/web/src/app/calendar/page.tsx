@@ -29,7 +29,7 @@ export default function CalendarPage() {
             </Button>
             <Button variant="outline" asChild>
               <a href={getDocsUrl("/siga/navegacao.html")} target="_blank" rel="noreferrer">
-                Mapa de navegação (DOC)
+                Mapa de navegação (manual)
               </a>
             </Button>
           </CardContent>
@@ -38,7 +38,7 @@ export default function CalendarPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Ainda sem escola?</CardTitle>
-            <CardDescription>Crie o tenant no wizard e configure o ano lectivo no onboarding.</CardDescription>
+            <CardDescription>Crie a escola no assistente e configure o ano lectivo nos primeiros passos.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             <Button asChild>

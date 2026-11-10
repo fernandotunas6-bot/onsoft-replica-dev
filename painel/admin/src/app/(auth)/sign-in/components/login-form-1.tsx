@@ -11,6 +11,8 @@ import { createClient } from "@/lib/supabase/client";
 import { fetchSaasSession } from "@/lib/saas-api";
 import { getCreateSchoolUrl } from "@/lib/ecosystem-urls";
 import { prepareAdminMfa } from "@/lib/admin-mfa";
+import { adminSignInErrorMessage } from "@/lib/auth-errors";
+import { DEFAULT_ADMIN_PATH, safeAdminNext } from "@/lib/safe-next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,36 +31,6 @@ const loginFormSchema = z.object({
 });
 
 type LoginFormValues = z.infer<typeof loginFormSchema>;
-
-const SAFE_ADMIN_PREFIXES = [
-  "/dashboard",
-  "/tasks",
-  "/calendar",
-  "/mail",
-  "/chat",
-  "/tenants",
-  "/subscriptions",
-  "/platform-admins",
-  "/audit",
-  "/domains",
-  "/gateway-webhooks",
-  "/settings",
-  "/signups",
-  "/site",
-  "/pricing",
-  "/education-catalog",
-  "/users",
-  "/faqs",
-] as const;
-
-function isSafeAdminNext(path: string | null): path is string {
-  if (!path || !path.startsWith("/")) return false;
-  if (path.startsWith("//")) return false;
-  const pathname = path.split(/[?#]/)[0] ?? path;
-  return SAFE_ADMIN_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
-}
 
 export function LoginForm1({ className, ...props }: React.ComponentProps<"div">) {
   const router = useRouter();
@@ -100,7 +72,7 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
     });
 
     if (error) {
-      setServerError(error.message);
+      setServerError(adminSignInErrorMessage(error));
       setIsSubmitting(false);
       return;
     }
@@ -191,10 +163,8 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
   }
 
   function safeNext() {
-    if (typeof window === "undefined") return "/tenants";
-    const next = new URLSearchParams(window.location.search).get("next");
-    if (isSafeAdminNext(next)) return next;
-    return "/tenants";
+    if (typeof window === "undefined") return DEFAULT_ADMIN_PATH;
+    return safeAdminNext(new URLSearchParams(window.location.search).get("next"));
   }
 
   return (
@@ -203,13 +173,17 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Centro de controlo SaaS</CardTitle>
           <CardDescription>
-            Acesso reservado a administradores da plataforma SIGA Plus (`platform_admins`).
+            Acesso reservado à equipa que administra a plataforma SIGA Plus.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {mfa ? (
             <form onSubmit={onVerifyCode} className="grid gap-4">
-              {serverError && <p className="text-destructive text-sm">{serverError}</p>}
+              {serverError && (
+                <p role="alert" className="text-destructive text-sm">
+                  {serverError}
+                </p>
+              )}
               {mfa.step === "enroll" ? (
                 <div className="grid gap-3 text-sm">
                   <p>
@@ -217,7 +191,6 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
                     aplicação autenticadora (Google Authenticator, Microsoft Authenticator, Authy…)
                     e escreva o código de 6 dígitos que ela mostra.
                   </p>
-                  {/* eslint-disable-next-line @next/next/no-img-element -- QR em data: URI do Supabase */}
                   <img
                     src={mfa.qrCode}
                     alt="QR para registar a aplicação autenticadora"
@@ -260,7 +233,11 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 <div className="grid gap-6">
-                  {serverError && <p className="text-destructive text-sm">{serverError}</p>}
+                  {serverError && (
+                    <p role="alert" className="text-destructive text-sm">
+                      {serverError}
+                    </p>
+                  )}
                   <div className="grid gap-4">
                     <FormField
                       control={form.control}
@@ -269,7 +246,12 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
                         <FormItem>
                           <FormLabel>E-mail</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="teste@exemplo.com" {...field} />
+                            <Input
+                              type="email"
+                              autoComplete="username"
+                              placeholder="nome@portal-siga.com"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -290,7 +272,7 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
                             </Link>
                           </div>
                           <FormControl>
-                            <Input type="password" {...field} />
+                            <Input type="password" autoComplete="current-password" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -308,7 +290,7 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
                       target="_blank"
                       rel="noreferrer"
                     >
-                      Wizard no portal WEB
+                      Criar escola no portal
                     </a>
                   </div>
                 </div>

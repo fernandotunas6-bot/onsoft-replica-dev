@@ -104,6 +104,14 @@
     "title": "Entrar no portal"
   },
   {
+    "url": "/propinas/",
+    "title": "Propinas e recibos — ISPAB"
+  },
+  {
+    "url": "/propinas/confirmacao/",
+    "title": "Acompanhar pagamento — ISPAB"
+  },
+  {
     "url": "/sobre/",
     "title": "Conheça o ISPAB"
   },

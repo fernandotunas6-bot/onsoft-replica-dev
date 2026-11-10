@@ -84,7 +84,7 @@ export const routes: RouteConfig[] = [
   { path: "/auth/sign-up", element: maybeAlive("/auth/sign-up", <SignUp />) },
   { path: "/auth/sign-up-2", element: maybeAlive("/auth/sign-up-2", <SignUp2 />) },
   { path: "/auth/sign-up-3", element: maybeAlive("/auth/sign-up-3", <SignUp3 />) },
-  { path: "/auth/forgot-password", element: <ForgotPassword /> },
+  { path: "/auth/forgot-password", element: maybeAlive("/auth/forgot-password", <ForgotPassword />) },
   { path: "/auth/forgot-password-2", element: maybeAlive("/auth/forgot-password-2", <ForgotPassword2 />) },
   { path: "/auth/forgot-password-3", element: maybeAlive("/auth/forgot-password-3", <ForgotPassword3 />) },
 
