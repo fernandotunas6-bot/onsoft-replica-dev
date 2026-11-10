@@ -18,15 +18,8 @@ const IS_PRODUCTION = import.meta.env.PROD;
  * Only loads GTM if VITE_GTM_ID environment variable is set AND in production mode
  */
 export const initGTM = (): void => {
-  if (!GTM_ID) {
-    console.log('GTM not initialized - VITE_GTM_ID environment variable not set');
-    return;
-  }
-
-  if (!IS_PRODUCTION) {
-    console.log('GTM not initialized - running in development mode');
-    return;
-  }
+  // Sem registos na consola em produção: o site público corre sem GTM por omissão.
+  if (!GTM_ID || !IS_PRODUCTION) return;
 
   // Initialize dataLayer
   window.dataLayer = window.dataLayer || [];
@@ -49,8 +42,6 @@ export const initGTM = (): void => {
     height="0" width="0" style="display:none;visibility:hidden"></iframe>
   `;
   document.body.insertBefore(noscript, document.body.firstChild);
-
-  console.log('GTM initialized successfully');
 };
 
 /**

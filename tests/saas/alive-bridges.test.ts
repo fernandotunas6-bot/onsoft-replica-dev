@@ -55,4 +55,25 @@ describe("alive-bridges (ecossistema)", () => {
     expect(routes).toContain("AliveBridgeRedirect");
     expect(routes).toContain("SHOW_TEMPLATE_SURFACES");
   });
+
+  it("WEB: recuperar a senha leva ao SIGA (o formulário do modelo não enviava nada)", () => {
+    const routes = readBridgeMap("painel/web/src/config/routes.tsx");
+    expect(routes).toContain('maybeAlive("/auth/forgot-password"');
+    const bridges = readBridgeMap("painel/web/src/lib/alive-bridges.ts");
+    for (const path of [
+      "/auth/forgot-password",
+      "/auth/forgot-password-2",
+      "/auth/forgot-password-3",
+    ]) {
+      const entry = bridges.slice(bridges.indexOf(`"${path}": {`)).split("},")[0];
+      expect(entry, path).toContain("getSigaLoginUrl()");
+      expect(entry, path).toContain("external: true");
+    }
+  });
+
+  it("WEB: /mail usa o formulário de contacto real (grava para a equipa ou prepara o e-mail)", () => {
+    const page = readBridgeMap("painel/web/src/app/mail/page.tsx");
+    expect(page).toContain("<ContactSection />");
+    expect(page).not.toContain("setSent(");
+  });
 });

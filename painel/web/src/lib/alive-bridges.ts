@@ -22,8 +22,26 @@ export const WEB_ALIVE_BRIDGES: Record<string, AliveBridge> = {
   "/auth/sign-up": { to: getCreateSchoolUrl(), label: "Criar escola" },
   "/auth/sign-up-2": { to: getCreateSchoolUrl(), label: "Criar escola" },
   "/auth/sign-up-3": { to: getCreateSchoolUrl(), label: "Criar escola" },
-  "/auth/forgot-password-2": { to: "/auth/forgot-password", label: "Recuperar senha" },
-  "/auth/forgot-password-3": { to: "/auth/forgot-password", label: "Recuperar senha" },
+  /**
+   * O WEB não tem contas: a recuperação de senha é a do SIGA Plus («Esqueceu a
+   * senha?» na entrada), com o e-mail institucional e o link seguro. A página do
+   * modelo tinha um formulário que não enviava nada.
+   */
+  "/auth/forgot-password": {
+    to: getSigaLoginUrl(),
+    external: true,
+    label: "a recuperação de senha do SIGA Plus",
+  },
+  "/auth/forgot-password-2": {
+    to: getSigaLoginUrl(),
+    external: true,
+    label: "a recuperação de senha do SIGA Plus",
+  },
+  "/auth/forgot-password-3": {
+    to: getSigaLoginUrl(),
+    external: true,
+    label: "a recuperação de senha do SIGA Plus",
+  },
   "/settings": { to: getPricingUrl(), label: "Planos" },
   "/settings/user": { to: getSigaLoginUrl(), external: true, label: "Conta no SIGA" },
   "/settings/account": { to: getSigaLoginUrl(), external: true, label: "Conta no SIGA" },
@@ -61,7 +79,6 @@ export const WEB_PRODUCT_PATHS = new Set([
   "/calendar",
   "/tasks",
   "/users",
-  "/auth/forgot-password",
   "/errors/unauthorized",
   "/errors/forbidden",
   "/errors/not-found",

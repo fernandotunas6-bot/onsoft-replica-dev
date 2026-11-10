@@ -13,7 +13,7 @@ const PERSONAS: Array<{
 }> = [
   {
     title: "Visitante / comprador",
-    desc: "Planos, demo, criar escola neste portal WEB.",
+    desc: "Planos, demonstração e criação da escola, aqui no portal.",
     cta: { label: "Ver planos", to: "/pricing" },
   },
   {
@@ -27,9 +27,9 @@ const PERSONAS: Array<{
     cta: { label: "Abrir SIGA", href: getSigaLoginUrl() },
   },
   {
-    title: "Platform admin",
-    desc: "Tenants e billing SaaS no Control Center — não na escola.",
-    cta: { label: "Control Center", href: getAdminTenantsUrl() },
+    title: "Equipa SIGA Plus",
+    desc: "Gestão da plataforma (escolas, planos e domínios), numa consola reservada à equipa.",
+    cta: { label: "Consola da plataforma", href: getAdminTenantsUrl() },
   },
 ]
 
@@ -37,7 +37,7 @@ export default function UsersPage() {
   return (
     <MarketingLayout
       title="Para quem é o SIGA Plus"
-      description="Personas do ecossistema — cada uma no sítio certo (WEB, SIGA ou ADMIN)."
+      description="Cada perfil tem o seu espaço: o portal para conhecer e criar a escola, o SIGA Plus para trabalhar."
       eyebrow="Ecossistema"
     >
       <div className="container mx-auto grid gap-4 px-4 py-10 sm:px-6 md:grid-cols-2 lg:px-8">

@@ -92,3 +92,5 @@ client_secret_*.json
 /.sites-runtime/
 /.ispab-demo-runner.mjs
 /.ispab-demo-result/
+# Capturas brutas do script siga:capture-web-screenshots (intermédias, não publicar).
+/painel/web/.screenshots-raw/
