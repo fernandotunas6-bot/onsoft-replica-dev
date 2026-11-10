@@ -6,6 +6,10 @@ import type { NextConfig } from "next";
  * site para enganar cliques (X-Frame-Options + frame-ancestors). A CSP só define
  * frame-ancestors, para não bloquear scripts. Mesma base do SIGA
  * (src/lib/security-headers.ts na raiz). Verificado em tests/security-headers.test.mjs.
+ *
+ * Ao integrar um fornecedor que mostre o pagamento num iframe (por exemplo a EMIS,
+ * hoje sem adaptador homologado), rever `payment=()`: bloqueia a Payment Request API
+ * também dentro de iframes, salvo se a origem do fornecedor for autorizada aqui.
  */
 const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=31536000" },
