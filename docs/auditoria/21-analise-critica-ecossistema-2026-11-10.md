@@ -1,0 +1,193 @@
+# SIGA Plus — Análise crítica do ecossistema (10/11/2026)
+
+Continua a [20](./20-analise-critica-2026-10-26.md) (26/10) e o
+[estado do ecossistema de 01/11](./estado-ecossistema-2026-11-01.md). Cobre as cinco apps:
+SIGA (raiz), WEB (`painel/web`), ADMIN (`painel/admin`), PAYFLOW (`painel/payflow`) e DOC
+(`painel/docs`). Ramo `claude/intelligent-bell-sw3qo4`, base `main` `2a13b02`.
+
+**Sem SQL, sem deploy, sem escritas na produção.** A rede desta sessão não alcança
+`portal-siga.com` nem `*.pages.dev`: nada aqui foi medido em produção. Os limites estão no fim.
+
+## Em uma frase
+
+O SIGA é sólido e muito testado, mas tinha um defeito sério no centro: **quem tem 2FA não
+conseguia mudar nem recuperar a senha**. À volta dele, WEB, ADMIN e DOC ainda traziam o
+modelo de UI de onde nasceram — logótipo de carrinho de compras, formulários que diziam ter
+enviado sem enviar nada, 19 páginas de documentação de outro produto — e as quatro apps fora
+do Worker do SIGA não enviavam **nenhum** cabeçalho de segurança.
+
+## Linha de base (medida antes de alterar, `main` `2a13b02`)
+
+| App     | Verificação                                              | Resultado                                                                                   |
+| ------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| SIGA    | `tsc`, lint, `check:style`, `check:a11y`, módulos, build | Todos passam (tsc 80 s)                                                                     |
+| SIGA    | `npm test` (Vitest)                                      | **5 981 ✓, 1 ✗**, 25 ignorados, 843 ficheiros — a falha é um ficheiro gerado desactualizado |
+| WEB     | lint, build                                              | 0 erros, 22 avisos; build OK; pedaço `vendor` 590 KB (187 KB gzip)                          |
+| ADMIN   | lint, `tsc`, build (exportação estática)                 | 0 erros, 1 aviso; OK                                                                        |
+| PAYFLOW | lint, `npm test`                                         | 0 erros, 7 avisos; 60/60                                                                    |
+| DOC     | build                                                    | OK — mas com `ignoreDeadLinks: true`, que escondia **12 ligações mortas**                   |
+
+Tamanho: 5 274 ficheiros versionados, 152 rotas e 65 rotas de API no SIGA, 586
+`createServerFn`, 848 ficheiros de teste, 272 migrações, 24 workflows.
+
+## Achados e correcções
+
+### P1 — 2FA bloqueava a mudança e a recuperação de senha (SIGA) — corrigido `07bb862`
+
+O Supabase Auth só aceita uma senha nova numa sessão **aal2** quando a conta tem 2FA
+verificado ([supabase/auth#1766](https://github.com/supabase/auth/pull/1766)), mesmo que a
+confirmação no início de sessão esteja desligada (decisão do proprietário de 27/10). Dois
+caminhos davam sessões aal1:
+
+- `/auth/reset-password`: o link de recuperação. A página chamava `updateUser` e mostrava
+  só «Não foi possível atualizar a senha». Afecta todos os administradores da plataforma
+  (2FA obrigatório) e o pessoal que inscreveu um autenticador.
+- `PasswordChangeForm` (Perfil, Definições, primeiro acesso): reautenticava com
+  `signInWithPassword`, o que **descia** a sessão a aal1, e o `updateUser` seguinte falhava.
+
+Agora os dois pedem o segundo factor com o `MfaChallenge` que já existia (chave de acesso ou
+código), antes de gravar — e também quando é o servidor a recusar com `insufficient_aal`.
+Nada fica mais permissivo. Testes: 5 casos novos; os de 2FA falham no código anterior.
+
+### P1 — Sem cabeçalhos de segurança fora do Worker do SIGA — corrigido `b1a0e65`, `86a3ebd`
+
+WEB, ADMIN e DOC (ficheiros estáticos no Cloudflare Pages) e o PayFlow (Worker próprio) não
+enviavam HSTS, `nosniff`, `Referrer-Policy`, `Permissions-Policy` nem protecção contra
+iframes. A consola da plataforma (login, 2FA, suspensão de escolas) e o checkout do PayFlow
+podiam ser embebidos noutro site para enganar cliques, e a consola podia ser indexada.
+
+- Pages: `public/_headers` em cada app (o build copia-o para a saída — verificado em `dist/`
+  e `out/`). ADMIN e PayFlow com `DENY`; WEB e DOC com `SAMEORIGIN`. A CSP só define
+  `frame-ancestors`: não bloqueia scripts nem estilos.
+- PayFlow: `headers()` do `next.config.ts`, tudo menos `/` com `noindex`. Nota técnica: no
+  vinext 0.0.50 `/:path*` vira `^/[^/]+.*$` (deixa `/` de fora) e `/:path+` um `+` literal;
+  usam-se grupos de regex, como nos exemplos do Next. Testado contra o Worker compilado.
+
+### P2 — Formulários que não fazem nada (WEB) — corrigido `b1a0e65`
+
+- `/auth/forgot-password` era uma página pública com o formulário do modelo: sem acção, em
+  inglês («Send Reset Link») e com ligação para
+  `/templates/dashboard/shadcn-dashboard-landing-template/…` (404). O WEB não tem contas;
+  passa a levar à recuperação de senha do SIGA.
+- `/mail` dizia «Pedido registado neste dispositivo» sem enviar nada. Usa agora o formulário
+  de contacto real da landing (grava para a equipa no ADMIN ou prepara o e-mail).
+
+### P2 — Recuperação de senha do ADMIN sem saída — corrigido `077f6f2`
+
+O ADMIN chamava `resetPasswordForEmail` com regresso a `/sign-in`, mas não tem nenhuma página
+para definir a senha nova (nenhum `updateUser`): chegava o e-mail genérico do Supabase — que
+o SIGA proíbe por não ter a marca institucional — e a pessoa voltava ao login sem saída.
+Passa a guiar para a recuperação oficial do SIGA (e-mail institucional, link seguro e, com a
+correcção P1, o 2FA tratado).
+
+No mesmo commit: o `?next=` do login tinha uma lista de rotas própria que já divergia do
+portão (de `/dashboard-2` caía-se em `/tenants`) — agora `safeAdminNext()` sobre a fonte
+única; erros do login em português e anunciados a leitores de ecrã; consola `noindex`;
+`/landing` deixa de se apresentar como «Modern Admin Dashboard Template»; PayFlow em
+duplicado e «Atalhos vivos» na barra lateral.
+
+### P2 — Identidade: o logótipo era o carrinho do modelo — corrigido `5c8d9be`
+
+WEB, ADMIN e DOC usavam como logótipo e favicon o carrinho de compras do modelo
+«ShadcnStore» (o SVG do DOC ainda trazia `className='size-7'` de JSX). A marca documentada
+no SIGA é o letreiro «SIGA Plus» e o ícone «S» de `public/icons/`. Cada app tem agora a sua
+cópia desse ícone em `public/brand/` (sem partilhar componentes entre apps) e favicons
+gerados do original de 512 px. O favicon do WEB tinha `href` relativo e falhava em
+`/blog/<artigo>`.
+
+Saíram também os ficheiros promocionais do modelo publicados com o site
+(`og-image.png` «ShadcnStore», `apps.png`, `dashboard.png` e `customizer.png` de 4320 px,
+SVG do Next e da Vercel, um `favicon.png` de 851 KB) e as capturas brutas em
+`public/.screenshots-raw/`. WEB `public/` 8,8 → 3,8 MB; ADMIN 5,1 → 2,3 MB.
+
+### P2 — DOC com conteúdo de outro produto — corrigido `608d33a`
+
+- 19 páginas do modelo (`/components`, `/theme-customizer`, `/vite`, `/nextjs`: shadcn/ui,
+  «remover o personalizador», pnpm, Vercel, Netlify) saíram; `public/_redirects` leva os
+  endereços antigos às páginas vivas.
+- O suporte indicava Discord, o GitHub `shadcn-dashboard-template`, Twitter «@SIGA Plus»,
+  nove endereços `@portal-siga.com` inventados e testemunhos fictícios («Jane Smith,
+  TechCorp»). Agora só `suporte@portal-siga.com` e o formulário do portal.
+- A licença descrevia uma «activação de instâncias» que não existe; remete agora para os
+  Termos de serviço. Aparência e Contribuir reescritas a partir do código.
+- O build falha com ligações mortas (excepções explícitas: localhost e `public/documentos`).
+- A página inicial tinha `www.` e `admin.portal-siga.com` escritos à mão enquanto o WEB e o
+  ADMIN estão publicados em `*.pages.dev`; segue agora as variáveis do deploy, como o menu.
+- `og:image` apontava para um ficheiro inexistente e `og:url` para `https://siga-plus.local`.
+
+### P3 — Testes dependiam da ordem de build — corrigido `cf5e7a4`
+
+`site-pages.generated.json` e `painel/escolas/docs/routes.json` estão versionados mas não
+incluíam as páginas `/propinas/` (PR #429): `npm test` sem build falhava. Regenerados. O
+comentário de `deploy-production.yml` («não é versionado») está errado — ver pendências.
+Também: a cache npm do PayFlow (`.npmrc` com caminho relativo) aparecia por versionar na raiz.
+
+## Resultado depois das correcções
+
+| App     | Verificação                      | Antes                      | Depois                                                 |
+| ------- | -------------------------------- | -------------------------- | ------------------------------------------------------ |
+| SIGA    | `npm test`                       | 5 981 ✓ / 1 ✗              | **6 014 ✓ / 0 ✗**, 25 ignorados, 848 ficheiros         |
+| SIGA    | `tsc`, lint, estilo, a11y, build | OK                         | OK (`tsc` 0 erros; lint 0 erros e os mesmos 61 avisos) |
+| WEB     | lint / build                     | 0 erros, 22 avisos / OK    | 0 erros, 22 avisos / OK                                |
+| ADMIN   | lint / `tsc` / build             | 0 erros, 1 aviso / OK / OK | 0 erros, **0 avisos** / OK / OK                        |
+| PAYFLOW | lint / testes                    | 0 erros, 7 avisos / 60     | 0 erros, 7 avisos / **63/63**                          |
+| DOC     | build com ligações verificadas   | 12 mortas (escondidas)     | 0 mortas                                               |
+
+Conferência no Chromium (builds locais): `/mail` com o formulário real, recuperação de senha
+do WEB a seguir para o SIGA, entrada e recuperação do ADMIN, cabeçalho do DOC, marca nas três
+apps, favicon `image/png` em rota aninhada, sem mensagens do GTM na consola.
+
+## O que fica
+
+### Decisões e acções do proprietário (continuam abertas)
+
+1. **Staging isolado** (Supabase próprio, segredos no ambiente `staging`). Bloqueia o E2E
+   autenticado, o Lighthouse das páginas com sessão e qualquer ensaio de RLS. É o maior
+   multiplicador de risco, como em 26/10.
+2. **Rodar segredos expostos:** a chave `sb_secret_…` colada a 26/10 e o segredo do Google
+   OAuth (ver [20](./20-analise-critica-2026-10-26.md)). Sem registo de rotação no repositório.
+3. **Domínios `www.`, `admin.` e `docs.portal-siga.com`** nos projectos Pages e, só depois,
+   `VITE_*_URL` no deploy. As apps e o DOC já seguem essas variáveis.
+4. **Protecção contra palavras-passe vazadas** no Supabase Auth e, na zona Cloudflare, SSL
+   Full (strict), TLS mínimo 1.2, Always Use HTTPS e DNSSEC, pela ordem e com os cuidados do
+   [handoff de segurança](../agents/HANDOFF_SECURITY_2026-11-02.md).
+5. **Contacto de segurança:** publicar `/.well-known/security.txt` e um endereço próprio
+   (hoje a DOC indica `suporte@portal-siga.com` com o assunto «Segurança»).
+6. **2FA sem recurso:** quem perde o autenticador depende de um administrador para o repor.
+   Avaliar códigos de recuperação.
+
+### Engenharia (próximas PRs, por ordem)
+
+1. **CSP do SIGA** continua `Report-Only` com `unsafe-inline`. Tirar scripts em linha ou usar
+   _nonces_, e só então passar a obrigatória.
+2. **Ficheiros gerados:** decidir se `site-pages.generated.json` deixa de ser versionado (e o
+   teste o gera) ou se fica com um teste de coerência; corrigir o comentário do
+   `deploy-production.yml`.
+3. **Restos do modelo em código-fonte** (só activos com `SHOW_TEMPLATE_SURFACES`): variantes
+   `sign-in-2/3`, `sign-up-*`, `settings/*`, calendário e chat com `console.log` no WEB e no
+   ADMIN; nomes de pacote `shadcn-dashboard-vite`, `shadcn-dashboard-nextjs` e
+   `tanstack_start_ts` (cuidado: o nome do Worker pode derivar do pacote). Remover com as
+   pontes a manter os endereços.
+4. **WEB:** o pedaço `vendor` tem 590 KB (187 KB gzip) e vai em todas as páginas; dividir por
+   rota (o assistente `/start` tem 1 591 linhas) e medir antes e depois. Imagem de partilha
+   (`og:image` 1200×630) com a marca — decisão de design.
+5. **Monólitos do SIGA** acima de 2 000 linhas: `finance/server.ts` (3 298),
+   `higher-ed/server.ts` (3 238), `academic/server-legacy.ts` (2 348), `arquivos/server.ts`
+   (2 192), `alunos/$studentId.tsx` (2 166). Partir por responsabilidade quando se tocar neles.
+6. **PayFlow/vinext:** a semântica de padrões do vinext difere do Next em `/:path*` e
+   `/:path+`. Qualquer `redirects`/`rewrites` novo deve ter teste contra o Worker compilado.
+7. **Raiz do repositório:** `all_migrations_combined.sql` (141 KB), `logo.png` de 1 MB,
+   `metadata.json` (AI Studio), `modelo de pautas/` (com espaços). Mover ou retirar depois
+   de confirmar que nenhum script os usa.
+
+## Limites desta análise
+
+- **Sem rede para produção:** nenhum pedido a `portal-siga.com` ou `*.pages.dev`. Os
+  cabeçalhos foram verificados nas saídas de build e no Worker compilado do PayFlow, não nas
+  respostas reais da Cloudflare.
+- **A regra aal2 do Supabase** está confirmada pela PR #1766 do `supabase/auth` e por relatos
+  da comunidade, não por um ensaio contra o projecto SGA. Os testes usam o cliente simulado.
+- **Nenhum fluxo autenticado no browser:** sem staging nem conta de teste. A conferência
+  visual foi feita em builds locais sem sessão.
+- **Sem acesso ao Supabase nem à Cloudflare:** nada sobre RLS, Advisor, DNS ou WAF foi
+  reverificado; os números dessas áreas são os do handoff de 02/11.

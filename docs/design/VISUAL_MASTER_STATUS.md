@@ -1,5 +1,13 @@
 # Execução do padrão visual — 23/10/2026
 
+**10/11/2026 — mudar e recuperar a senha com 2FA (implementado, sem validação visual autenticada):**
+em `/auth/reset-password` e no formulário de mudar a senha (Perfil, Definições, primeiro
+acesso), uma conta com 2FA passa a ver o `MfaChallenge` existente no mesmo cartão, antes de
+gravar a senha. Sem modal novo, sem campos novos nem alteração de identidade; «Voltar»
+devolve o formulário com o que foi escrito. Evidência: `tests/routes/auth-reset-password.test.tsx`
+e `tests/auth/password-change-form.test.tsx` (jsdom), lint e tipos. Captura autenticada e
+dispositivos físicos pendentes. Análise em `docs/auditoria/21-analise-critica-ecossistema-2026-11-10.md`.
+
 **01/11/2026 — modelo de estrutura académica: confirmação de planos grandes (implementado, sem validação visual):**
 acima de 50 turmas, «Criar estrutura» passa a pedir um segundo clique («Confirmar: criar N
 turmas») e mostra um aviso no resumo já existente. Sem modal novo, sem campos novos; mudar a
