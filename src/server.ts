@@ -8,6 +8,7 @@ import { CSP_REPORT_PATH, handleCspReport } from "./lib/csp";
 import { withSecurityHeaders } from "./lib/security-headers";
 import { installKeepAlive, installRequestIdSource } from "./lib/execution-context";
 import { REQUEST_ID_HEADER, acceptRequestId, newRequestId } from "./lib/request-id";
+import { apiMethodNotAllowed } from "@/lib/api-method-not-allowed";
 
 type ExecutionContext = { waitUntil?: (promise: Promise<unknown>) => void };
 type RequestStore = { ctx: ExecutionContext; requestId: string };
@@ -109,6 +110,8 @@ async function handle(request: Request, env: unknown, ctx: unknown): Promise<Res
     }
     const handler = await getServerEntry();
     const response = await handler.fetch(request, env, ctx);
+    const unsupported = apiMethodNotAllowed(request, response);
+    if (unsupported) return withSecurityHeaders(unsupported);
     return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
   } catch (error) {
     console.error(error);

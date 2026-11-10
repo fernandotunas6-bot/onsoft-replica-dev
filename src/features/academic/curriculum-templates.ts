@@ -446,3 +446,14 @@ export function summarizePlan(plan: CurriculumPlan) {
     salas: plan.rooms.length,
   };
 }
+
+/**
+ * A partir deste número de turmas, «Criar estrutura» pede uma segunda
+ * confirmação. A 22/10/2026 um modelo de todos os níveis criou 192 turmas
+ * vazias, do infantil ao médio, num instituto superior, com um só clique.
+ */
+export const LARGE_PLAN_TURMAS = 50;
+
+export function needsLargePlanConfirmation(summary: { turmas: number }): boolean {
+  return summary.turmas > LARGE_PLAN_TURMAS;
+}

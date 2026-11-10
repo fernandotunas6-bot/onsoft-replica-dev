@@ -5,6 +5,7 @@ import { getDb } from "@/db";
 import { paymentEvents, payments } from "@/db/schema";
 import { corsHeaders, jsonResponse } from "@/lib/payflow";
 import { isSandboxRuntime } from "@/lib/runtime";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export async function POST(
   }
 
   const { token } = await context.params;
-  const parsed = confirmationSchema.safeParse(await request.json());
+  const parsed = confirmationSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) {
     return jsonResponse(
       { error: { code: "invalid_method", message: "Escolha um método de pagamento válido." } },

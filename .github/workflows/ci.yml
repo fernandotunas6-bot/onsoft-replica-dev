@@ -46,6 +46,20 @@ jobs:
           set -o pipefail
           bun audit --audit-level=high 2>&1 | tee reports/security/dependency-audit.txt
 
+      # Os painéis têm lockfiles próprios (npm) e servidores próprios (PayFlow,
+      # ADMIN): sem isto, avisos altos/críticos neles não apareciam no CI.
+      # `npm audit` lê o package-lock.json; não precisa de instalar.
+      - name: Auditoria de segurança dos painéis
+        run: |
+          set -o pipefail
+          failed=0
+          for app in web admin payflow docs; do
+            echo "== painel/$app"
+            npm audit --prefix "painel/$app" --omit=dev --audit-level=high 2>&1 \
+              | tee "reports/security/dependency-audit-$app.txt" || failed=1
+          done
+          exit "$failed"
+
       - name: Publicar relatório de segurança
         if: always()
         uses: actions/upload-artifact@v4

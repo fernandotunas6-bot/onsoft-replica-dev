@@ -1,5 +1,12 @@
 # Execução do padrão visual — 23/10/2026
 
+**01/11/2026 — modelo de estrutura académica: confirmação de planos grandes (implementado, sem validação visual):**
+acima de 50 turmas, «Criar estrutura» passa a pedir um segundo clique («Confirmar: criar N
+turmas») e mostra um aviso no resumo já existente. Sem modal novo, sem campos novos; mudar a
+escolha volta a pedir confirmação. Origem: 192 turmas vazias criadas num só clique no ISPAB
+a 22/10. Evidência: `tests/academic/curriculum-large-plan.test.ts`, lint, `typecheck`,
+`check:style` e `check:a11y`. Captura autenticada pendente.
+
 **01/11/2026 — ligações da escola nova (implementado, sem validação visual):**
 `/configuracoes/inicio` ganha o painel «A escola na internet» (website, portal SIGA Plus e
 «Entrar na escola»); `/configuracoes/assinatura` mostra website e portal no painel

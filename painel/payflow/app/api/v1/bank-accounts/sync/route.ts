@@ -5,6 +5,7 @@ import { getDb } from "@/db";
 import { bankAccounts, schools } from "@/db/schema";
 import { maskIban, validateAngolaIban } from "@/lib/angola-banking";
 import { corsHeaders, isIntegrationAuthorized, jsonResponse } from "@/lib/payflow";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = accountSchema.safeParse(await request.json());
+    const parsed = accountSchema.safeParse(await readJsonBody(request));
     if (!parsed.success) {
       return jsonResponse(
         {
