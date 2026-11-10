@@ -87,10 +87,12 @@ export function corsHeadersFor(
 export function jsonWithCors(
   request: Request,
   body: unknown,
-  init: { status?: number; apps?: EcosystemApp[] } = {},
+  init: { status?: number; apps?: EcosystemApp[]; noStore?: boolean } = {},
 ): Response {
   const headers = corsHeadersFor(request, init.apps);
   headers.set("content-type", "application/json; charset=utf-8");
+  // Respostas de autenticação e dados pessoais nunca devem ficar numa cache partilhada.
+  if (init.noStore) headers.set("Cache-Control", "no-store");
   return new Response(JSON.stringify(body), { status: init.status ?? 200, headers });
 }
 

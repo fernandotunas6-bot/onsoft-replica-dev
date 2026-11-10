@@ -1,0 +1,67 @@
+name: PostgreSQL real — segurança do SIGA Plus
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/security-postgres.yml"
+      - "src/lib/shared-rate-limit.ts"
+      - "tests/sql/postgres-real-shared-rate-limit.mjs"
+      - "tests/security/postgres-school-context-isolation.mjs"
+      - "supabase/migrations/20260930174857_audit_atomic_workflows_and_school_context.sql"
+      - "supabase/migrations/20260927170000_shared_rate_limit.sql"
+  pull_request:
+    paths:
+      - ".github/workflows/security-postgres.yml"
+      - "src/lib/shared-rate-limit.ts"
+      - "tests/sql/postgres-real-shared-rate-limit.mjs"
+      - "tests/security/postgres-school-context-isolation.mjs"
+      - "supabase/migrations/20260930174857_audit_atomic_workflows_and_school_context.sql"
+      - "supabase/migrations/20260927170000_shared_rate_limit.sql"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-postgres-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  security-postgres:
+    name: Rate limiting distribuído — PostgreSQL 17 isolado
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: siga_fixture_ci_only
+          POSTGRES_DB: siga_security_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d siga_security_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Instalar dependências com versões bloqueadas
+        run: bun install --frozen-lockfile
+
+      - name: Concorrência e privilégios do contador partilhado
+        env:
+          SIGA_SECURITY_PG_TEST_URL: postgres://postgres:siga_fixture_ci_only@127.0.0.1:5432/siga_security_ci
+        run: node tests/sql/postgres-real-shared-rate-limit.mjs
+
+      - name: Isolamento entre duas escolas — PostgreSQL 17 real
+        env:
+          SIGA_SECURITY_PG_TEST_URL: postgres://postgres:siga_fixture_ci_only@127.0.0.1:5432/siga_security_ci
+        run: node tests/security/postgres-school-context-isolation.mjs

@@ -21,6 +21,8 @@ WEB vende (`painel/web`). ADMIN controla (`painel/admin`). SIGA trabalha (raiz).
 
 Handoff e estado dos ciclos: [docs/agents/CONTINUE.md](docs/agents/CONTINUE.md).
 
+**Segurança e infraestrutura — fase 1 (02/11/2026):** [handoff para Claude e critérios de validação](docs/agents/HANDOFF_SECURITY_2026-11-02.md). Alterações iniciais de limite de JSON e cache de login em branch isolada; não fazer merge nem deploy sem testes.
+
 **Continuação coordenada com Claude Code (25/10/2026):** [correcção das categorias existentes de Definições, validações e pendências](docs/agents/HANDOFF_SETTINGS_2026-10-25.md). Ler antes de voltar a alterar SettingsCenter, sidebar ou modais.
 
 Skills: `.cursor/skills/siga/SKILL.md`, `siga-web`, `siga-admin`, `siga-docs`, `siga-saas`, `siga-identity`, e `.cursor/skills/siga-*/SKILL.md` por módulo escolar.

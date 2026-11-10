@@ -113,6 +113,22 @@ describe("Content-Security-Policy", () => {
     );
     expect(big.status).toBe(413);
 
+    // O limite vale para bytes UTF-8, não apenas caracteres JavaScript.
+    // Antes, 10 000 caracteres não ASCII passavam no teste de text.length,
+    // embora ocupassem mais de 16 KiB no corpo HTTP.
+    const unicode = await handleCspReport(
+      new Request(`https://app.portal-siga.com${CSP_REPORT_PATH}`, {
+        method: "POST",
+        body: JSON.stringify({
+          "csp-report": {
+            "effective-directive": "img-src",
+            "blocked-uri": "é".repeat(10_000),
+          },
+        }),
+      }),
+    );
+    expect(unicode.status).toBe(413);
+
     const broken = await handleCspReport(
       new Request(`https://app.portal-siga.com${CSP_REPORT_PATH}`, {
         method: "POST",

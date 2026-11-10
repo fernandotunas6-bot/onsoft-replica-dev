@@ -7,6 +7,19 @@ import { jsonWithCors } from "@/lib/ecosystem-cors";
 const UNAUTHENTICATED = new Set(["Unauthorized", "Não autenticado."]);
 
 /**
+ * As APIs móveis devolvem dados pessoais, notas, notificações e estado da
+ * sessão. Nenhuma resposta, incluindo erros de autenticação, pode ser
+ * armazenada por browser, proxy intermédio ou cache partilhada.
+ */
+function mobilePrivateJson(
+  request: Request,
+  body: unknown,
+  init: { status?: number } = {},
+): Response {
+  return jsonWithCors(request, body, { ...init, noStore: true });
+}
+
+/**
  * Resposta das rotas /api/mobile/* (app SIGA Plus). Os erros levam o texto
  * que o SIGA mostra (são escritos para a pessoa e os da base passam por
  * publicDatabaseError). Um erro inesperado ou de configuração não sai: só um
@@ -18,11 +31,11 @@ export async function mobileRespond(
   run: () => Promise<unknown>,
 ): Promise<Response> {
   try {
-    return jsonWithCors(request, await run());
+    return mobilePrivateJson(request, await run());
   } catch (error) {
     // Antes do 401: o erro de 2FA também vem com statusCode 401.
     if (isSessionMfaError(error)) {
-      return jsonWithCors(
+      return mobilePrivateJson(
         request,
         { error: "MFA_REQUIRED", message: "Esta conta exige verificação em dois passos." },
         { status: 403 },
@@ -31,10 +44,10 @@ export async function mobileRespond(
     const status = (error as { statusCode?: number } | null)?.statusCode;
     const message = error instanceof Error ? error.message : "";
     if (status === 401 || UNAUTHENTICATED.has(message)) {
-      return jsonWithCors(request, { error: "SESSION_INVALID" }, { status: 401 });
+      return mobilePrivateJson(request, { error: "SESSION_INVALID" }, { status: 401 });
     }
     if (message === ACTIVE_SCHOOL_UNAVAILABLE) {
-      return jsonWithCors(
+      return mobilePrivateJson(
         request,
         {
           error: ACTIVE_SCHOOL_UNAVAILABLE,
@@ -48,7 +61,7 @@ export async function mobileRespond(
       const issue = error.issues.find(
         (i) => i.message && !/^(Required|Expected|Invalid)/.test(i.message),
       );
-      return jsonWithCors(
+      return mobilePrivateJson(
         request,
         { error: "INVALID_INPUT", ...(issue ? { message: issue.message } : {}) },
         { status: 422 },
@@ -57,9 +70,9 @@ export async function mobileRespond(
     // Falta de configuração do servidor (variáveis de ambiente): não é para a pessoa.
     const config = /environment variable|SUPABASE_|Lovable Cloud/i.test(message);
     if (error instanceof Error && error.constructor === Error && message && !config) {
-      return jsonWithCors(request, { error: "REJECTED", message }, { status: 400 });
+      return mobilePrivateJson(request, { error: "REJECTED", message }, { status: 400 });
     }
     console.error(`[${route}]`, error instanceof Error ? error.name : "erro");
-    return jsonWithCors(request, { error: "FAILURE" }, { status: 500 });
+    return mobilePrivateJson(request, { error: "FAILURE" }, { status: 500 });
   }
 }

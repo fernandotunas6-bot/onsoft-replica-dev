@@ -37,6 +37,7 @@ describe("/api/mobile/profile", () => {
       linkedEntities: { linked_students: [{ student_id: "s" }] },
     });
     const res = await (await handlers()).GET!({ request: req() });
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
     expect(await res.json()).toEqual({
       full_name: "Mariana Silva",
       phone: "+244923000000",
@@ -63,6 +64,7 @@ describe("/api/mobile/profile", () => {
     });
     const res = await h.POST!({ request: req({ method: "POST", body: JSON.stringify(body) }) });
     expect(res.status).toBe(422);
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
     expect(await res.json()).toEqual({
       error: "INVALID_INPUT",
       message: "Telefone inválido. Use +244 9XX XXX XXX.",
