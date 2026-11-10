@@ -73,6 +73,10 @@ features:
     details: BI/NIF, IBAN AO, telemóvel +244, Multicaixa Express e Unitel Money
 ---
 
+<script setup>
+import { ECOSYSTEM } from './.vitepress/ecosystem'
+</script>
+
 ## Módulos do Sistema SIGA Plus
 
 <div class="demo-links">
@@ -86,16 +90,16 @@ features:
   <div class="demo-card">
     <div class="demo-icon"><img src="/icons/globe.svg" alt="Portal WEB" width="48" height="48" style="margin: 0 auto;" /></div>
     <h3>Portal WEB (Comercial)</h3>
-    <p>Marketing, planos SaaS e wizard de criação de escola</p>
-    <a href="https://www.portal-siga.com/start" class="demo-button" target="_blank" rel="noreferrer">Abrir wizard /start</a>
-    <a href="/web/criar-escola" class="demo-button" style="margin-top: 0.5rem; display: inline-block;">Manual do wizard</a>
+    <p>Apresentação, planos e assistente de criação da escola</p>
+    <a :href="`${ECOSYSTEM.web}/start`" class="demo-button" target="_blank" rel="noreferrer">Criar a escola</a>
+    <a href="/web/criar-escola" class="demo-button" style="margin-top: 0.5rem; display: inline-block;">Manual da criação</a>
   </div>
 
   <div class="demo-card">
     <div class="demo-icon"><img src="/icons/dashboard.svg" alt="SaaS Admin" width="48" height="48" style="margin: 0 auto;" /></div>
     <h3>ADMIN — SaaS Control Center</h3>
     <p>Tenants, métricas e gestão de assinaturas da plataforma</p>
-    <a href="https://admin.portal-siga.com/tenants" class="demo-button" target="_blank" rel="noreferrer">Abrir ADMIN</a>
+    <a :href="`${ECOSYSTEM.admin}/tenants`" class="demo-button" target="_blank" rel="noreferrer">Abrir ADMIN</a>
     <a href="/admin/control-center" class="demo-button" style="margin-top: 0.5rem; display: inline-block;">Manual do Control Center</a>
   </div>
 
@@ -103,7 +107,7 @@ features:
     <div class="demo-icon"><img src="/icons/rocket.svg" alt="SIGA Plus" width="48" height="48" style="margin: 0 auto;" /></div>
     <h3>SIGA Plus (Operação escolar)</h3>
     <p>Alunos, pautas, finanças e catracas</p>
-    <a href="https://portal-siga.com" class="demo-button" target="_blank" rel="noreferrer">Abrir SIGA</a>
+    <a :href="ECOSYSTEM.siga" class="demo-button" target="_blank" rel="noreferrer">Abrir SIGA</a>
     <a href="/siga/navegacao" class="demo-button" style="margin-top: 0.5rem; display: inline-block;">Mapa de navegação</a>
   </div>
 
@@ -115,17 +119,17 @@ features:
   </div>
   
   <div class="demo-card">
-    <div class="demo-icon"><img src="/icons/globe.svg" alt="Componentes" width="48" height="48" style="margin: 0 auto;" /></div>
-    <h3>Biblioteca de Componentes</h3>
-    <p>Componentes reutilizáveis, tabelas de dados de alta densidade, gráficos analíticos e integrações de UI</p>
-    <a href="/components/" class="demo-button">Ver Componentes</a>
+    <div class="demo-icon"><img src="/icons/palette.svg" alt="" width="48" height="48" style="margin: 0 auto;" /></div>
+    <h3>Aparência e marca</h3>
+    <p>Tema claro ou escuro, densidade, cor de destaque e as cores e o logótipo da escola</p>
+    <a href="/guide/theme-system" class="demo-button">Ver o guia</a>
   </div>
 
   <div class="demo-card">
-    <div class="demo-icon"><img src="/icons/palette.svg" alt="Customizador de Tema" width="48" height="48" style="margin: 0 auto;" /></div>
-    <h3>Customizador de Tema</h3>
-    <p>Configuração de cores, temas institucionais, raio, sidebar e importação de paletas em tempo real</p>
-    <a href="/theme-customizer/" class="demo-button">Abrir guia de cores</a>
+    <div class="demo-icon"><img src="/icons/globe.svg" alt="" width="48" height="48" style="margin: 0 auto;" /></div>
+    <h3>Suporte</h3>
+    <p>Contacto da equipa SIGA Plus, manuais por área e como pedir ajuda com rapidez</p>
+    <a href="/guide/support" class="demo-button">Pedir ajuda</a>
   </div>
 </div>
 

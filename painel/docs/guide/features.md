@@ -105,4 +105,4 @@ Auditoria no código: `npm run siga:check`.
 - [Navegação e permissões (SIGA)](/siga/navegacao)
 - [Segurança de rotas (modelo RBAC)](/guide/route-security)
 - [Criar escola (WEB)](/web/criar-escola)
-- [Componentes UI (template DOC)](/components/)
+- [Aparência e marca](/guide/theme-system)
