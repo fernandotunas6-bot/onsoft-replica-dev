@@ -1,23 +1,14 @@
-import type { Metadata } from 'next'
-import { LandingPageContent } from './landing-page-content'
+import type { Metadata } from "next";
+import { LandingPageContent } from "./landing-page-content";
 
-// Metadata for the landing page
+// /landing é só uma ponte para o portal comercial (WEB): AliveBridgeGate redirecciona.
+// Os metadados do modelo («Modern Admin Dashboard Template») ficavam no HTML exportado.
 export const metadata: Metadata = {
-  title: 'SIGA Plus - Modern Admin Dashboard Template',
-  description: 'A beautiful and comprehensive admin dashboard template built with React, Next.js, TypeScript, and shadcn/ui. Perfect for building modern web applications.',
-  keywords: ['admin dashboard', 'react', 'nextjs', 'typescript', 'shadcn/ui', 'tailwind css'],
-  openGraph: {
-    title: 'SIGA Plus - Modern Admin Dashboard Template',
-    description: 'A beautiful and comprehensive admin dashboard template built with React, Next.js, TypeScript, and shadcn/ui.',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'SIGA Plus - Modern Admin Dashboard Template',
-    description: 'A beautiful and comprehensive admin dashboard template built with React, Next.js, TypeScript, and shadcn/ui.',
-  },
-}
+  title: "SIGA Plus — Portal comercial",
+  description: "Gestão escolar para Angola. O portal comercial do SIGA Plus abre a seguir.",
+  robots: { index: false, follow: false },
+};
 
 export default function LandingPage() {
-  return <LandingPageContent />
+  return <LandingPageContent />;
 }

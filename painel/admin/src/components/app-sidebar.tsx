@@ -183,7 +183,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ],
       },
       {
-        label: "Atalhos vivos",
+        label: "Atalhos",
         items: [
           {
             title: "Comunicações (SIGA)",
@@ -208,12 +208,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             url: getWebUrl("/pricing"),
             target: "_blank",
             icon: CreditCard,
-          },
-          {
-            title: t("nav.payflow"),
-            url: getPayflowUrl("/"),
-            target: "_blank",
-            icon: Receipt,
           },
           {
             title: "Suporte (DOC)",
