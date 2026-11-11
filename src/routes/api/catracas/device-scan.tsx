@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { validateGatePassDeviceInputSchema } from "@/features/catracas/schemas";
 import { runDeviceGatePassWebhook } from "@/features/catracas/device-webhook-handler";
 import { clientIpFromRequest } from "@/lib/request-ip";
+import { BODY_LIMITS, readJsonBodyLimited, rejectedBody } from "@/lib/read-json-body";
 
 // style-check: route-exempt — endpoint HTTP para leitores físicos (sem shell administrativo).
 
@@ -9,12 +10,12 @@ export const Route = createFileRoute("/api/catracas/device-scan")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        let body: unknown;
-        try {
-          body = await request.json();
-        } catch {
-          return Response.json({ granted: false, reason: "Corpo JSON inválido." }, { status: 400 });
+        const read = await readJsonBodyLimited(request, BODY_LIMITS.small);
+        if (!read.ok) {
+          const { status, message } = rejectedBody(read.reason);
+          return Response.json({ granted: false, reason: message }, { status });
         }
+        const body = read.value;
 
         const parsed = validateGatePassDeviceInputSchema.safeParse(body);
         if (!parsed.success) {

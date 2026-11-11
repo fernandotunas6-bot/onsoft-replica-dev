@@ -1,163 +1,76 @@
-# Arquitetura & Segurança de Rotas (RBAC)
+# Segurança de rotas e acessos
 
-> **SIGA (app escolar):** mapa actual de rotas, sidebar e papéis em
-> [Navegação SIGA](/siga/navegacao). Este artigo descreve o modelo genérico;
-> as rotas `/admin/*` abaixo são **legado de template** — o SIGA real usa
-> `/alunos`, `/pedagogica`, `/financeiro`, etc.
+Como o SIGA Plus decide quem vê o quê. A protecção tem três camadas — o ecrã, o servidor e a
+base de dados — e a que decide é sempre o servidor: esconder um botão não é segurança.
 
-Documentação técnica sobre a proteção de rotas, middlewares de autenticação, validação de licenças e o modelo de Controlo de Acessos Baseado em Papéis (**RBAC**) no **SIGA Plus**.
+## Páginas sem conta
 
----
+Abrem sem sessão iniciada:
 
-## Níveis de Classificação de Rotas
+- a **matrícula online** da escola (`/matricula/<escola>`) e o website escolar;
+- a **verificação de documentos** (`/verificar`), para quem recebe um certificado;
+- os **convites** (`/convite`) e as páginas de **senha** (`/auth/…`: recuperar, definir,
+  confirmar o e-mail);
+- **transferir a app** para computador (`/transferir`);
+- o **calendário ICS**, por ligação privada de cada pessoa.
 
-As rotas da plataforma estão organizadas em três categorias de segurança estritas:
+Todas as outras páginas pedem sessão iniciada.
 
-### 1. Rotas Públicas (Acesso Livre)
-Rotas acessíveis por qualquer visitante sem necessidade de autenticação:
-- `/` - Página Inicial / Portal Institucional Público
-- `/login` - Autenticação de Utilizadores
-- `/recuperar-senha` - Recuperação de Acesso
-- `/docs/*` - Documentação e Guias da Plataforma
+## Entrar
 
-### 2. Rotas do Painel Admin Central (SGA Core)
-Rotas restritas aos administradores globais da plataforma SIGA Plus, responsáveis pelo controlo de instâncias e clientes:
-- `/central-admin/clientes` - Lista de clientes e submissões
-- `/central-admin/aprovacoes` - Fila de aprovação de instâncias de clientes
-- `/central-admin/licencas` - Emissão e revogação de tokens digitais
-- `/central-admin/auditoria` - Logs globais de segurança e acessos
+- Entrada com e-mail, Nº de BI/NIF ou, nas escolas que o activam, o Nº de aluno; com
+  Google; ou com uma ligação enviada por e-mail.
+- **Verificação em dois passos (2FA):** a confirmação no início de sessão é uma escolha de
+  cada conta. As acções críticas pedem uma nova confirmação de identidade (chave de acesso,
+  código da aplicação autenticadora ou, numa conta sem 2FA, a senha). Numa conta com 2FA,
+  mudar a senha pede sempre o segundo factor.
+- **Escola com a assinatura suspensa:** só o Administrador da escola entra, para regularizar.
 
-### 3. Rotas do Painel Admin do Cliente (Acessos Limitados)
-Consola de gestão da instituição cliente com acessos condicionados pela função (Role) do utilizador:
-- `/dashboard` - Visão geral operacional (restrita ao perfil do utilizador)
-- `/admin/configuracoes` - Definições locais da instituição
-- `/admin/academico/*` - Gestão de turmas, matrículas e alunos
-- `/admin/pautas/*` - Lançamento e emissão de pautas académicas
-- `/admin/financeiro/*` - Propinas, cobranças e relatórios financeiros
-- `/admin/docente/*` - Área de professores (sumários, presenças, notas)
-- `/admin/catracas/*` - Controlo físico e monitorização de entradas/saídas em tempo real
+## Cargos e módulos
 
----
+| Cargo | Para quê |
+| --- | --- |
+| **Administrador** | Toda a escola, incluindo as configurações |
+| **Secretaria** | Pessoas, matrículas, turmas e documentos |
+| **Tesouraria** | Faturas, caixa, pagamentos e relatórios financeiros |
+| **Professor** | As suas turmas: aulas, presenças, avaliações e pautas |
+| **Encarregado** | Os educandos: notas, faltas, pagamentos e comunicados |
+| **Aluno** | O próprio percurso: horário, notas, trabalhos e pagamentos |
 
-## Matriz de Permissões por Papel (RBAC)
+- Cada ecrã pertence a um módulo. Ao abrir um ecrã que o cargo não abre, o SIGA Plus diz
+  porquê, em vez de mostrar uma página vazia.
+- O Administrador pode dar a Secretaria, Tesouraria ou Professor **permissões por módulo**
+  (por exemplo, o Financeiro a um professor). Alunos e encarregados nunca recebem permissões
+  além do seu cargo.
+- Algumas áreas abrem **só pelo cargo**, nunca por permissão: os Recursos Humanos e a folha
+  salarial, e as configurações da escola (só o Administrador).
+- Os módulos que o **plano** da escola não inclui não aparecem.
 
-A tabela seguinte define os direitos de acesso no **Painel Admin do Cliente**:
+## No servidor
 
-| Rota / Módulo | Admin Institucional | Secretaria | Financeiro | Docente | Operador Catracas |
-|---|:---:|:---:|:---:|:---:|:---:|
-| `/dashboard` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `/admin/configuracoes` | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `/admin/utilizadores` | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `/admin/academico/*` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `/admin/pautas/*` | ✅ | ✅ | ❌ | Read-Only | ❌ |
-| `/admin/financeiro/*` | ✅ | ❌ | ✅ | ❌ | ❌ |
-| `/admin/docente/*` | ✅ | ❌ | ❌ | ✅ | ❌ |
-| `/admin/catracas/*` | ✅ | ❌ | ❌ | ❌ | ✅ |
+- Cada operação do servidor confirma a sessão e o cargo antes de ler ou gravar. As poucas
+  que são públicas por natureza (a matrícula online, a verificação de documentos) têm
+  defesas próprias, como limites de pedidos. Um teste automático impede que se publique uma
+  operação nova sem guarda.
+- As acções críticas só gravam depois da nova confirmação de identidade descrita acima.
 
----
+## Na base de dados
 
-## Pipeline de Proteção (Middleware Guards)
+- Todas as tabelas têm segurança ao nível da linha (RLS): os dados de uma escola nunca
+  chegam a outra.
+- Os dados de alunos, notas, faltas e pagamentos só abrem ao pessoal da própria escola com
+  a permissão certa e, a cada aluno e encarregado, apenas os seus. As tabelas mais sensíveis
+  só são acessíveis pelo servidor, depois das verificações acima.
 
-Sempre que um utilizador tenta aceder a uma rota protegida, a plataforma executa a seguinte sequência de validações:
+## Consola da plataforma (ADMIN)
 
-```
-Requisição de Rota Protegida
-       │
-       ▼
-[1] Sessão Válida (JWT Supabase)? ── No ──► Redirecionar para /login
-       │
-      Yes
-       ▼
-[2] Licença Aprovada no Central Admin? ── No ──► Redirecionar para /aguardando-aprovacao
-       │
-      Yes
-       ▼
-[3] Papel (Role) tem Permissão para a Rota? ── No ──► Redirecionar para /unauthorized (403)
-       │
-      Yes
-       ▼
-Conceder Acesso à Rota Solicitada
-```
+Só entra a equipa que administra a plataforma, sempre com verificação em dois passos. O
+cargo de Administrador numa escola nunca dá acesso à consola. A consola protege-se no
+navegador, mas o que conta são as verificações das operações da plataforma no servidor.
 
----
+## Cabeçalhos de segurança
 
-## Exemplos de Implementação
-
-### Middleware no Next.js (`src/middleware.ts`)
-
-```typescript
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  // 1. Rotas públicas isentas de verificação
-  if (pathname.startsWith('/login') || pathname.startsWith('/docs')) {
-    return NextResponse.next()
-  }
-
-  // 2. Criar cliente Supabase e verificar sessão
-  const supabase = createServerClient(...)
-  const { data: { session } } = await supabase.auth.getSession()
-
-  if (!session) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // 3. Verificar estado de aprovação da licença no Painel Central
-  const licenseStatus = request.cookies.get('siga_license_status')?.value
-  if (licenseStatus !== 'APPROVED' && !pathname.startsWith('/aguardando-aprovacao')) {
-    return NextResponse.redirect(new URL('/aguardando-aprovacao', request.url))
-  }
-
-  // 4. Verificação de papel (RBAC) para rotas restritas
-  const userRole = session.user.user_metadata?.role
-
-  if (pathname.startsWith('/admin/configuracoes') && userRole !== 'ADMIN_INSTITUCIONAL') {
-    return NextResponse.redirect(new URL('/unauthorized', request.url))
-  }
-
-  return NextResponse.next()
-}
-```
-
-### Guard de Rota no React / Vite (`src/components/ProtectedRoute.tsx`)
-
-```tsx
-import { Navigate, Outlet } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
-
-interface ProtectedRouteProps {
-  allowedRoles?: string[]
-}
-
-export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
-  const { session, role, isLicenseApproved, loading } = useAuth()
-
-  if (loading) return <div>A carregar verificações de segurança...</div>
-
-  if (!session) {
-    return <Navigate to="/login" replace />
-  }
-
-  if (!isLicenseApproved) {
-    return <Navigate to="/aguardando-aprovacao" replace />
-  }
-
-  if (allowedRoles && !allowedRoles.includes(role)) {
-    return <Navigate to="/unauthorized" replace />
-  }
-
-  return <Outlet />
-}
-```
-
----
-
-## Boas Práticas de Segurança
-
-1. **Nunca Confiar no Lado do Cliente** - Todas as Server Actions e APIs verificam novamente as permissões no servidor.
-2. **Encriptação de Cookies de Sessão** - Utilização de cookies HttpOnly com flag `Secure` e `SameSite=Lax`.
-3. **Log de Tentativas de Acesso Negado** - Todas as tentativas de violação de rota geram registos no Painel Admin Central para auditoria.
+Todas as aplicações (SIGA, portal, consola, documentação e PayFlow) enviam HSTS,
+`X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` e protecção
+contra serem embebidas noutro site. No SIGA, a política de conteúdo (CSP) ainda está em
+modo de relatório.

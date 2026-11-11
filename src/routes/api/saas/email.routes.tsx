@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
+import { corsPreflight, jsonWithCors, readJsonWithCors } from "@/lib/ecosystem-cors";
 import {
   createEmailRoute,
   deleteEmailRoute,
@@ -47,16 +47,9 @@ export const Route = createFileRoute("/api/saas/email/routes")({
       OPTIONS: async ({ request }) => corsPreflight(request, [...APPS]),
 
       POST: async ({ request }) => {
-        let body: unknown;
-        try {
-          body = await request.json();
-        } catch {
-          return jsonWithCors(
-            request,
-            { error: "Corpo JSON inválido." },
-            { status: 400, apps: [...APPS] },
-          );
-        }
+        const read = await readJsonWithCors(request, [...APPS]);
+        if (!read.ok) return read.response;
+        const body = read.value;
 
         const parsed = createRouteBodySchema.safeParse(body);
         if (!parsed.success) {
@@ -97,16 +90,9 @@ export const Route = createFileRoute("/api/saas/email/routes")({
       },
 
       DELETE: async ({ request }) => {
-        let body: unknown;
-        try {
-          body = await request.json();
-        } catch {
-          return jsonWithCors(
-            request,
-            { error: "Corpo JSON inválido." },
-            { status: 400, apps: [...APPS] },
-          );
-        }
+        const read = await readJsonWithCors(request, [...APPS]);
+        if (!read.ok) return read.response;
+        const body = read.value;
 
         const parsed = deleteRouteBodySchema.safeParse(body);
         if (!parsed.success) {

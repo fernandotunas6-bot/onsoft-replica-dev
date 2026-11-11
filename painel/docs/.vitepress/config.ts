@@ -160,7 +160,7 @@ export default defineConfig({
           text: 'Guia da Plataforma',
           items: [
             { text: 'Funcionalidades & Permissões', link: '/guide/features' },
-            { text: 'Segurança de Rotas & RBAC', link: '/guide/route-security' },
+            { text: 'Segurança de rotas e acessos', link: '/guide/route-security' },
             { text: 'Pilha Tecnológica', link: '/guide/tech-stack' },
             { text: 'Estrutura do Projecto', link: '/guide/project-structure' },
             { text: 'Aparência e marca', link: '/guide/theme-system' },
@@ -240,8 +240,11 @@ export default defineConfig({
     ['meta', { property: 'og:title', content: 'SIGA Plus | Documentação Oficial' }],
     ['meta', { property: 'og:site_name', content: 'SIGA Plus' }],
     // O og-image.png nunca existiu no DOC e o og:url apontava para siga-plus.local.
-    ['meta', { property: 'og:image', content: `${DOCS_URL}/brand/siga-plus-icon.png` }],
+    ['meta', { property: 'og:image', content: `${DOCS_URL}/og-image.png` }],
+    ['meta', { property: 'og:image:width', content: '1200' }],
+    ['meta', { property: 'og:image:height', content: '630' }],
     ['meta', { property: 'og:url', content: DOCS_URL }],
-    ['meta', { name: 'twitter:card', content: 'summary' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:image', content: `${DOCS_URL}/og-image.png` }],
   ],
 })

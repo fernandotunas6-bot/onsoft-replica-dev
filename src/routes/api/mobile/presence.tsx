@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { resolveBearerUserId } from "@/features/saas/platform-guard";
-import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
+import { corsPreflight, jsonWithCors, readJsonWithCors } from "@/lib/ecosystem-cors";
+import { BODY_LIMITS } from "@/lib/read-json-body";
 import {
   mobilePresenceSubmit,
   mobilePresenceToday,
@@ -58,7 +59,9 @@ export const Route = createFileRoute("/api/mobile/presence")({
       POST: async ({ request }) => {
         try {
           const userId = await resolveBearerUserId(request.headers.get("Authorization"));
-          const { schoolId, ...scan } = postSchema.parse(await request.json());
+          const read = await readJsonWithCors(request, [...APPS], { maxBytes: BODY_LIMITS.small });
+          if (!read.ok) return read.response;
+          const { schoolId, ...scan } = postSchema.parse(read.value);
           return jsonWithCors(request, await mobilePresenceSubmit(userId, schoolId, scan), {
             apps: [...APPS],
           });

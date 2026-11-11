@@ -5,8 +5,12 @@ import {
   verifyMetaWebhookSignature,
   type MetaWebhookEvent,
 } from "@/features/otp/webhooks";
+import { readTextBodyLimited, rejectedBody } from "@/lib/read-json-body";
 
 // style-check: route-exempt — webhook HTTP Meta de estado de WhatsApp.
+
+/** A Meta documenta avisos de webhook até 3 MB (vários estados no mesmo aviso). */
+const MAX_META_WEBHOOK_BYTES = 3 * 1024 * 1024;
 
 /**
  * GET  /api/webhooks/whatsapp-status — verificação inicial da Meta (hub.challenge).
@@ -44,7 +48,12 @@ export const Route = createFileRoute("/api/webhooks/whatsapp-status")({
       POST: async ({ request }) => {
         try {
           // Corpo como texto: a assinatura cobre os bytes exactos recebidos.
-          const body = await request.text();
+          const raw = await readTextBodyLimited(request, MAX_META_WEBHOOK_BYTES);
+          if (!raw.ok) {
+            const { status, message } = rejectedBody(raw.reason);
+            return json({ error: message }, { status });
+          }
+          const body = raw.text;
 
           const signature = request.headers.get("x-hub-signature-256") || "";
           const appSecret = (typeof process !== "undefined" && process.env?.META_APP_SECRET) || "";

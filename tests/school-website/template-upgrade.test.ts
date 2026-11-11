@@ -39,6 +39,7 @@ describe("actualizações aditivas do website escolar", () => {
     "5fd4cbb7d43915bde5c6",
     "b7bb3fc0893638fd4fd6",
     "96cb157ddf38b2059299",
+    "7fdc1d48c7245447ca25",
   ])("conserva a publicação, o rascunho e as edições de %s", (templateVersion) => {
     const key = websiteTemplate.fields.find((f) => f.kind === "text")!.key;
     const draft = {

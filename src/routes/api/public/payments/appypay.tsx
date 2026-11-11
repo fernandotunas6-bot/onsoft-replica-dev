@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { timingSafeEqual } from "@/lib/timing-safe-equal";
+import { BODY_LIMITS, readJsonBodyLimited } from "@/lib/read-json-body";
 
 // Aviso (webhook) da AppyPay. A AppyPay não assina os avisos: por isso exigimos
 // um token secreto no endereço e confirmamos SEMPRE a cobrança na própria AppyPay
@@ -21,12 +22,13 @@ export const Route = createFileRoute("/api/public/payments/appypay")({
         if (!expected || expected.length < 16 || !timingSafeEqual(got, expected)) {
           return new Response("Unauthorized", { status: 401 });
         }
-        let body: unknown;
-        try {
-          body = await request.json();
-        } catch {
-          return new Response("Invalid JSON", { status: 400 });
+        const read = await readJsonBodyLimited(request, BODY_LIMITS.webhook);
+        if (!read.ok) {
+          return read.reason === "too_large"
+            ? new Response("Payload Too Large", { status: 413 })
+            : new Response("Invalid JSON", { status: 400 });
         }
+        const body = read.value;
         const parsed = payloadSchema.safeParse(body);
         if (!parsed.success) return new Response("Invalid payload", { status: 400 });
 

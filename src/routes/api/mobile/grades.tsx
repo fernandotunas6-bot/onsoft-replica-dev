@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ZodError } from "zod";
 import { upsertTermGradesBatch } from "@/features/academic/server";
-import { mobileRespond } from "@/features/mobile/api-response";
+import { mobileRespond, readMobileJson } from "@/features/mobile/api-response";
+import { BODY_LIMITS } from "@/lib/read-json-body";
 import { corsPreflight } from "@/lib/ecosystem-cors";
 
 // style-check: route-exempt — API da app móvel (SIGA Plus Flutter, modo SIGA).
@@ -23,7 +24,10 @@ export const Route = createFileRoute("/api/mobile/grades")({
       OPTIONS: async ({ request }) => corsPreflight(request),
       POST: async ({ request }) =>
         mobileRespond(request, "api/mobile/grades", async () => {
-          const body = (await request.json().catch(() => null)) as MobileGradesBody | null;
+          const body = (await readMobileJson(
+            request,
+            BODY_LIMITS.standard,
+          )) as MobileGradesBody | null;
           if (!body || typeof body !== "object" || !Array.isArray(body.rows)) {
             throw new ZodError([]);
           }

@@ -8,7 +8,8 @@ import {
   sendChatMessage,
   startDirectConversation,
 } from "@/features/messages/chat-server";
-import { mobileRespond } from "@/features/mobile/api-response";
+import { mobileRespond, readMobileJson } from "@/features/mobile/api-response";
+import { BODY_LIMITS } from "@/lib/read-json-body";
 import { corsPreflight } from "@/lib/ecosystem-cors";
 
 // style-check: route-exempt — API da app móvel (SIGA Plus Flutter, modo SIGA).
@@ -42,7 +43,10 @@ export const Route = createFileRoute("/api/mobile/chat")({
         }),
       POST: async ({ request }) =>
         mobileRespond(request, "api/mobile/chat", async () => {
-          const body = (await request.json().catch(() => null)) as MobileChatBody | null;
+          const body = (await readMobileJson(
+            request,
+            BODY_LIMITS.standard,
+          )) as MobileChatBody | null;
           if (!body || typeof body !== "object") throw new ZodError([]);
           switch (body.action) {
             case "send":
