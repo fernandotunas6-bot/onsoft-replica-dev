@@ -23,6 +23,11 @@ PR #438 publicada (run 42882698702, verde; produção = `main`). Ramo
   `tests/security/api-body-limits.test.ts` recusa `request.json()`/`text()` em `src/routes/api`.
 - **DOC:** as páginas de segurança estão presas ao código por
   `tests/saas/docs-security-pages.test.ts`; ao mudar um limite, mudar também a página.
+- **Website escolar:** ao mudar texto do modelo (`painel/escolas`), correr
+  `scripts/siga/sync-school-website-template.mjs` e `build-school-website.mjs`; se as chaves
+  forem as mesmas, juntar a versão anterior à lista `upgrade` de
+  `features/school-website/content-model.ts` (e a `template-upgrade.test.ts`), senão o editor
+  recusa os rascunhos das escolas.
 - Pendências novas (análise 21, «Engenharia» 8–9): resumo SHA-256 das chaves das catracas
   (migração revista) e tecto para `/_serverFn` depois de medir os carregamentos.
 

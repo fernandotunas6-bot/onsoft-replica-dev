@@ -259,6 +259,14 @@ Worker e corpos aceites até 100 MB, um pedido bastava para esgotar a memória d
 Os webhooks continuam a receber o texto exacto, para a assinatura cobrir os mesmos bytes.
 `tests/security/api-body-limits.test.ts` impede leituras sem limite em `src/routes/api`.
 
+**Website escolar — restos da hospedagem de autoria (`83ca75a`).** O modelo de
+`painel/escolas` foi escrito numa hospedagem com login ChatGPT. Nas páginas que o SIGA serve
+às escolas, o «Terminar sessão» das 9 páginas do portal de demonstração ia para
+`/signout-with-chatgpt` (404) e a privacidade dizia que «o login com ChatGPT é tratado pela
+hospedagem Sites». O `check.mjs` deixava passar essas ligações sem verificar o destino.
+Corrigido no gerador. As chaves do editor não mudam; a versão anterior do modelo entra na
+lista de versões compatíveis, para as edições e publicações das escolas se manterem.
+
 **Verificado neste lote:** suite completa (6045 testes, 850 ficheiros), `tsc`, lint (0
 erros), `check:style`, build do SIGA e do DOC (sem ligações mortas).
 
