@@ -51,6 +51,6 @@ describe("DOC — estrutura e verdade dos conteúdos", () => {
     const config = text(".vitepress/config.ts");
     expect(config).not.toContain("content: '/og-image.png'");
     expect(config).not.toContain("content: 'https://siga-plus.local'");
-    expect(config).toContain("content: `${DOCS_URL}/brand/siga-plus-icon.png`");
+    expect(config).toContain("content: `${DOCS_URL}/og-image.png`");
   });
 });

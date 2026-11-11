@@ -27,6 +27,7 @@ import { TenantProvider } from "@/features/saas/tenant-context";
 import { TenantAccessBarrier } from "@/features/saas/TenantAccessBarrier";
 import { PageLoading } from "@/components/ui/page-loading";
 import { readSessionHint } from "@/features/auth/session-hint";
+import { getAppUrl } from "@/lib/app-config";
 
 // A autorização continua a proteger o Outlet autenticado; não descarregar
 // o código do perfil e do onboarding no ecrã público de entrada.
@@ -90,7 +91,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Plataforma integrada de gestão escolar: estudantes, turmas, secretaria académica, contabilidade e relatórios.",
       },
       { property: "og:type", content: "website" },
+      // Imagem das pré-visualizações (WhatsApp, redes sociais). Endereço absoluto da
+      // plataforma, como o Open Graph exige; o mesmo ficheiro no WEB e no DOC.
+      { property: "og:image", content: `${getAppUrl()}/og-image.png` },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "SIGA Plus — Gestão escolar para Angola" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: `${getAppUrl()}/og-image.png` },
       { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#F8F8FA" },
       { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#0F172A" },
       { name: "mobile-web-app-capable", content: "yes" },

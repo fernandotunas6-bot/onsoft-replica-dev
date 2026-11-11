@@ -55,8 +55,34 @@ function entryPageHints(): Plugin {
 }
 
 // https://vite.dev/config/
+/**
+ * Imagem das pré-visualizações (WhatsApp, redes sociais): o Open Graph exige um
+ * endereço absoluto, que só se conhece no build (VITE_WEB_URL, definido pelo deploy).
+ */
+function socialPreview(): Plugin {
+  return {
+    name: "siga-web-social-preview",
+    transformIndexHtml() {
+      const domain = String(process.env.VITE_PLATFORM_DOMAIN || "portal-siga.com")
+        .trim()
+        .toLowerCase()
+        .replace(/^\.+|\.+$/g, "")
+      const origin = String(process.env.VITE_WEB_URL || `https://www.${domain}`).replace(/\/+$/, "")
+      const meta = (attrs: Record<string, string>) => ({ tag: "meta", attrs, injectTo: "head" as const })
+      return [
+        meta({ property: "og:url", content: `${origin}/` }),
+        meta({ property: "og:image", content: `${origin}/og-image.png` }),
+        meta({ property: "og:image:width", content: "1200" }),
+        meta({ property: "og:image:height", content: "630" }),
+        meta({ property: "og:image:alt", content: "SIGA Plus — Gestão escolar para Angola" }),
+        meta({ name: "twitter:image", content: `${origin}/og-image.png` }),
+      ]
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), entryPageHints()],
+  plugins: [react(), tailwindcss(), entryPageHints(), socialPreview()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

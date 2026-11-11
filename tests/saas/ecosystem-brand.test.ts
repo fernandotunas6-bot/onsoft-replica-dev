@@ -41,6 +41,28 @@ describe("marca SIGA Plus em WEB, ADMIN e DOC", () => {
     expect(config).not.toContain("/logo.svg");
   });
 
+  it("imagem de partilha: o mesmo ficheiro 1200×630 no SIGA, no WEB e no DOC", () => {
+    const image = read("public/og-image.png");
+    // Cabeçalho PNG: largura e altura nos bytes 16–23 (IHDR).
+    expect(image.subarray(1, 4).toString("ascii")).toBe("PNG");
+    expect([image.readUInt32BE(16), image.readUInt32BE(20)]).toEqual([1200, 630]);
+    for (const app of ["painel/web", "painel/docs"]) {
+      expect(read(`${app}/public/og-image.png`).equals(image), app).toBe(true);
+    }
+  });
+
+  it("imagem de partilha declarada com endereço absoluto em cada app", () => {
+    expect(text("src/routes/__root.tsx")).toContain(
+      'property: "og:image", content: `${getAppUrl()}/og-image.png`',
+    );
+    expect(text("painel/web/vite.config.ts")).toContain(
+      'meta({ property: "og:image", content: `${origin}/og-image.png` })',
+    );
+    expect(text("painel/docs/.vitepress/config.ts")).toContain(
+      "['meta', { property: 'og:image', content: `${DOCS_URL}/og-image.png` }]",
+    );
+  });
+
   it("WEB: favicon com caminho absoluto (o relativo falhava em /blog/<artigo>)", () => {
     const html = text("painel/web/index.html");
     expect(html).toContain('<link rel="icon" href="/favicon.png" type="image/png">');
