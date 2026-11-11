@@ -1,0 +1,22 @@
+bun audit v1.4.4 (38afee6c8)
+
+@vitest/mocker@4.1.11
+  vitest > @vitest/mocker
+  moderate: Vitest: Code injection via unauthenticated manual mock registration (>=2.1.0-beta.7 <4.1.12) - https://github.com/advisories/GHSA-qxg6-89mg-rqv8
+  moderate: Vitest: Windows backslash traversal bypasses the @vitest/mocker redirect allowlist fix (>=4.1.11 <4.1.12) - https://github.com/advisories/GHSA-xp26-3454-mjgp
+
+esbuild@0.25.12, 0.18.20, 0.27.2, 0.28.2
+  @lovable.dev/mcp-js > esbuild
+  drizzle-kit > esbuild
+  vite > tsx > esbuild
+  @tanstack/router-plugin > unplugin > esbuild
+  moderate: esbuild enables any website to send any requests to the development server and read the response (<=0.24.2) - https://github.com/advisories/GHSA-67mh-4wv8-2f99
+
+uuid@8.3.2
+  exceljs > uuid
+  moderate: uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided (<11.1.1) - https://github.com/advisories/GHSA-w5hq-g745-h8pq
+
+4 vulnerabilities (4 moderate)
+
+  bun audit fix           upgrade the vulnerable packages within their ranges
+  bun audit fix --latest  also cross major versions

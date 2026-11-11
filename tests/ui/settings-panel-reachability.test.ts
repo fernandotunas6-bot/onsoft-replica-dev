@@ -11,6 +11,12 @@ const settingsSource = readFileSync(
   "utf8",
 );
 const ids = [...settingsSource.matchAll(/^\s+id: "([^"]+)",/gm)].map((match) => match[1]);
+const studioSource = readFileSync(
+  new URL("../../src/features/school-website/studio/WebsiteStudio.tsx", import.meta.url),
+  "utf8",
+);
+// These registered panels are reached from the dedicated Studio instead of another modal row.
+const studioTargets = [...studioSource.matchAll(/painel: "([^"]+)"/g)].map((match) => match[1]);
 const targets = [...settingsSource.matchAll(/^\s+to: "([^"]+)",/gm)].map((match) => match[1]);
 const rootRows = settingsSource.match(/id: "root",[\s\S]*?rows: \[([\s\S]*?)\n {8}\],/);
 const rootTargets = [...(rootRows?.[1] ?? "").matchAll(/to: "([^"]+)"/g)].map((match) => match[1]);
@@ -25,13 +31,13 @@ describe("acessibilidade das categorias já existentes em Definições", () => {
   it("todos os destinos levam a painéis registados, sem IDs duplicados", () => {
     expect(new Set(ids).size).toBe(ids.length);
     const existing = new Set(ids);
-    for (const target of targets) {
+    for (const target of [...targets, ...studioTargets]) {
       expect(existing.has(target), `Destino inexistente: ${target}`).toBe(true);
     }
   });
 
   it("não deixa painéis registados sem acesso por uma ligação existente", () => {
-    const reachable = new Set(targets);
+    const reachable = new Set([...targets, ...studioTargets]);
     for (const id of ids) {
       if (id === "root") continue;
       expect(reachable.has(id), `Painel sem acesso: ${id}`).toBe(true);

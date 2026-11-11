@@ -475,6 +475,26 @@ Estado: alterações submetidas à revisão/CI; **não concluir QA autenticada n
 declarar deploy de produção sem resultados reais**. O inventário restante de
 modais grandes e o ensaio de diferentes escolas continuam pendentes.
 
+
+## Website Studio dedicado — 24/10/2026
+
+Estado global do módulo: **parcial**. Primeiro incremento em `/website/editor`,
+com Puck 0.23.0 carregado apenas no cliente. Páginas à esquerda, preview isolado,
+inspector de conteúdo e aparência por página, largura/zoom e vistas móveis.
+Os atalhos de Website nas Definições abrem o estúdio; as configurações completas
+anteriores e o blog mantêm-se acessíveis.
+
+Validação local: testes de adaptador, Puck real em DOM, comandos editoriais,
+conflitos/falhas, cancelamento ao mudar escola, acesso por cargo/módulo e Chrome
+com fixtures em seis larguras. O template público não foi redesenhado.
+[Evidência e medições](../qa/website-studio-2026-10-24/README.md).
+
+Faltam CI remoto, sessão real AAL2, duas instituições em staging, Worker canário,
+dispositivos físicos e Web Vitals p75. A selecção de elementos por clique/teclado foi implementada com ponte opaca
+restrita e testada localmente. A alteração livre da estrutura continua fora do
+contrato. Desfazer/refazer (20 estados em memória), comparação com publicação
+e revisão explícita antes de publicar também foram acrescentados. Não considerar
+a execução integral do padrão global concluída por causa deste incremento.
 ## Flyouts laterais compactos — referência Claude IDE (24/10/2026)
 
 Incremento na [PR #274](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/274), sincronizado com `main` `057d4aa7`, **sem substituir** a sidebar das PRs #252/#262/#271 ou os modais simples do projecto.
@@ -891,3 +911,12 @@ pagamentos. A vista de tablet/desktop e os estados do dinheiro foram preservados
 | Sucesso após recibo | implementado e testado local | Estado do recibo, cache/PDF separados da liquidação em Faturas, Caixa e ficha | Ensaio operacional com Tesouraria |
 
 Ver `docs/agents/HANDOFF_PAYMENT_CONFIRMATION_2026-10-28.md` para os limites.
+
+## Website Studio — reconciliação com main (25/10/2026)
+
+A base das PRs #275/#277 foi reconciliada com `50b90afe`, preservando as categorias
+Identidade Digital/Pedagógico e a migração Zod 4. O editor permite recarregar a
+versão guardada após erro/conflito com confirmação de descarte, cancelamento por
+contexto e rejeição de respostas de outra escola antes de actualizar a cache.
+[Evidência e limites](../qa/website-studio-2026-10-24/SYNC_2026-10-25.md).
+Continuam pendentes CI integral e ensaios reais em staging/canário; sem rollout.

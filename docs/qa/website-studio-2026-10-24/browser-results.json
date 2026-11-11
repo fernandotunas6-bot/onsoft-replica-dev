@@ -1,0 +1,47 @@
+{
+  "fixtureOnly": true,
+  "realPuck": true,
+  "visualSelection": true,
+  "selectionBridgeIsolated": true,
+  "injectedScriptBlocked": true,
+  "undoRedo": true,
+  "publicationReview": true,
+  "publicationReadOnly": true,
+  "editedAndSaved": true,
+  "draftSeparatedFromPublication": true,
+  "failurePreservesDraft": true,
+  "revisionRecovery": true,
+  "cancelledNavigationPreservesDraft": true,
+  "pageSelection": true,
+  "widthsDoNotPublish": true,
+  "sandboxWithoutScripts": true,
+  "pageAppearancePreview": true,
+  "widths": [
+    {
+      "viewport": 320,
+      "content": 320
+    },
+    {
+      "viewport": 390,
+      "content": 390
+    },
+    {
+      "viewport": 768,
+      "content": 768
+    },
+    {
+      "viewport": 1024,
+      "content": 1024
+    },
+    {
+      "viewport": 1440,
+      "content": 1440
+    },
+    {
+      "viewport": 1920,
+      "content": 1920
+    }
+  ],
+  "feedbackSampleMs": 128,
+  "errors": []
+}

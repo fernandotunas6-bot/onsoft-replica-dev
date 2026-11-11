@@ -118,3 +118,14 @@ describe("/configuracoes", () => {
     expect(sessionStorage.getItem("siga:open-settings")).toBeNull();
   });
 });
+
+it("abre o Website Studio dedicado mesmo quando a escola escolheu definições em modal", async () => {
+  schoolState.preferences = { settingsModal: true };
+  setRouteSearch({ painel: "website" });
+  const Page = await loadPage();
+  renderRoute(Page);
+  await waitFor(() =>
+    expect(navigateMock).toHaveBeenCalledWith({ to: "/website/editor", replace: true }),
+  );
+  expect(sessionStorage.getItem("siga:open-settings")).toBeNull();
+});
