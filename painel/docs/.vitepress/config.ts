@@ -160,7 +160,7 @@ export default defineConfig({
           text: 'Guia da Plataforma',
           items: [
             { text: 'Funcionalidades & Permissões', link: '/guide/features' },
-            { text: 'Segurança de Rotas & RBAC', link: '/guide/route-security' },
+            { text: 'Segurança de rotas e acessos', link: '/guide/route-security' },
             { text: 'Pilha Tecnológica', link: '/guide/tech-stack' },
             { text: 'Estrutura do Projecto', link: '/guide/project-structure' },
             { text: 'Aparência e marca', link: '/guide/theme-system' },
