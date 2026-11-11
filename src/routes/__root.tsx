@@ -78,13 +78,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "Portal de Gestão Escolar" },
+      { title: "SIGA Plus — Gestão escolar" },
       {
         name: "description",
         content:
           "Plataforma integrada de gestão escolar: estudantes, turmas, secretaria académica, contabilidade e relatórios.",
       },
-      { property: "og:title", content: "Portal de Gestão Escolar" },
+      { property: "og:title", content: "SIGA Plus — Gestão escolar" },
       {
         property: "og:description",
         content:

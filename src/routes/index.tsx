@@ -61,13 +61,13 @@ const AdminPortalDashboard = lazy(() =>
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Dashboard · SIGA — Gestão Escolar" },
+      { title: "Início · SIGA Plus" },
       {
         name: "description",
         content:
           "Painel de gestão escolar SIGA: estudantes, turmas, matrículas, presenças e situação financeira do ano lectivo.",
       },
-      { property: "og:title", content: "Dashboard · SIGA — Gestão Escolar" },
+      { property: "og:title", content: "SIGA Plus — Gestão escolar" },
       {
         property: "og:description",
         content: "Visão geral do ano lectivo: estudantes, turmas, matrículas e finanças.",

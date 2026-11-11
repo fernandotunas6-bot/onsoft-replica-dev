@@ -63,6 +63,15 @@ describe("marca SIGA Plus em WEB, ADMIN e DOC", () => {
     );
   });
 
+  it("SIGA: o título das pré-visualizações tem a marca (antes «Portal de Gestão Escolar» e «Dashboard»)", () => {
+    expect(text("src/routes/__root.tsx")).toContain(
+      '{ property: "og:title", content: "SIGA Plus — Gestão escolar" }',
+    );
+    const home = text("src/routes/index.tsx");
+    expect(home).toContain('{ title: "Início · SIGA Plus" }');
+    expect(home).not.toContain("Dashboard · SIGA — Gestão Escolar");
+  });
+
   it("WEB: favicon com caminho absoluto (o relativo falhava em /blog/<artigo>)", () => {
     const html = text("painel/web/index.html");
     expect(html).toContain('<link rel="icon" href="/favicon.png" type="image/png">');
