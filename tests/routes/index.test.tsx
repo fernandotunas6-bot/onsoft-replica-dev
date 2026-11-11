@@ -143,6 +143,7 @@ const emptyOverview: Overview = {
   finance: null,
   ageDistribution: [],
   recentActivity: [],
+  auditActivity: [],
   upcomingEvents: [],
   announcements: [],
   calendarAvailable: true,
