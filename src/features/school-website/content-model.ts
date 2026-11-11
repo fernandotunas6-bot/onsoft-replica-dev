@@ -159,6 +159,9 @@ export function readWebsiteState(value: unknown): WebsiteState {
         // Versão do ISPAB publicada antes das páginas de propinas.
         // Modelo aditivo: preservar os campos antigos, sem mudar a publicação.
         "96cb157ddf38b2059299",
+        // Antes de 11/11/2026: a privacidade falava do login ChatGPT da hospedagem
+        // de autoria. Mesmas chaves; só o texto por omissão desse parágrafo mudou.
+        "7fdc1d48c7245447ca25",
       ].includes(content.templateVersion)
     )
       content.templateVersion = websiteTemplate.version;
