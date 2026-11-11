@@ -2,15 +2,36 @@ import { lazy } from 'react'
 import { SHOW_TEMPLATE_SURFACES } from '@/lib/feature-flags'
 import { AliveBridgeRedirect } from '@/components/alive-bridge-redirect'
 import Landing from '@/app/landing/page'
-import FAQs from '@/app/faqs/page'
-import Pricing from '@/app/pricing/page'
-import StartSchool from '@/app/start/page'
-import Terms from '@/app/termos/page'
-import Privacy from '@/app/privacidade/page'
-import Download from '@/app/download/page'
-import Blog from '@/app/blog/page'
-import BlogPost from '@/app/blog/post-page'
-import EnsinoPublico from '@/app/ensino-publico/page'
+
+type PageModule = { default: React.ComponentType }
+
+/**
+ * Página carregada à parte. Se for a página por onde a pessoa entra (por exemplo
+ * /start, vindo do «Criar escola» do SIGA), começa a descarregar logo, em paralelo
+ * com o arranque do React, em vez de esperar pelo primeiro desenho.
+ */
+function lazyPage(matches: (path: string) => boolean, load: () => Promise<PageModule>) {
+  if (typeof window !== 'undefined') {
+    const base = String(import.meta.env.VITE_BASENAME || '').replace(/\/+$/, '')
+    const path = window.location.pathname.slice(base.length) || '/'
+    if (matches(path)) void load()
+  }
+  return lazy(load)
+}
+
+const at = (route: string) => (path: string) => path === route || path === `${route}/`
+
+// Só a página inicial vai no pacote de entrada; as outras carregam quando se abrem.
+// O assistente /start (formulários, zod e selectores) pesava em todas as visitas.
+const FAQs = lazyPage(at('/faqs'), () => import('@/app/faqs/page'))
+const Pricing = lazyPage(at('/pricing'), () => import('@/app/pricing/page'))
+const StartSchool = lazyPage(at('/start'), () => import('@/app/start/page'))
+const Terms = lazyPage(at('/termos'), () => import('@/app/termos/page'))
+const Privacy = lazyPage(at('/privacidade'), () => import('@/app/privacidade/page'))
+const Download = lazyPage(at('/download'), () => import('@/app/download/page'))
+const Blog = lazyPage(at('/blog'), () => import('@/app/blog/page'))
+const BlogPost = lazyPage((path) => path.startsWith('/blog/'), () => import('@/app/blog/post-page'))
+const EnsinoPublico = lazyPage(at('/ensino-publico'), () => import('@/app/ensino-publico/page'))
 
 const Dashboard = lazy(() => import('@/app/dashboard/page'))
 const Dashboard2 = lazy(() => import('@/app/dashboard-2/page'))

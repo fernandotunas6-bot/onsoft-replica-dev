@@ -28,10 +28,10 @@ import { LanguageToggle } from "@/components/language-toggle"
 import { useTheme } from "@/hooks/use-theme"
 import { useLanguage } from "@/contexts/language-context"
 import { cn } from "@/lib/utils"
+import { scrollToSection } from "@/lib/scroll-to-section"
 
 const smoothScrollTo = (targetId: string) => {
-  if (!targetId.startsWith("#")) return
-  document.querySelector(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" })
+  scrollToSection(targetId, { smooth: true })
 }
 
 function useIsLandingPage() {
