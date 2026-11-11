@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { resolveAdminAliveBridge } from "@/lib/alive-bridges";
 import { getSaasApiUrl } from "@/lib/ecosystem-urls";
-import { SHOW_TEMPLATE_SURFACES, isPlatformRoute } from "@/lib/feature-flags";
+import { isPlatformRoute } from "@/lib/feature-flags";
 
 /** Conta escolar com sessão Supabase não entra no Control Center (Fase 10). */
 async function assertPlatformAdmin(
@@ -44,14 +44,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
-  if (!SHOW_TEMPLATE_SURFACES) {
-    const bridge = resolveAdminAliveBridge(pathname);
-    if (bridge) {
-      if (bridge.external) {
-        return NextResponse.redirect(bridge.to);
-      }
-      return NextResponse.redirect(new URL(bridge.to, request.url));
+  const bridge = resolveAdminAliveBridge(pathname);
+  if (bridge) {
+    if (bridge.external) {
+      return NextResponse.redirect(bridge.to);
     }
+    return NextResponse.redirect(new URL(bridge.to, request.url));
   }
 
   let response = NextResponse.next({ request });

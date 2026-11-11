@@ -35,10 +35,34 @@ describe("alive-bridges (ecossistema)", () => {
     expect(src).toContain("getDocsUrl");
   });
 
-  it("proxy ADMIN resolve pontes quando template está off", () => {
+  it("proxy e AliveBridgeGate do ADMIN resolvem sempre as pontes (as páginas do modelo saíram)", () => {
     const proxy = readBridgeMap("painel/admin/src/proxy.ts");
     expect(proxy).toContain("resolveAdminAliveBridge");
-    expect(proxy).toContain("SHOW_TEMPLATE_SURFACES");
+    expect(proxy).not.toContain("SHOW_TEMPLATE_SURFACES");
+    const gate = readBridgeMap("painel/admin/src/components/alive-bridge-gate.tsx");
+    expect(gate).toContain("const bridge = resolveAdminAliveBridge(path)");
+    expect(gate).not.toContain("SHOW_TEMPLATE_SURFACES");
+  });
+
+  it("ADMIN: cada endereço herdado do modelo tem página vazia e a ponte no layout", () => {
+    for (const route of [
+      "(auth)/sign-in-2",
+      "(auth)/sign-in-3",
+      "(auth)/sign-up-2",
+      "(auth)/sign-up-3",
+      "(auth)/forgot-password-2",
+      "(auth)/forgot-password-3",
+      "(dashboard)/settings/user",
+      "(dashboard)/settings/account",
+      "(dashboard)/settings/appearance",
+      "(dashboard)/settings/notifications",
+      "(dashboard)/settings/connections",
+      "landing",
+    ]) {
+      const dir = `painel/admin/src/app/${route}`;
+      expect(readBridgeMap(`${dir}/layout.tsx`), route).toContain("<AliveBridgeGate");
+      expect(readBridgeMap(`${dir}/page.tsx`), route).toMatch(/return null;?\n\}/);
+    }
   });
 
   it("proxy ADMIN exige platform_admins em rotas SaaS (Fase 10)", () => {
