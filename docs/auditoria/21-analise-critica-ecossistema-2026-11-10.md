@@ -163,13 +163,9 @@ apps, favicon `image/png` em rota aninhada, sem mensagens do GTM na consola.
 2. **Ficheiros gerados:** decidir se `site-pages.generated.json` deixa de ser versionado (e o
    teste o gera) ou se fica com um teste de coerência; corrigir o comentário do
    `deploy-production.yml`.
-3. **Restos do modelo em código-fonte** (só activos com `SHOW_TEMPLATE_SURFACES`): variantes
-   `sign-in-2/3`, `sign-up-*`, `settings/*`, calendário e chat com `console.log` no WEB e no
-   ADMIN; nomes de pacote `shadcn-dashboard-vite`, `shadcn-dashboard-nextjs` e
-   `tanstack_start_ts` (cuidado: o nome do Worker pode derivar do pacote). Remover com as
-   pontes a manter os endereços.
-4. **WEB:** o pedaço `vendor` tem 590 KB (187 KB gzip) e vai em todas as páginas; dividir por
-   rota (o assistente `/start` tem 1 591 linhas) e medir antes e depois. Imagem de partilha
+3. ~~Restos do modelo em código-fonte~~ — feito a 11/11 (ver «Continuação»). Fica o nome
+   do pacote da raiz, `tanstack_start_ts`: confirmar antes se o nome do Worker deriva dele.
+4. ~~WEB: pedaço `vendor` de 590 KB~~ — feito a 11/11. Fica a imagem de partilha
    (`og:image` 1200×630) com a marca — decisão de design.
 5. **Monólitos do SIGA** acima de 2 000 linhas: `finance/server.ts` (3 298),
    `higher-ed/server.ts` (3 238), `academic/server-legacy.ts` (2 348), `arquivos/server.ts`
@@ -179,6 +175,43 @@ apps, favicon `image/png` em rota aninhada, sem mensagens do GTM na consola.
 7. **Raiz do repositório:** `all_migrations_combined.sql` (141 KB), `logo.png` de 1 MB,
    `metadata.json` (AI Studio), `modelo de pautas/` (com espaços). Mover ou retirar depois
    de confirmar que nenhum script os usa.
+
+## Continuação — 11/11/2026
+
+**Publicação.** A PR #438 entrou na `main` como `01a21be` e foi publicada pelo «Deploy
+produção» (run 42882698702, 19:11–19:21 UTC): verificação (tipos, lint, testes), as 5 apps
+(DOC, WEB, ADMIN, PayFlow + D1, SIGA), DNS e serviços a responder. A seguinte (#325, run 42883125056) também passou. Auditoria pós-publicação (somente leitura) verde nas duas; a
+vigilância de 11/11 02:14 UTC confirma a produção igual à `main` (`3a0cb75`).
+
+**WEB — primeira visita mais leve (`7369c7f`).** Só a landing vai no pacote de entrada; as
+outras páginas e o formulário de contacto (o único com `react-hook-form` e `zod`) carregam à
+parte; React e o router num pedaço próprio. O build acrescenta ao `_headers` um
+`Link: rel=modulepreload` para `/start` e `/pricing`. Medido com 4G lento e CPU 4× (mediana
+de 5, servidor local com gzip e o `_headers` como o Pages):
+
+| Página     | FCP antes → depois | LCP antes → depois |
+| ---------- | ------------------ | ------------------ |
+| `/`        | 2 548 → 1 924 ms   | 2 548 → 1 924 ms   |
+| `/pricing` | 2 288 → 1 544 ms   | 2 288 → 1 964 ms   |
+| `/start`   | 2 344 → 1 876 ms   | 2 344 → 2 304 ms   |
+
+JS no caminho crítico de `/`: 787 → 492 KB (243 → 158 KB gzip).
+
+**Dois defeitos anteriores encontrados ao medir:**
+
+- **Âncoras da landing (`7369c7f`).** «Contacto» na barra vindo de outra página e o
+  endereço `/#contact` deixavam a pessoa no topo; `#pricing` e `#features` caíam ao lado,
+  porque o `content-visibility` muda a posição das secções enquanto se desce.
+  `scrollToSection()` corrige até a secção ficar no topo (0 px em computador e telemóvel).
+- **Pontes do WEB (`a6a550c`).** `/settings`, `/settings/billing` e `/auth/sign-up*`
+  passavam um endereço absoluto ao `<Navigate>` do React Router, que o trata como caminho
+  relativo: em produção iam para `/settings/https:/siga-web.pages.dev/pricing` (404).
+
+**Restos do modelo (`a6a550c`, `d08889a`, `b0eb489`).** WEB e ADMIN: os endereços herdados
+passam a ser sempre pontes; saem as páginas de demonstração, a flag `SHOW_TEMPLATE_SURFACES`,
+o «Atualizar para Pro» do ADMIN e 188 ficheiros que nenhuma entrada alcançava (análise de
+imports). ADMIN `public/` 2,3 MB → 28 KB. Pacotes `siga-plus-web` e `siga-plus-admin`; sai o
+`pnpm-lock.yaml` do WEB, que nenhum script usava. Avisos de lint: WEB 22 → 15, ADMIN 1 → 0.
 
 ## Limites desta análise
 
