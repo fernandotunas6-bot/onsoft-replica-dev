@@ -49,9 +49,25 @@ const DIRECTIVES: ReadonlyArray<readonly [string, string]> = [
   ["report-uri", CSP_REPORT_PATH],
 ];
 
-export const CONTENT_SECURITY_POLICY = DIRECTIVES.map(([name, value]) => `${name} ${value}`).join(
-  "; ",
-);
+/** A política com fontes a mais em algumas directivas (as restantes ficam iguais). */
+function policyWith(extra: Readonly<Record<string, string>> = {}): string {
+  return DIRECTIVES.map(
+    ([name, value]) => `${name} ${extra[name] ? `${value} ${extra[name]}` : value}`,
+  ).join("; ");
+}
+
+export const CONTENT_SECURITY_POLICY = policyWith();
+
+/**
+ * Política das páginas do website escolar (`school-website/site-http.ts`): a do SIGA,
+ * mais o Google Fonts, de onde o modelo de `painel/escolas` carrega DM Sans e Manrope.
+ * Com a política do SIGA, cada página vista mandava 9 relatórios (a folha e 8 ficheiros
+ * de letra): 9 pedidos ao Worker por visita, e relatórios que nunca ficariam limpos.
+ */
+export const SCHOOL_WEBSITE_CONTENT_SECURITY_POLICY = policyWith({
+  "style-src": "https://fonts.googleapis.com",
+  "font-src": "https://fonts.gstatic.com",
+});
 
 /** Relatórios maiores do que isto são ignorados (o browser manda ~1 KB). */
 const MAX_REPORT_BYTES = 16 * 1024;
