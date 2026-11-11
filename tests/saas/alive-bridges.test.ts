@@ -50,15 +50,17 @@ describe("alive-bridges (ecossistema)", () => {
     expect(proxy).toContain("platform");
   });
 
-  it("WEB routes usam AliveBridgeRedirect", () => {
+  it("WEB routes usam AliveBridgeRedirect, sempre (as páginas do modelo saíram)", () => {
     const routes = readBridgeMap("painel/web/src/config/routes.tsx");
     expect(routes).toContain("AliveBridgeRedirect");
-    expect(routes).toContain("SHOW_TEMPLATE_SURFACES");
+    expect(routes).toContain("BRIDGED_PATHS.map");
+    expect(routes).not.toContain("SHOW_TEMPLATE_SURFACES");
+    expect(routes).not.toMatch(/import\('@\/app\/(auth|settings)\//);
   });
 
   it("WEB: recuperar a senha leva ao SIGA (o formulário do modelo não enviava nada)", () => {
     const routes = readBridgeMap("painel/web/src/config/routes.tsx");
-    expect(routes).toContain('maybeAlive("/auth/forgot-password"');
+    expect(routes).toMatch(/BRIDGED_PATHS = \[[^\]]*"\/auth\/forgot-password"/s);
     const bridges = readBridgeMap("painel/web/src/lib/alive-bridges.ts");
     for (const path of [
       "/auth/forgot-password",

@@ -1,5 +1,4 @@
 import { lazy } from 'react'
-import { SHOW_TEMPLATE_SURFACES } from '@/lib/feature-flags'
 import { AliveBridgeRedirect } from '@/components/alive-bridge-redirect'
 import Landing from '@/app/landing/page'
 
@@ -41,28 +40,11 @@ const Chat = lazy(() => import('@/app/chat/page'))
 const Calendar = lazy(() => import('@/app/calendar/page'))
 const Users = lazy(() => import('@/app/users/page'))
 
-const SignIn = lazy(() => import('@/app/auth/sign-in/page'))
-const SignIn2 = lazy(() => import('@/app/auth/sign-in-2/page'))
-const SignIn3 = lazy(() => import('@/app/auth/sign-in-3/page'))
-const SignUp = lazy(() => import('@/app/auth/sign-up/page'))
-const SignUp2 = lazy(() => import('@/app/auth/sign-up-2/page'))
-const SignUp3 = lazy(() => import('@/app/auth/sign-up-3/page'))
-const ForgotPassword = lazy(() => import('@/app/auth/forgot-password/page'))
-const ForgotPassword2 = lazy(() => import('@/app/auth/forgot-password-2/page'))
-const ForgotPassword3 = lazy(() => import('@/app/auth/forgot-password-3/page'))
-
 const Unauthorized = lazy(() => import('@/app/errors/unauthorized/page'))
 const Forbidden = lazy(() => import('@/app/errors/forbidden/page'))
 const NotFound = lazy(() => import('@/app/errors/not-found/page'))
 const InternalServerError = lazy(() => import('@/app/errors/internal-server-error/page'))
 const UnderMaintenance = lazy(() => import('@/app/errors/under-maintenance/page'))
-
-const UserSettings = lazy(() => import('@/app/settings/user/page'))
-const AccountSettings = lazy(() => import('@/app/settings/account/page'))
-const BillingSettings = lazy(() => import('@/app/settings/billing/page'))
-const AppearanceSettings = lazy(() => import('@/app/settings/appearance/page'))
-const NotificationSettings = lazy(() => import('@/app/settings/notifications/page'))
-const ConnectionSettings = lazy(() => import('@/app/settings/connections/page'))
 
 export interface RouteConfig {
   path: string
@@ -70,11 +52,30 @@ export interface RouteConfig {
   children?: RouteConfig[]
 }
 
-/** Só auth/settings legados usam ponte; produto comercial renderiza páginas vivas. */
-function maybeAlive(path: string, live: React.ReactNode): React.ReactNode {
-  if (SHOW_TEMPLATE_SURFACES) return live
-  return <AliveBridgeRedirect path={path} />
-}
+/**
+ * Endereços que vieram do modelo de UI (entrar, registar, recuperar a senha,
+ * definições). O WEB não tem contas: cada um leva ao destino vivo de
+ * lib/alive-bridges.ts (SIGA, /start, /pricing ou DOC). As páginas de demonstração
+ * que existiam por trás, com formulários que não enviavam nada, saíram a 11/11/2026.
+ */
+const BRIDGED_PATHS = [
+  "/auth/sign-in",
+  "/auth/sign-in-2",
+  "/auth/sign-in-3",
+  "/auth/sign-up",
+  "/auth/sign-up-2",
+  "/auth/sign-up-3",
+  "/auth/forgot-password",
+  "/auth/forgot-password-2",
+  "/auth/forgot-password-3",
+  "/settings",
+  "/settings/user",
+  "/settings/account",
+  "/settings/billing",
+  "/settings/appearance",
+  "/settings/notifications",
+  "/settings/connections",
+] as const
 
 export const routes: RouteConfig[] = [
   { path: "/", element: <Landing /> },
@@ -98,29 +99,13 @@ export const routes: RouteConfig[] = [
   { path: "/calendar", element: <Calendar /> },
   { path: "/users", element: <Users /> },
 
-  // Login escolar vive no SIGA — ponte
-  { path: "/auth/sign-in", element: maybeAlive("/auth/sign-in", <SignIn />) },
-  { path: "/auth/sign-in-2", element: maybeAlive("/auth/sign-in-2", <SignIn2 />) },
-  { path: "/auth/sign-in-3", element: maybeAlive("/auth/sign-in-3", <SignIn3 />) },
-  { path: "/auth/sign-up", element: maybeAlive("/auth/sign-up", <SignUp />) },
-  { path: "/auth/sign-up-2", element: maybeAlive("/auth/sign-up-2", <SignUp2 />) },
-  { path: "/auth/sign-up-3", element: maybeAlive("/auth/sign-up-3", <SignUp3 />) },
-  { path: "/auth/forgot-password", element: maybeAlive("/auth/forgot-password", <ForgotPassword />) },
-  { path: "/auth/forgot-password-2", element: maybeAlive("/auth/forgot-password-2", <ForgotPassword2 />) },
-  { path: "/auth/forgot-password-3", element: maybeAlive("/auth/forgot-password-3", <ForgotPassword3 />) },
-
   { path: "/errors/unauthorized", element: <Unauthorized /> },
   { path: "/errors/forbidden", element: <Forbidden /> },
   { path: "/errors/not-found", element: <NotFound /> },
   { path: "/errors/internal-server-error", element: <InternalServerError /> },
   { path: "/errors/under-maintenance", element: <UnderMaintenance /> },
 
-  { path: "/settings/user", element: maybeAlive("/settings/user", <UserSettings />) },
-  { path: "/settings/account", element: maybeAlive("/settings/account", <AccountSettings />) },
-  { path: "/settings/billing", element: maybeAlive("/settings/billing", <BillingSettings />) },
-  { path: "/settings/appearance", element: maybeAlive("/settings/appearance", <AppearanceSettings />) },
-  { path: "/settings/notifications", element: maybeAlive("/settings/notifications", <NotificationSettings />) },
-  { path: "/settings/connections", element: maybeAlive("/settings/connections", <ConnectionSettings />) },
+  ...BRIDGED_PATHS.map((path) => ({ path, element: <AliveBridgeRedirect path={path} /> })),
 
   { path: "*", element: <NotFound /> },
 ]
