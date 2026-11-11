@@ -13,6 +13,18 @@ PR #438 publicada (run 42882698702, verde; produção = `main`). Ramo
 - **WEB e ADMIN:** sem páginas de demonstração do modelo nem `SHOW_TEMPLATE_SURFACES`; os
   endereços herdados são sempre pontes. Para achar código morto:
   análise de imports a partir das entradas (no ADMIN, todos os `page`/`layout` do Next).
+- **#440 publicada** (`e90dabb`, deploy run 42971698098 verde). O smoke E2E em Python
+  falhava na `main` por olhar uma vez para o título de `/start` (agora lazy): corrigido em
+  `ba71366`. Nos E2E, esperar pelo conteúdo (`wait_for`, `toBeVisible`), nunca `is_visible()`
+  logo após a navegação.
+- **Corpo dos pedidos da API:** ler sempre com `readJsonBodyLimited`/`readTextBodyLimited`
+  (`src/lib/read-json-body.ts`), `readJsonWithCors` (WEB/ADMIN), `readMobileJson` (app) ou
+  o `readBody` da consola, com um dos `BODY_LIMITS` ou um limite próprio justificado.
+  `tests/security/api-body-limits.test.ts` recusa `request.json()`/`text()` em `src/routes/api`.
+- **DOC:** as páginas de segurança estão presas ao código por
+  `tests/saas/docs-security-pages.test.ts`; ao mudar um limite, mudar também a página.
+- Pendências novas (análise 21, «Engenharia» 8–9): resumo SHA-256 das chaves das catracas
+  (migração revista) e tecto para `/_serverFn` depois de medir os carregamentos.
 
 ## Análise crítica do ecossistema e correcções — 10/11/2026
 

@@ -165,8 +165,7 @@ apps, favicon `image/png` em rota aninhada, sem mensagens do GTM na consola.
    `deploy-production.yml`.
 3. ~~Restos do modelo em código-fonte~~ — feito a 11/11 (ver «Continuação»). Fica o nome
    do pacote da raiz, `tanstack_start_ts`: confirmar antes se o nome do Worker deriva dele.
-4. ~~WEB: pedaço `vendor` de 590 KB~~ — feito a 11/11. Fica a imagem de partilha
-   (`og:image` 1200×630) com a marca — decisão de design.
+4. ~~WEB: pedaço `vendor` de 590 KB~~ e ~~imagem de partilha com a marca~~ — feitos a 11/11.
 5. **Monólitos do SIGA** acima de 2 000 linhas: `finance/server.ts` (3 298),
    `higher-ed/server.ts` (3 238), `academic/server-legacy.ts` (2 348), `arquivos/server.ts`
    (2 192), `alunos/$studentId.tsx` (2 166). Partir por responsabilidade quando se tocar neles.
@@ -175,6 +174,13 @@ apps, favicon `image/png` em rota aninhada, sem mensagens do GTM na consola.
 7. **Raiz do repositório:** `all_migrations_combined.sql` (141 KB), `logo.png` de 1 MB,
    `metadata.json` (AI Studio), `modelo de pautas/` (com espaços). Mover ou retirar depois
    de confirmar que nenhum script os usa.
+8. **Chaves das catracas em texto simples** (`siga_turnstile_devices.api_key`, comparada com
+   `.eq("api_key", …)`). A tabela já só é lida pelo servidor; guardar apenas o resumo
+   SHA-256 protege as chaves se a base for exposta. Exige migração revista
+   ([regras da base](../agents/DATABASE_RULES.md)); as catracas não precisam de chave nova.
+9. **Funções do servidor (`/_serverFn`)** lêem o corpo dentro do TanStack Start, sem limite.
+   A importação aceita 25 MB (≈ 35 MB em base64): medir os maiores carregamentos legítimos
+   antes de fixar um tecto global.
 
 ## Continuação — 11/11/2026
 
@@ -212,6 +218,49 @@ passam a ser sempre pontes; saem as páginas de demonstração, a flag `SHOW_TEM
 o «Atualizar para Pro» do ADMIN e 188 ficheiros que nenhuma entrada alcançava (análise de
 imports). ADMIN `public/` 2,3 MB → 28 KB. Pacotes `siga-plus-web` e `siga-plus-admin`; sai o
 `pnpm-lock.yaml` do WEB, que nenhum script usava. Avisos de lint: WEB 22 → 15, ADMIN 1 → 0.
+
+## Continuação — 11/11/2026, segundo lote
+
+**Publicação da #440 (`e90dabb`).** «Deploy produção» run 42971698098: verificação, as 5
+apps, DNS e serviços (publicação 06:27–06:29 UTC); auditoria pós-publicação verde (run
+42972753681); Lighthouse verde. O CI da `main` (run 42971698027) ficou vermelho num só
+passo, o smoke E2E em Python: «WEB /start: heading «Criar a sua escola» não visível». O
+script olhava uma vez para o título logo após o `domcontentloaded`; desde a #440, `/start`
+chega num pedaço à parte e o título aparece 0,7–0,9 s depois (medido no servidor de
+desenvolvimento, como no CI). O teste TS equivalente espera e passou. Corrigido em
+`ba71366` (espera até 15 s); com o próprio script contra o WEB local, a versão da `main`
+reproduz a falha e a corrigida passa. A página não mudou.
+
+**Marca nas pré-visualizações (`191d130`, `cad54b4`).** Imagem de partilha 1200×630 do
+SIGA Plus no SIGA, no WEB e no DOC, com endereço absoluto (o WhatsApp e o LinkedIn não
+aceitam relativos). No SIGA, «Portal de Gestão Escolar» e «Dashboard · SIGA — Gestão
+Escolar» passam a «SIGA Plus — Gestão escolar» e «Início · SIGA Plus».
+
+**DOC — páginas de segurança (`3627b04`, `1c1de40`).** «Segurança de rotas» e
+«Endurecimento de segurança» reescritas a partir do código. A segunda mostrava SQL de
+tabelas que não existem, uma CSP activa com um domínio inventado, cookies `HttpOnly` com
+`SameSite=Strict` (a sessão vive num cookie legível, `SameSite=Lax`), senhas de 10
+caracteres (são 8), catracas com HMAC e nonce, e uma checklist toda marcada.
+`tests/saas/docs-security-pages.test.ts` prende cada número à constante de onde vem.
+
+**API — limite de tamanho do corpo (`c3ed924`).** 31 rotas de `src/routes/api` liam o
+corpo sem limite, quase todas antes de verificar chave, assinatura ou sessão. Com 128 MB por
+Worker e corpos aceites até 100 MB, um pedido bastava para esgotar a memória do isolado.
+
+| Tipo de pedido                                              | Limite   |
+| ----------------------------------------------------------- | -------- |
+| Códigos do registo, catracas, notificações e presença (app) | 16 KB    |
+| Formulários, consola, app (lista de uma turma incluída)     | 256 KB   |
+| Artigo do blog (60 000 caracteres)                          | 512 KB   |
+| Avisos de pagamentos, e-mail e SMS                          | 1 MB     |
+| Avisos da Meta (WhatsApp)                                   | 3 MB     |
+| Entrega de trabalho na app (anexo de 5 MB em base64)        | ≈ 6,9 MB |
+
+Os webhooks continuam a receber o texto exacto, para a assinatura cobrir os mesmos bytes.
+`tests/security/api-body-limits.test.ts` impede leituras sem limite em `src/routes/api`.
+
+**Verificado neste lote:** suite completa (6045 testes, 850 ficheiros), `tsc`, lint (0
+erros), `check:style`, build do SIGA e do DOC (sem ligações mortas).
 
 ## Limites desta análise
 
