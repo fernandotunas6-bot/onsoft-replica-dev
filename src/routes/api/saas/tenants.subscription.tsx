@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { updateTenantSubscriptionInputSchema } from "@/features/saas/schemas";
 import { updateTenantSubscription } from "@/features/saas/platform-ops";
 import { requirePlatformAdminFromRequest } from "@/features/saas/platform-guard";
-import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
+import { corsPreflight, jsonWithCors, readJsonWithCors } from "@/lib/ecosystem-cors";
 
 const APPS = ["admin"] as const;
 
@@ -13,16 +13,9 @@ export const Route = createFileRoute("/api/saas/tenants/subscription")({
     handlers: {
       OPTIONS: async ({ request }) => corsPreflight(request, [...APPS]),
       POST: async ({ request }) => {
-        let body: unknown;
-        try {
-          body = await request.json();
-        } catch {
-          return jsonWithCors(
-            request,
-            { error: "Corpo JSON inválido." },
-            { status: 400, apps: [...APPS] },
-          );
-        }
+        const read = await readJsonWithCors(request, [...APPS]);
+        if (!read.ok) return read.response;
+        const body = read.value;
         const parsed = updateTenantSubscriptionInputSchema.safeParse(body);
         if (!parsed.success) {
           return jsonWithCors(

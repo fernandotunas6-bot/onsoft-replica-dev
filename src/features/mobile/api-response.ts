@@ -2,6 +2,7 @@ import { ZodError } from "zod";
 import { ACTIVE_SCHOOL_UNAVAILABLE } from "@/features/auth/active-school";
 import { isSessionMfaError } from "@/integrations/supabase/session-mfa";
 import { jsonWithCors } from "@/lib/ecosystem-cors";
+import { readJsonBodyLimited } from "@/lib/read-json-body";
 
 /** Textos do SIGA que querem dizer «sem sessão», não uma regra recusada. */
 const UNAUTHENTICATED = new Set(["Unauthorized", "Não autenticado."]);
@@ -19,6 +20,25 @@ function mobilePrivateJson(
   return jsonWithCors(request, body, { ...init, noStore: true });
 }
 
+/** Corpo acima do limite da rota: 413, e não «dados inválidos». */
+export class PayloadTooLargeError extends Error {
+  constructor() {
+    super("Pedido demasiado grande.");
+    this.name = "PayloadTooLargeError";
+  }
+}
+
+/**
+ * JSON do pedido da app, com limite de bytes. `null` quando não é JSON (a rota
+ * recusa com 422, como antes); acima do limite, `PayloadTooLargeError` (413).
+ */
+export async function readMobileJson(request: Request, maxBytes: number): Promise<unknown> {
+  const body = await readJsonBodyLimited(request, maxBytes);
+  if (body.ok) return body.value;
+  if (body.reason === "too_large") throw new PayloadTooLargeError();
+  return null;
+}
+
 /**
  * Resposta das rotas /api/mobile/* (app SIGA Plus). Os erros levam o texto
  * que o SIGA mostra (são escritos para a pessoa e os da base passam por
@@ -33,6 +53,13 @@ export async function mobileRespond(
   try {
     return mobilePrivateJson(request, await run());
   } catch (error) {
+    if (error instanceof PayloadTooLargeError) {
+      return mobilePrivateJson(
+        request,
+        { error: "PAYLOAD_TOO_LARGE", message: error.message },
+        { status: 413 },
+      );
+    }
     // Antes do 401: o erro de 2FA também vem com statusCode 401.
     if (isSessionMfaError(error)) {
       return mobilePrivateJson(

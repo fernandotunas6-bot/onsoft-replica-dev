@@ -5,6 +5,7 @@ import {
   verifyTwilioWebhookSignature,
   type TwilioWebhookPayload,
 } from "@/features/otp/webhooks";
+import { BODY_LIMITS, readTextBodyLimited, rejectedBody } from "@/lib/read-json-body";
 
 // style-check: route-exempt — webhook HTTP Twilio de estado de SMS.
 
@@ -21,8 +22,12 @@ export const Route = createFileRoute("/api/webhooks/twilio-sms")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const body = await request.text();
-          const params = new URLSearchParams(body);
+          const raw = await readTextBodyLimited(request, BODY_LIMITS.webhook);
+          if (!raw.ok) {
+            const { status, message } = rejectedBody(raw.reason);
+            return json({ error: message }, { status });
+          }
+          const params = new URLSearchParams(raw.text);
           const rawParams = Object.fromEntries(params);
           const payload = rawParams as unknown as TwilioWebhookPayload;
 

@@ -6,6 +6,7 @@ import {
   verifyResendWebhookSignature,
 } from "@/features/integrations/resend-webhook-signature";
 import { errorMessage } from "@/lib/error-message";
+import { BODY_LIMITS, readTextBodyLimited, rejectedBody } from "@/lib/read-json-body";
 
 // style-check: route-exempt — webhook HTTP Resend para entrega, aberturas e bounces.
 
@@ -41,7 +42,12 @@ export const Route = createFileRoute("/api/integrations/resend/webhook")({
 
         // O corpo tem de ser lido como texto: a assinatura cobre os bytes
         // exactos recebidos, e voltar a serializar o JSON invalidaria-a.
-        const rawBody = await request.text();
+        const raw = await readTextBodyLimited(request, BODY_LIMITS.webhook);
+        if (!raw.ok) {
+          const { status, message } = rejectedBody(raw.reason);
+          return Response.json({ ok: false, message }, { status });
+        }
+        const rawBody = raw.text;
         const signature = await verifyResendWebhookSignature({
           payload: rawBody,
           svixId: request.headers.get("svix-id"),

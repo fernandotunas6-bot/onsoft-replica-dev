@@ -7,6 +7,7 @@
 import type { z } from "zod";
 import { requirePlatformAdminFromRequest } from "./platform-guard";
 import { jsonWithCors } from "@/lib/ecosystem-cors";
+import { BODY_LIMITS, readJsonBodyLimited, rejectedBody } from "@/lib/read-json-body";
 
 export const SITE_ADMIN_APPS = ["admin"] as const;
 
@@ -14,20 +15,27 @@ export function siteJson(request: Request, body: unknown, status = 200): Respons
   return jsonWithCors(request, body, { status, apps: [...SITE_ADMIN_APPS] });
 }
 
-class BadRequest extends Error {}
+class BadRequest extends Error {
+  constructor(
+    message: string,
+    readonly status: 400 | 413 = 400,
+  ) {
+    super(message);
+  }
+}
 
-/** Lê e valida o corpo; um erro aqui responde 400. */
+/** Lê (com limite de bytes) e valida o corpo; um erro aqui responde 400, ou 413 se for grande demais. */
 export async function readBody<S extends z.ZodTypeAny>(
   request: Request,
   schema: S,
+  maxBytes: number = BODY_LIMITS.standard,
 ): Promise<z.infer<S>> {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    throw new BadRequest("Corpo JSON inválido.");
+  const read = await readJsonBodyLimited(request, maxBytes);
+  if (!read.ok) {
+    const { status, message } = rejectedBody(read.reason);
+    throw new BadRequest(message, status);
   }
-  const parsed = schema.safeParse(body);
+  const parsed = schema.safeParse(read.value);
   if (!parsed.success) {
     const first = parsed.error.issues[0]?.message;
     throw new BadRequest(first || "Pedido inválido.");
@@ -48,7 +56,7 @@ export async function withSiteAdmin(
     const message = error instanceof Error ? error.message : fallback;
     const status =
       error instanceof BadRequest
-        ? 400
+        ? error.status
         : message === "Unauthorized" || message.includes("Sem permissão")
           ? 401
           : 500;

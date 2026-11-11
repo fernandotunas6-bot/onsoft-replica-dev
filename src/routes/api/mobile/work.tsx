@@ -2,10 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ZodError } from "zod";
 import { getMyWorkOverview } from "@/features/academic/subject-work-server";
 import { submitTaskWork } from "@/features/academic/task-submissions-server";
-import { mobileRespond } from "@/features/mobile/api-response";
+import { mobileRespond, readMobileJson } from "@/features/mobile/api-response";
+import { MAX_ATTACHMENT_BASE64 } from "@/features/academic/task-attachments";
 import { corsPreflight } from "@/lib/ecosystem-cors";
+import { BODY_LIMITS } from "@/lib/read-json-body";
 
 // style-check: route-exempt — API da app móvel (SIGA Plus Flutter, modo SIGA).
+
+/** O anexo (até 5 MB, em base64) e o resto da entrega. */
+const MAX_WORK_JSON_BYTES = MAX_ATTACHMENT_BASE64 + BODY_LIMITS.standard;
 
 /**
  * Os trabalhos do ano corrente do aluno, de todas as disciplinas, num só pedido
@@ -29,7 +34,10 @@ export const Route = createFileRoute("/api/mobile/work")({
         }),
       POST: async ({ request }) =>
         mobileRespond(request, "api/mobile/work", async () => {
-          const body = (await request.json().catch(() => null)) as MobileWorkBody | null;
+          const body = (await readMobileJson(
+            request,
+            MAX_WORK_JSON_BYTES,
+          )) as MobileWorkBody | null;
           if (!body || typeof body !== "object" || body.action !== "submit") {
             throw new ZodError([]);
           }

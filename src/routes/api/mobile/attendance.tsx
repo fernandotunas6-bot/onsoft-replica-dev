@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ZodError } from "zod";
-import { mobileRespond } from "@/features/mobile/api-response";
+import { mobileRespond, readMobileJson } from "@/features/mobile/api-response";
+import { BODY_LIMITS } from "@/lib/read-json-body";
 import {
   editFinalizedAttendanceCall,
   getAttendanceCallSheet,
@@ -37,7 +38,10 @@ export const Route = createFileRoute("/api/mobile/attendance")({
         }),
       POST: async ({ request }) =>
         mobileRespond(request, "api/mobile/attendance", async () => {
-          const body = (await request.json().catch(() => null)) as MobileAttendanceBody | null;
+          const body = (await readMobileJson(
+            request,
+            BODY_LIMITS.standard,
+          )) as MobileAttendanceBody | null;
           if (!body || typeof body !== "object") throw new ZodError([]);
           // Sem lista de alunos não se grava: uma chamada vazia ficaria fechada
           // sem ninguém marcado (e só se corrigiria com motivo).

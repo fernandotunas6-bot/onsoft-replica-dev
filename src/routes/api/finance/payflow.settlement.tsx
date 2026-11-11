@@ -8,6 +8,7 @@ import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { clientIpFromRequest } from "@/lib/request-ip";
+import { BODY_LIMITS, readJsonBodyLimited, rejectedBody } from "@/lib/read-json-body";
 
 // style-check: route-exempt — webhook HTTP PayFlow → SIGA (sem shell administrativo).
 
@@ -44,12 +45,12 @@ export const Route = createFileRoute("/api/finance/payflow/settlement")({
           );
         }
 
-        let body: unknown;
-        try {
-          body = await request.json();
-        } catch {
-          return Response.json({ ok: false, message: "Corpo JSON inválido." }, { status: 400 });
+        const read = await readJsonBodyLimited(request, BODY_LIMITS.webhook);
+        if (!read.ok) {
+          const { status, message } = rejectedBody(read.reason);
+          return Response.json({ ok: false, message }, { status });
         }
+        const body = read.value;
 
         const parsed = payflowSettlementInputSchema.safeParse(body);
         if (!parsed.success) {

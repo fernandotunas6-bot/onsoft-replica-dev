@@ -1,5 +1,6 @@
 import { ECOSYSTEM_URLS } from "@/lib/ecosystem-urls";
 import { ECOSYSTEM_PLATFORM_SUBDOMAINS, getPlatformDomain } from "@/lib/saas/platform-domain";
+import { BODY_LIMITS, readJsonBodyLimited, rejectedBody } from "@/lib/read-json-body";
 
 export type EcosystemApp = keyof typeof ECOSYSTEM_URLS;
 
@@ -94,6 +95,22 @@ export function jsonWithCors(
   // Respostas de autenticação e dados pessoais nunca devem ficar numa cache partilhada.
   if (init.noStore) headers.set("Cache-Control", "no-store");
   return new Response(JSON.stringify(body), { status: init.status ?? 200, headers });
+}
+
+/**
+ * JSON do pedido de uma rota do ecossistema, com limite de bytes: o valor, ou a
+ * resposta 400/413 (com os cabeçalhos CORS) para devolver tal como está.
+ */
+export async function readJsonWithCors(
+  request: Request,
+  apps: EcosystemApp[],
+  options: { maxBytes?: number; invalidMessage?: string } = {},
+): Promise<{ ok: true; value: unknown } | { ok: false; response: Response }> {
+  const body = await readJsonBodyLimited(request, options.maxBytes ?? BODY_LIMITS.standard);
+  if (body.ok) return body;
+  const { status, message } = rejectedBody(body.reason);
+  const error = body.reason === "invalid_json" ? (options.invalidMessage ?? message) : message;
+  return { ok: false, response: jsonWithCors(request, { error }, { status, apps }) };
 }
 
 export function corsPreflight(

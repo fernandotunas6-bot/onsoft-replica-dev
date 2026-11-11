@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { contactMessageInputSchema } from "@/features/saas/web-site-schemas";
 import { submitContactMessage } from "@/features/saas/web-site-content";
-import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
+import { corsPreflight, jsonWithCors, readJsonWithCors } from "@/lib/ecosystem-cors";
 import { clientIpFromRequest } from "@/lib/request-ip";
 
 const APPS = ["web"] as const;
@@ -13,16 +13,9 @@ export const Route = createFileRoute("/api/saas/public/contact")({
     handlers: {
       OPTIONS: async ({ request }) => corsPreflight(request, [...APPS]),
       POST: async ({ request }) => {
-        let body: unknown;
-        try {
-          body = await request.json();
-        } catch {
-          return jsonWithCors(
-            request,
-            { error: "Corpo JSON inválido." },
-            { status: 400, apps: [...APPS] },
-          );
-        }
+        const read = await readJsonWithCors(request, [...APPS]);
+        if (!read.ok) return read.response;
+        const body = read.value;
         const parsed = contactMessageInputSchema.safeParse(body);
         if (!parsed.success) {
           return jsonWithCors(
