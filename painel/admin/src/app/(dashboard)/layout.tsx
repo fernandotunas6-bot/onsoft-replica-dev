@@ -9,12 +9,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { ThemeCustomizerTrigger } from "@/components/theme-customizer";
 import { DynamicThemeCustomizer } from "@/components/dynamic-imports";
-import {
-  SHOW_THEME_CUSTOMIZER,
-  SHOW_UPGRADE_BUTTON,
-  isPlatformRoute,
-} from "@/lib/feature-flags";
-import { UpgradeToProButton } from "@/components/upgrade-to-pro-button";
+import { SHOW_THEME_CUSTOMIZER, isPlatformRoute } from "@/lib/feature-flags";
 import { useSidebarConfig } from "@/hooks/use-sidebar-config";
 
 export default function DashboardLayout({
@@ -89,7 +84,6 @@ export default function DashboardLayout({
           ) : null}
         </>
       ) : null}
-      {SHOW_UPGRADE_BUTTON ? <UpgradeToProButton /> : null}
     </SidebarProvider>
   );
 

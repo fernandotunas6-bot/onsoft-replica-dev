@@ -1,5 +1,19 @@
 # Handoff — continuar o SIGA
 
+## Continuação: publicação, desempenho do WEB e limpeza do modelo — 11/11/2026
+
+PR #438 publicada (run 42882698702, verde; produção = `main`). Ramo
+`claude/intelligent-bell-sw3qo4` recomeçado da `main` `3a0cb75`. Detalhe e números na secção
+«Continuação» da [análise 21](../auditoria/21-analise-critica-ecossistema-2026-11-10.md).
+
+- **WEB:** só a landing no pacote de entrada; `vite.config.ts` gera `Link: rel=modulepreload`
+  no `_headers` para `/start` e `/pricing` (`entryPageHints`). Âncoras da landing com
+  `lib/scroll-to-section.ts` (o `content-visibility` desloca as secções). Pontes com destino
+  absoluto do próprio WEB passam por `lib/bridge-target.ts` (antes davam 404).
+- **WEB e ADMIN:** sem páginas de demonstração do modelo nem `SHOW_TEMPLATE_SURFACES`; os
+  endereços herdados são sempre pontes. Para achar código morto:
+  análise de imports a partir das entradas (no ADMIN, todos os `page`/`layout` do Next).
+
 ## Análise crítica do ecossistema e correcções — 10/11/2026
 
 Ramo `claude/intelligent-bell-sw3qo4` (base `main` `2a13b02`). Achados, números antes/depois,

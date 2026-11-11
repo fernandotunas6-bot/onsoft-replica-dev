@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { LandingPageContent } from "./landing-page-content";
 
 // /landing é só uma ponte para o portal comercial (WEB): AliveBridgeGate redirecciona.
 // Os metadados do modelo («Modern Admin Dashboard Template») ficavam no HTML exportado.
@@ -10,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function LandingPage() {
-  return <LandingPageContent />;
+  return null;
 }
