@@ -3,6 +3,7 @@ import type { PrintSchoolContext, PrintStudentContext } from "@/features/documen
 /** Carrega o motor de impressão só ao clicar — evita ~450 kB no bundle inicial. */
 export async function issuePrintDocument(input: {
   tipo: string;
+  classGroupIds?: string[];
   school: PrintSchoolContext;
   student?: PrintStudentContext;
   overlay?: Record<string, unknown>;

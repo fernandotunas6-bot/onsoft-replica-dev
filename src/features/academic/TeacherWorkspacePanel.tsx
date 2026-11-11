@@ -85,6 +85,7 @@ export function TeacherWorkspacePanel({
                   onClick={() => {
                     void issuePrintDocument({
                       tipo: "Diário pedagógico",
+                      classGroupIds: [...new Set(classes.map((item) => item.id))],
                       school: {
                         name: school?.name ?? "Escola",
                         nif: school?.nif,

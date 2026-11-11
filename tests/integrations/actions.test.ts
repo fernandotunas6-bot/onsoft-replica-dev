@@ -38,6 +38,10 @@ describe("integration actions", () => {
 
   it("builds whatsapp links with optional prefilled text", () => {
     expect(whatsappHref("")).toBe("https://wa.me/");
+    expect(whatsappHref("", "Acesso SIGA: https://example.test/recovery?a=1&b=2")).toBe(
+      "https://wa.me/?text=" +
+        encodeURIComponent("Acesso SIGA: https://example.test/recovery?a=1&b=2"),
+    );
     expect(whatsappHref("+244 923 000 111", "Olá")).toBe(
       "https://wa.me/244923000111?text=Ol%C3%A1",
     );
