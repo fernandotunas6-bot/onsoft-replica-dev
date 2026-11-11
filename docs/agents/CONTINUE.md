@@ -209,6 +209,16 @@ alteraram ecrãs ou dependências para encobrir essas falhas. TypeScript e ESLin
 aprovados; a verificação final de 130 testes em 15 ficheiros e os
 carimbos reais das nove migrações estão na
 [evidência deste ciclo](../architecture/academic-agenda-evidence-2026-10-25.json).
+## Reconciliação da PR #200 — 2026-10-24
+
+Continuar no motor `src/features/school-website`. A proposta antiga `school-site`
+não deve ser fundida no mesmo domínio `school_website`: usa outro schema e múltiplas
+linhas por versão, incompatíveis com os leitores actuais. A política actual mantém
+conteúdo server-only. Guardas explícitas de cargo Administrador e AAL2 nas mutações,
+escola activa nas APIs públicas e validação de recursos públicos foram reforçadas.
+[Correcções, matriz e ensaio real pendente](../school-sites/RECONCILIATION_200.md).
+Sem migração nem deploy neste incremento. Não declarar sessão real, fidelidade
+pixel-perfect ou domínio canário validados por causa dos testes locais.
 
 ## Navegação contextual e superfícies discretas — 2026-10-22
 
