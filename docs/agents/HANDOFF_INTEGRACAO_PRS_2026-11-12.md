@@ -72,7 +72,7 @@ arquitectura `mobile-v4` não seja restaurada sem decisão). Os ramos continuam 
 ## Verificação do ramo de integração
 
 - `npm run typecheck`: sem erros.
-- `vitest run` completo: ver o resultado registado no PR de integração.
+- `vitest run` completo: 894 ficheiros e 6407 testes aprovados, 25 ignorados, 0 falhas.
 - ESLint: 0 erros; os mesmos 61 avisos da `main`.
 - `check:style`, `check:a11y`, `check-modules.mjs`: aprovados.
 - `bun run build` (cliente, SSR e Worker): aprovado; `routeTree.gen.ts` sem alterações.
