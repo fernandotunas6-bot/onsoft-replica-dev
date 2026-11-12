@@ -267,7 +267,7 @@ export function StudentTimetableCard({
           {holidays.map((holiday) => (
             <li
               key={holiday.date}
-              className="inline-flex items-center gap-1.5 rounded-full bg-destructive/8 px-2.5 py-1 text-[11px] text-destructive"
+              className="inline-flex items-center gap-1.5 rounded-full bg-destructive/8 px-2.5 py-1 text-[11px] text-destructive-strong"
             >
               <PartyPopper className="size-3" aria-hidden />
               {WEEKDAY_LABELS[new Date(`${holiday.date}T12:00:00Z`).getUTCDay()]}{" "}

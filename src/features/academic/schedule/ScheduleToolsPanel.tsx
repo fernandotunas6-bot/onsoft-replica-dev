@@ -139,7 +139,7 @@ export function ScheduleToolsPanel({
                       ? "bg-success/12 text-success-strong"
                       : quality.score >= 60
                         ? "bg-warning/15 text-warning-strong"
-                        : "bg-destructive/10 text-destructive"
+                        : "bg-destructive/10 text-destructive-strong"
                   }`}
                 >
                   {quality.score}/100
@@ -186,7 +186,7 @@ export function ScheduleToolsPanel({
                         <td className="py-1.5 pr-3 font-medium text-foreground">{load.name}</td>
                         <td className="py-1.5 pr-3 tabular-nums">{load.lessons}</td>
                         <td
-                          className={`py-1.5 pr-3 tabular-nums ${load.overLimit ? "font-semibold text-destructive" : ""}`}
+                          className={`py-1.5 pr-3 tabular-nums ${load.overLimit ? "font-semibold text-destructive-strong" : ""}`}
                         >
                           {hours(load.minutes)}
                           {load.overLimit && load.maxWeekly ? ` (máx. ${load.maxWeekly}h)` : ""}
