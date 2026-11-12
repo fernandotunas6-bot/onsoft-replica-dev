@@ -4,9 +4,15 @@ import { loadActivePassingValue } from "./exam-data";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
+  requireSgaWriterFor,
   requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
+import {
+  assessmentItemDeletionImpact,
+  classGroupDeletionImpact,
+  type DeletionImpact,
+} from "@/features/school/deletion-impact";
 import { loadPeopleLite, loadPersonNamesById } from "@/features/people/lookup";
 import { averagePercent } from "@/features/students/schemas";
 import { scoreAverage } from "@/lib/angola-academic";
@@ -16,6 +22,7 @@ import {
   getTeacherWorkspaceInputSchema,
   listAssessmentsInputSchema,
   deleteAssessmentInputSchema,
+  deleteClassGroupInputSchema,
   updateAssessmentInputSchema,
   listPedagogicalWorkspaceInputSchema,
   listTermGradesInputSchema,
@@ -545,6 +552,72 @@ export const updateAssessmentItem = createServerFn({ method: "POST" })
       }
     }
     return legacy.updateAssessmentItem({ data });
+  });
+
+/** Impacto de desactivar uma turma, antes de confirmar (mesma regra de deleteClassGroup). */
+export const getClassGroupDeletionImpact = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => deleteClassGroupInputSchema.parse(input))
+  .handler(async ({ data, context }): Promise<DeletionImpact> => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    return classGroupDeletionImpact(db, membership.schoolId, data.id);
+  });
+
+/**
+ * Impacto de eliminar uma avaliação: notas que se perdem, e se o período está
+ * fechado (a eliminação seria recusada). Mesmo âmbito de deleteAssessmentItem.
+ */
+export const getAssessmentDeletionImpact = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => deleteAssessmentInputSchema.parse(input))
+  .handler(async ({ data, context }): Promise<DeletionImpact> => {
+    if (!context) throw new Error("Não autenticado.");
+    await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
+    const membership = await requireAcademicMembership(context.userId);
+    const db = await loadSgaAdminClient();
+    const { data: item, error } = await db
+      .from("siga_assessment_items")
+      .select("id, class_group_id, subject_id, term")
+      .eq("id", data.itemId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível validar a avaliação.");
+    if (!item) throw new Error("Avaliação não encontrada nesta escola.");
+    if (isTeacherOnly(membership)) {
+      const scope = await resolveTeacherScope(db, membership.schoolId, context.userId);
+      if (!scope.teacherId || !scope.pairKeys.has(pairKey(item.class_group_id, item.subject_id))) {
+        throw new Error(
+          "O professor só pode eliminar avaliações da sua turma e disciplina atribuídas.",
+        );
+      }
+    }
+    const impact = await assessmentItemDeletionImpact(db, membership.schoolId, data.itemId);
+    try {
+      await assertAssessmentTermNotLocked(
+        db,
+        membership.schoolId,
+        String(item.class_group_id),
+        Number(item.term),
+      );
+    } catch (lockError) {
+      return {
+        ...impact,
+        blocker:
+          lockError instanceof Error
+            ? lockError.message
+            : "O período desta avaliação está fechado.",
+      };
+    }
+    return impact;
   });
 
 export const deleteAssessmentItem = createServerFn({ method: "POST" })

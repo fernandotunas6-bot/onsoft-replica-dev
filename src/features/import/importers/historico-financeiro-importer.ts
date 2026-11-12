@@ -287,6 +287,8 @@ export const historicoFinanceiroImporter: RowImporter = {
           paidOn: dueDate,
           receivedBy: ctx.userId,
           receiptNumberHint: null,
+          // A fatura acabou de ser criada por esta linha: a chave é ela.
+          importKey: `historico:${created.id}`,
         });
         audits.push({
           table_name: "finance_receipts",

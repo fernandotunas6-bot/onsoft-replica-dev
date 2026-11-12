@@ -98,7 +98,7 @@ export function SubjectReviewDialog() {
 
           {query.isLoading ? <InlineLoading label="A comparar com o catálogo…" /> : null}
           {query.error ? (
-            <p className="text-sm text-destructive">
+            <p className="text-sm text-destructive-strong">
               {query.error instanceof Error
                 ? query.error.message
                 : "Não foi possível rever as disciplinas."}

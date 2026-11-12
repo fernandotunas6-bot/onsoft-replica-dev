@@ -6,12 +6,13 @@ import { FeedbackIcon } from "@/components/ui/feedback-icon";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "siga-motion-control inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-[color,background-color,transform,box-shadow] duration-(--siga-motion-fast) ease-(--siga-ease) active:duration-75 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 motion-reduce:active:scale-100 motion-reduce:transition-none",
+  "siga-motion-control inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-[color,background-color,border-color] duration-(--siga-motion-fast) ease-(--siga-ease) focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 motion-reduce:transition-none",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive-hover",
         outline:
           "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",

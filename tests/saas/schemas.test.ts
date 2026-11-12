@@ -148,7 +148,7 @@ describe("SaaS Control Center schemas", () => {
       slug: "horizonte",
       admin_name: "Dr. Manuel K.",
       admin_email: "direcao@horizonte.co.ao",
-      admin_password: "senha-forte-123",
+      admin_password: "Senha-forte-123",
     });
     expect(parsed).not.toHaveProperty("trial_days");
   });
@@ -195,7 +195,7 @@ describe("SaaS Control Center schemas", () => {
         slug: "horizonte",
         admin_name: "Dr. Manuel K.",
         admin_email: "direcao@horizonte.co.ao",
-        admin_password: "senha-forte-123",
+        admin_password: "Senha-forte-123",
         website: "http://bot-filled-this.example",
       }),
     ).toThrow();

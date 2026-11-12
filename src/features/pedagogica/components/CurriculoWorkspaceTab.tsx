@@ -571,7 +571,7 @@ export function CurriculoWorkspaceTab({
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="size-7 p-0 text-muted-foreground hover:text-destructive"
+                                  className="size-7 p-0 text-muted-foreground hover:text-destructive-strong"
                                   onClick={() => removeMatrixRow(row.key)}
                                 >
                                   <Trash2 className="size-3.5" />

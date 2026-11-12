@@ -58,8 +58,8 @@ Detalhe de módulos e RBAC: [Funcionalidades & permissões](/guide/features).
 - **[Integrações](/integracoes/)**
 - **[SAFT-AO / AGT](/financeiro/saft-agt-exportacao)**
 
-### Template DOC (UI libraries)
-- **[Componentes](/components/)** · **[Temas](/theme-customizer/)** · **[Vite](/vite/)** · **[Next.js](/nextjs/)**
+### Apoio
+- **[Aparência e marca](/guide/theme-system)** · **[Suporte](/guide/support)** · **[Licença e termos](/guide/license)**
 
 ---
 

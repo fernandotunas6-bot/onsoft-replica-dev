@@ -208,6 +208,7 @@ export const listAcademicYears = createServerFn({ method: "GET" })
     if (error) throw publicDatabaseError(error, "Não foi possível carregar os anos lectivos.");
     return (data ?? []).map((year: { id: string; name: string; status: string }) => ({
       id: year.id,
+      school_id: membership.schoolId,
       code: year.name,
       name: year.name,
       status: year.status,
@@ -239,6 +240,7 @@ export const listAcademicTerms = createServerFn({ method: "GET" })
         academic_year_id: string;
       }) => ({
         id: String(term.id),
+        school_id: membership.schoolId,
         name: String(term.name),
         sequence: Number(term.sequence ?? 0),
         starts_on: String(term.starts_on),

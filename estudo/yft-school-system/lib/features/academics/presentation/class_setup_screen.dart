@@ -7,6 +7,7 @@ import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 
 class ClassSetupScreen extends ConsumerStatefulWidget {
   final SchoolClass? schoolClass;
@@ -65,7 +66,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Turma guardada'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         if (widget.schoolClass == null) {
@@ -93,7 +94,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
       appBar: AppBar(
         title: Text(
           isEditing
-              ? 'Turma: ${widget.schoolClass!.className}'
+              ? 'Turma ${widget.schoolClass!.className}'
               : 'Nova turma',
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
@@ -129,7 +130,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                     TextField(
                       controller: _nameController,
                       decoration: const InputDecoration(
-                        hintText: 'Nome da turma (ex.: 7.ª Classe)',
+                        hintText: 'Nome da turma (ex.: 7.ª Classe A)',
                         prefixIcon: Icon(LucideIcons.graduationCap, size: 20),
                         labelText: 'Nome da turma',
                       ),
@@ -138,7 +139,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                     TextField(
                       controller: _levelController,
                       decoration: const InputDecoration(
-                        hintText: 'Nível (usado para ordenar)',
+                        hintText: 'Nível (para ordenar)',
                         prefixIcon: Icon(LucideIcons.barChart2, size: 20),
                         labelText: 'Nível',
                       ),
@@ -150,12 +151,12 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                       child: ElevatedButton(
                         onPressed: _isSaving ? null : _saveClass,
                         child: _isSaving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: AppColors.onPrimary,
                                 ),
                               )
                             : Text(
@@ -188,23 +189,23 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                   ),
                   child: Column(
                     children: [
-                      const Icon(
+                      Icon(
                         LucideIcons.banknote,
                         size: 48,
                         color: AppColors.primary,
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Aqui define-se a propina da turma. Escolha se é cobrada por período ou uma vez por ano lectivo, e depois aplique-a aos alunos actuais.',
+                      Text(
+                        'Aqui define-se a propina da turma: por período ou uma vez por ano lectivo. Depois pode aplicá-la aos alunos actuais.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
                       if (widget.schoolClass?.hasFeeStructure == true) ...[
                         const SizedBox(height: 12),
                         Text(
-                          'Current structure: GH₵ ${widget.schoolClass!.feeAmount.toStringAsFixed(2)} / ${widget.schoolClass!.feeCollectionCycle == 'year' ? 'year' : 'term'}',
+                          'Propina actual: ${formatMoneyDisplay(ref.read(academicYearProvider).currency, widget.schoolClass!.feeAmount)} / ${widget.schoolClass!.feeCollectionCycle == 'year' ? 'ano' : 'período'}',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: AppColors.secondary,
                           ),
@@ -216,7 +217,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                         child: OutlinedButton.icon(
                           onPressed: () => _showChargeClassSheet(context),
                           icon: const Icon(LucideIcons.settings),
-                          label: const Text('Configurar propina'),
+                          label: const Text('Definir propina'),
                         ),
                       ),
                     ],
@@ -241,14 +242,14 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                   ),
                   child: Column(
                     children: [
-                      const Icon(
+                      Icon(
                         LucideIcons.bookOpen,
                         size: 48,
                         color: AppColors.primary,
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Atribua disciplinas a esta turma.',
+                      Text(
+                        'Atribua as disciplinas que esta turma tem.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
@@ -256,15 +257,9 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Módulo de disciplinas em breve'),
-                              ),
-                            );
-                          },
+                          onPressed: () => context.push('/subjects'),
                           icon: const Icon(LucideIcons.book),
-                          label: const Text('Gerir disciplinas atribuídas'),
+                          label: const Text('Gerir disciplinas'),
                         ),
                       ),
                     ],
@@ -281,7 +276,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: AppColors.secondary,
@@ -316,7 +311,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                 bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
               ),
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.background,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
                 ),
@@ -331,14 +326,14 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Configurar a propina da turma',
+                      'Propina da turma',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Guarde a propina na turma e escolha se é cobrada por período ou por ano lectivo.',
                       style: TextStyle(
                         color: AppColors.textSecondary,
@@ -349,15 +344,15 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                     TextField(
                       controller: titleController,
                       decoration: const InputDecoration(
-                        hintText: 'Designação (ex.: propina do 1.º período)',
+                        hintText: 'Descrição (ex.: Propina do 1.º trimestre)',
                         prefixIcon: Icon(LucideIcons.tag, size: 20),
                       ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: amountController,
-                      decoration: const InputDecoration(
-                        hintText: 'Valor',
+                      decoration: InputDecoration(
+                        hintText: 'Valor (${ref.read(academicYearProvider).currency})',
                         prefixIcon: Icon(LucideIcons.coins, size: 20),
                       ),
                       keyboardType: TextInputType.number,
@@ -366,7 +361,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                     DropdownButtonFormField<String>(
                       initialValue: selectedCycle,
                       decoration: const InputDecoration(
-                        labelText: 'Periodicidade',
+                        labelText: 'Cobrança',
                         prefixIcon: Icon(LucideIcons.calendarRange, size: 20),
                       ),
                       items: const [
@@ -397,8 +392,8 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                       title: const Text('Aplicar já aos alunos actuais'),
                       subtitle: Text(
                         selectedCycle == 'year'
-                            ? 'A propina fica associada ao ano lectivo actual.'
-                            : 'A propina fica associada ao período actual.',
+                            ? 'A propina conta para o ano lectivo actual.'
+                            : 'A propina conta para o período actual.',
                       ),
                       controlAffinity: ListTileControlAffinity.leading,
                     ),
@@ -476,7 +471,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                                               ? 'Propina guardada e aplicada.'
                                               : 'Propina guardada.',
                                         ),
-                                        backgroundColor: Colors.green,
+                                        backgroundColor: AppColors.success,
                                       ),
                                     );
                                   }
@@ -495,12 +490,12 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                                 }
                               },
                         child: isSaving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: AppColors.onPrimary,
                                 ),
                               )
                             : const Text('Guardar propina'),

@@ -4,6 +4,7 @@ import { requireAdmin, requireRoles } from '../lib/auth-guards';
 import { createFirebaseEmailUser } from '../lib/firebase-auth';
 import { createPrefixedId } from '../lib/id';
 import { buildSyntheticEmailFromPhone } from '../lib/phone';
+import { storeProfilePhoto } from '../lib/media-upload';
 import { jsonError, jsonOk } from '../lib/response';
 import { z } from 'zod';
 
@@ -129,6 +130,17 @@ users.get('/me', requireRoles('admin', 'teacher', 'parent'), async (c) => {
   });
 });
 
+/** Professores da escola: só os dados de contacto, sem os pessoais. */
+users.get('/teachers', requireAdmin, async (c) => {
+  const user = c.get('user');
+  const { results } = await c.env.DB.prepare(
+    `SELECT uid, name, email, phone, staff_id, photo_url, subjects_text
+     FROM Users WHERE school_id = ? AND role = 'teacher'
+     ORDER BY name COLLATE NOCASE`
+  ).bind(user.schoolId).all();
+  return jsonOk(c, { data: results });
+});
+
 users.get('/teachers/:targetUid', requireRoles('admin', 'teacher'), async (c) => {
   const user = c.get('user');
   const targetUid = c.req.param('targetUid');
@@ -149,6 +161,79 @@ users.get('/teachers/:targetUid', requireRoles('admin', 'teacher'), async (c) =>
   }
 
   return jsonOk(c, { data: row });
+});
+
+const updateMeSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120).optional(),
+    phone: z.string().trim().max(30).optional(),
+    residential_address: z.string().trim().max(200).optional(),
+  })
+  .refine((v) => Object.values(v).some((x) => x !== undefined), { message: 'Nothing to update' });
+
+/**
+ * O próprio utilizador corrige nome, telefone e morada. O e-mail não: é o
+ * da conta de entrada (Firebase) e muda-se pela administração.
+ */
+users.patch('/me', requireRoles('admin', 'teacher', 'parent'), async (c) => {
+  const user = c.get('user');
+  const parsed = updateMeSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) {
+    return jsonError(c, 'Invalid profile payload', 400, parsed.error.flatten());
+  }
+  const v = parsed.data;
+  // Guardado como escrito: a admissão e o registo procuram o telefone pelo
+  // texto exacto, e normalizar aqui faria o encarregado "desaparecer".
+  const phone = v.phone === undefined ? undefined : v.phone || null;
+
+  const sets: string[] = [];
+  const binds: unknown[] = [];
+  if (v.name !== undefined) { sets.push('name = ?'); binds.push(v.name); }
+  if (phone !== undefined) { sets.push('phone = ?'); binds.push(phone); }
+  if (v.residential_address !== undefined) {
+    sets.push('residential_address = ?');
+    binds.push(v.residential_address || null);
+  }
+
+  try {
+    const result = await c.env.DB.prepare(
+      `UPDATE Users SET ${sets.join(', ')} WHERE uid = ? AND school_id = ?`
+    ).bind(...binds, user.uid, user.schoolId).run();
+    if (!result.meta.changes) return jsonError(c, 'User not found', 404);
+  } catch (e) {
+    if (String(e).includes('UNIQUE')) {
+      return jsonError(c, 'Phone already used by another account in this school', 409);
+    }
+    throw e;
+  }
+
+  const row = await c.env.DB.prepare(
+    'SELECT uid, name, phone, email, residential_address FROM Users WHERE uid = ? AND school_id = ?'
+  ).bind(user.uid, user.schoolId).first();
+  return jsonOk(c, { data: row });
+});
+
+/**
+ * A própria fotografia: envia e grava num só passo, para ninguém apontar o
+ * perfil para uma chave arbitrária.
+ */
+users.post('/me/photo', requireRoles('admin', 'teacher', 'parent'), async (c) => {
+  const user = c.get('user');
+  const result = await storeProfilePhoto(c);
+  if ('error' in result) return jsonError(c, result.error, 400);
+  const update = await c.env.DB.prepare('UPDATE Users SET photo_url = ? WHERE uid = ? AND school_id = ?')
+    .bind(result.key, user.uid, user.schoolId)
+    .run();
+  if (!update.meta.changes) return jsonError(c, 'User not found', 404);
+  return jsonOk(c, { photo_url: result.key });
+});
+
+users.delete('/me/photo', requireRoles('admin', 'teacher', 'parent'), async (c) => {
+  const user = c.get('user');
+  await c.env.DB.prepare('UPDATE Users SET photo_url = NULL WHERE uid = ? AND school_id = ?')
+    .bind(user.uid, user.schoolId)
+    .run();
+  return jsonOk(c, { ok: true });
 });
 
 users.get('/me/academic-calendar', requireRoles('admin', 'teacher', 'parent'), async (c) => {

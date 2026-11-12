@@ -197,6 +197,42 @@ describe("Centro de Avaliação — lançamento de notas", () => {
     expect(termUpdates).toBe(2);
   });
 
+  it("o filtro de disciplina mostra só as da turma e larga a da turma anterior", async () => {
+    renderCenter({
+      classGroups: [
+        ...baseProps.classGroups,
+        { id: "cg2", name: "10ª C", grade_name: "10ª Classe", course_name: "Construção Civil" },
+      ],
+      subjects: [
+        { id: "sub1", name: "Matemática", code: "MAT" },
+        { id: "sub2", name: "Topografia", code: "TOP" },
+      ],
+      classSubjects: [
+        { class_group_id: "cg1", subject_id: "sub1" },
+        { class_group_id: "cg2", subject_id: "sub2" },
+      ],
+    });
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: /^Filtros/ }));
+    const disciplina = () =>
+      screen.getByRole("combobox", { name: /^Disciplina/ }) as HTMLSelectElement;
+    const options = () => Array.from(disciplina().options).map((option) => option.text);
+    expect(options()).toEqual(["Todas", "Matemática"]);
+    expect(disciplina().value).toBe("sub1");
+
+    fireEvent.change(screen.getByRole("combobox", { name: /^Turma/ }), {
+      target: { value: "cg2" },
+    });
+    expect(options()).toEqual(["Todas", "Topografia"]);
+    expect(disciplina().value).toBe("todas");
+    await waitFor(() =>
+      expect(listAssessmentsMock.mock.calls.at(-1)?.[0].data).toMatchObject({
+        classGroupId: "cg2",
+        subjectId: "sub2",
+      }),
+    );
+  });
+
   it("carrega os alunos por ordem alfabética, com as notas já lançadas", async () => {
     renderCenter();
     await waitFor(() => expect(cell("MAC", "Ana Silva").value).toBe("12"));

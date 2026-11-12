@@ -62,6 +62,14 @@ vi.mock("@/features/finance/server", () => ({
   recordCashExpense: vi.fn(),
   recordInvoicePayment: vi.fn(),
   reverseCashEntry: vi.fn(),
+  approveCashExpense: vi.fn(),
+}));
+
+vi.mock("@/features/finance/cash-session.functions", () => ({
+  getCashSessionState: async () => ({ available: false }),
+  openCashSession: vi.fn(),
+  closeCashSession: vi.fn(),
+  approveCashDifference: vi.fn(),
 }));
 
 vi.mock("@/features/arquivos/server", () => ({
@@ -88,6 +96,8 @@ const emptyReporting: Reporting = {
     cash_in: 0,
     cash_out: 0,
     cash_balance: 0,
+    drawer_balance: 0,
+    bank_balance: 0,
     truncated: false,
   },
   monthly: [],

@@ -149,7 +149,7 @@ export function getMoreHubGroups(
   role: ApplicationRole,
   grants: Record<string, string> = {},
   plan?: Plan | null,
-  options: { isAlumni?: boolean } = {},
+  options: { isAlumni?: boolean; enabledModules?: ReadonlySet<string> } = {},
 ): MoreHubGroup[] {
   const inBottomNav = new Set(
     getMobileDestinations(role, grants, plan)

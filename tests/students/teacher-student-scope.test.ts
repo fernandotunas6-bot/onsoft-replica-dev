@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 type Rows = Record<string, Array<Record<string, unknown>>>;
 
-/** Base mínima: aplica os filtros eq/in de cada consulta às linhas dadas. */
+/** Base mínima: aplica os filtros eq/in/is de cada consulta às linhas dadas. */
 function fakeDb(rows: Rows) {
   return {
     from(table: string) {
@@ -16,6 +16,10 @@ function fakeDb(rows: Rows) {
         },
         in(column: string, values: unknown[]) {
           filters.push((row) => values.includes(row[column]));
+          return chain;
+        },
+        is(column: string, value: unknown) {
+          filters.push((row) => (row[column] ?? null) === value);
           return chain;
         },
         // O âmbito lê por páginas (pagedReadClient).

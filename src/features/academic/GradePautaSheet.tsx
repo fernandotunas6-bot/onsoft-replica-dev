@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
+import { NO_CLASS_SUBJECTS, subjectsOfClass } from "@/features/academic/pauta-subjects";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileBadge, FileDown, Lock, Save, Unlock } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -18,8 +20,9 @@ import {
 import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { documentValidationCode } from "@/features/academic/assessment-views";
-import { sendOrQueue } from "@/lib/offline/outbox";
+import { OUTBOX_UNCERTAIN_MESSAGE, sendOrQueue } from "@/lib/offline/outbox";
 import { currentUserId } from "@/lib/offline/outbox-session";
+import { readStoredActiveSchool } from "@/features/auth/active-school";
 import { overlayPauta, overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { setTermLock } from "@/features/school/server";
@@ -115,7 +118,8 @@ export function GradePautaSheet({
   schoolName,
   academicYear,
   classGroups,
-  subjects,
+  subjects: schoolSubjects,
+  classSubjects = NO_CLASS_SUBJECTS,
   enrollments,
   termGrades,
   passingGrade = angolaGradeScale.passing,
@@ -128,6 +132,8 @@ export function GradePautaSheet({
   academicYear: string;
   classGroups: ClassGroupOption[];
   subjects: SubjectOption[];
+  /** Disciplinas atribuídas a cada turma (`class_subjects`): só essas são oferecidas. */
+  classSubjects?: Array<{ class_group_id: string; subject_id: string }>;
   enrollments: EnrollmentRow[];
   termGrades: TermGradeRow[];
   passingGrade?: number;
@@ -147,6 +153,10 @@ export function GradePautaSheet({
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const [view, setView] = useState<PautaView>("disciplina");
   const [classGroupId, setClassGroupId] = useState(classGroups[0]?.id ?? "");
+  const subjects = useMemo(
+    () => subjectsOfClass(schoolSubjects, classSubjects, classGroupId),
+    [schoolSubjects, classSubjects, classGroupId],
+  );
   const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? "");
   const initialTerm =
     globalTerm?.sequence && globalTerm.sequence >= 1 && globalTerm.sequence <= 3
@@ -162,7 +172,10 @@ export function GradePautaSheet({
   }, [classGroupId, classGroups]);
 
   useEffect(() => {
-    if (!subjectId && subjects[0]?.id) setSubjectId(subjects[0].id);
+    // Ao mudar de turma, a disciplina escolhida pode não ser dela.
+    // Sem nenhuma, fica vazia: nunca lançar na disciplina da turma anterior.
+    if (subjects.some((subject) => subject.id === subjectId)) return;
+    setSubjectId(subjects[0]?.id ?? "");
   }, [subjectId, subjects]);
 
   const selectedGroup = classGroups.find((group) => group.id === classGroupId);
@@ -218,25 +231,48 @@ export function GradePautaSheet({
       .slice(0, 14);
   }, [roster, subjects, term, termGrades]);
 
+  // Linhas que o professor escreveu nesta turma/disciplina/período. Quando as
+  // notas do servidor voltam a ser lidas (outro professor gravou, tempo real),
+  // estas linhas ficam como estão: antes, o que estava escrito desaparecia.
+  const touchedRef = useRef<Set<string>>(new Set());
+  const selectionKey = `${classGroupId}|${subjectId}|${term}`;
+  const selectionRef = useRef(selectionKey);
+  // Gravado no posto sem rede: o que está no ecrã já não se perde ao sair.
+  const [queuedSelection, setQueuedSelection] = useState<string | null>(null);
+
   useEffect(() => {
-    const next: Record<string, Draft> = {};
-    for (const student of roster) {
-      const existing = termGrades.find(
-        (grade) =>
-          grade.enrollment_id === student.id &&
-          grade.subject_id === subjectId &&
-          grade.term === term,
-      );
-      next[student.id] = {
-        mac: existing ? String(existing.mac) : "",
-        npp: existing ? String(existing.npp) : "",
-        npt: existing ? String(existing.npt) : "",
-      };
+    if (selectionRef.current !== selectionKey) {
+      selectionRef.current = selectionKey;
+      touchedRef.current = new Set();
     }
-    setDrafts(next);
-  }, [roster, subjectId, term, termGrades]);
+    const touched = touchedRef.current;
+    setDrafts((current) => {
+      const next: Record<string, Draft> = {};
+      for (const student of roster) {
+        const kept = touched.has(student.id) ? current[student.id] : undefined;
+        if (kept) {
+          next[student.id] = kept;
+          continue;
+        }
+        const existing = termGrades.find(
+          (grade) =>
+            grade.enrollment_id === student.id &&
+            grade.subject_id === subjectId &&
+            grade.term === term,
+        );
+        next[student.id] = {
+          mac: existing ? String(existing.mac) : "",
+          npp: existing ? String(existing.npp) : "",
+          npt: existing ? String(existing.npt) : "",
+        };
+      }
+      return next;
+    });
+  }, [roster, subjectId, term, termGrades, selectionKey]);
 
   const updateDraft = (enrollmentId: string, field: keyof Draft, value: string) => {
+    touchedRef.current.add(enrollmentId);
+    setQueuedSelection(null);
     setDrafts((current) => ({
       ...current,
       [enrollmentId]: {
@@ -274,6 +310,10 @@ export function GradePautaSheet({
     return values.some((value) => parseScore(value) == null);
   }).length;
 
+  const hasUnsavedGrades =
+    queuedSelection !== selectionKey && (pendingRows.length > 0 || unsavedDrafts > 0);
+  const confirmLeave = useUnsavedChangesGuard(hasUnsavedGrades);
+
   const savePauta = async () => {
     if (!subjectId || pendingRows.length === 0 || termClosed) return;
     setSaving(true);
@@ -293,14 +333,25 @@ export function GradePautaSheet({
             .filter(Boolean)
             .join(" · "),
           userId: await currentUserId(),
+          schoolId: readStoredActiveSchool(),
         },
       );
       if (outcome.queued) {
-        toast.info(`Notas guardadas neste computador · ${pendingRows.length} aluno(s)`, {
-          description: "Sem ligação ao servidor. São enviadas sozinhas quando a Internet voltar.",
-        });
+        setQueuedSelection(selectionKey);
+        if (outcome.requiresVerification) {
+          toast.warning("Notas sem confirmação do servidor", {
+            description: OUTBOX_UNCERTAIN_MESSAGE,
+            duration: Infinity,
+          });
+        } else {
+          toast.info(`Notas guardadas neste computador · ${pendingRows.length} aluno(s)`, {
+            description: "Sem ligação ao servidor. São enviadas sozinhas quando a Internet voltar.",
+          });
+        }
         return;
       }
+      // Gravadas: a próxima leitura do servidor passa a mandar nestas linhas.
+      touchedRef.current = new Set();
       await queryClient.invalidateQueries({ queryKey: ["academic", "pedagogical-workspace"] });
       toast.success(`Pauta guardada · ${pendingRows.length} aluno(s)`);
       if (unsavedDrafts > 0) {
@@ -700,7 +751,9 @@ export function GradePautaSheet({
             aria-label="Turma"
             className="flex h-9 min-w-[180px] rounded-lg border border-input bg-background px-3 text-sm text-foreground"
             value={classGroupId}
-            onChange={(event) => setClassGroupId(event.target.value)}
+            onChange={(event) => {
+              if (confirmLeave()) setClassGroupId(event.target.value);
+            }}
           >
             {classGroups.map((group) => (
               <option key={group.id} value={group.id}>
@@ -717,8 +770,11 @@ export function GradePautaSheet({
               aria-label="Disciplina"
               className="flex h-9 min-w-[180px] rounded-lg border border-input bg-background px-3 text-sm text-foreground"
               value={subjectId}
-              onChange={(event) => setSubjectId(event.target.value)}
+              onChange={(event) => {
+                if (confirmLeave()) setSubjectId(event.target.value);
+              }}
             >
+              {subjects.length === 0 ? <option value="">Sem disciplinas atribuídas</option> : null}
               {subjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
                   {subject.name}
@@ -734,7 +790,9 @@ export function GradePautaSheet({
               aria-label={periodNoun}
               className="flex h-9 min-w-[100px] rounded-lg border border-input bg-background px-3 text-sm text-foreground"
               value={term}
-              onChange={(event) => applyTermSelection(Number(event.target.value) as 1 | 2 | 3)}
+              onChange={(event) => {
+                if (confirmLeave()) applyTermSelection(Number(event.target.value) as 1 | 2 | 3);
+              }}
             >
               {periodOptions.map((p) => (
                 <option key={p} value={p}>

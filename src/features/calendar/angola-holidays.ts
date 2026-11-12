@@ -42,6 +42,7 @@ export function angolaHolidaysForYear(year: number): AngolaHoliday[] {
     },
     { date: carnival, name: "Carnaval", kind: "movable" },
     { date: isoDate(year, 3, 8), name: "Dia Internacional da Mulher", kind: "fixed" },
+    { date: isoDate(year, 3, 23), name: "Dia da Libertação da África Austral", kind: "fixed" },
     { date: isoDate(year, 4, 4), name: "Dia da Paz e da Reconciliação Nacional", kind: "fixed" },
     { date: goodFriday, name: "Sexta-feira Santa", kind: "movable" },
     { date: isoDate(year, 5, 1), name: "Dia Internacional do Trabalhador", kind: "fixed" },

@@ -74,7 +74,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">2. Criar escola</CardTitle>
-              <CardDescription>Wizard `/start` · trial 14 dias</CardDescription>
+              <CardDescription>Assistente guiado · 14 dias de avaliação</CardDescription>
             </CardHeader>
             <CardContent>
               <Button variant="secondary" size="sm" asChild>
@@ -103,7 +103,7 @@ export default function DashboardPage() {
             <p className="text-sm text-muted-foreground">A carregar…</p>
           ) : plans.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Catálogo indisponível. Confirme a API SaaS / SQL `plans`.
+              Não foi possível carregar os planos agora. Tente de novo dentro de momentos.
             </p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -128,9 +128,9 @@ export default function DashboardPage() {
         </section>
 
         <p className="text-xs text-muted-foreground">
-          Operadores da plataforma:{" "}
+          Equipa SIGA Plus:{" "}
           <a className="underline" href={getAdminTenantsUrl()} target="_blank" rel="noreferrer">
-            Control Center
+            consola da plataforma
           </a>
           .
         </p>

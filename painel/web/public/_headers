@@ -1,0 +1,12 @@
+# Cabeçalhos de segurança do portal comercial (Cloudflare Pages copia este ficheiro
+# de public/ para dist/). Mesma base do SIGA (src/lib/security-headers.ts). A CSP
+# só define frame-ancestors: outro site não pode embeber o assistente de criação da
+# escola (que pede a senha do administrador) para enganar cliques.
+# Contrato verificado em tests/security/pages-security-headers.test.ts.
+/*
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()

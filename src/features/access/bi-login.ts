@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { normalizeAngolaIdentity, validateAngolaBi } from "@/lib/angola-identity";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { pickUnambiguousLinkedAuthUserId } from "./bi-identity";
 
 export const signInWithIdentifierInputSchema = z.object({
   identifier: z.string().trim().min(3).max(100),
@@ -99,48 +100,40 @@ export async function resolveBiOrEmailToUserEmail(identifier: string): Promise<s
   const db = await loadSgaAdminClient();
   const searchId = biValidation.compact ?? compact;
 
-  // O mesmo B.I. pode estar em fichas de várias escolas, e o e-mail de uma ficha
-  // é escrito pela secretaria. Com `limit(1)` sem ordem, uma ficha com o e-mail
-  // errado noutra escola podia impedir a pessoa certa de entrar. Agora: as fichas
-  // ligadas a uma conta têm prioridade; sem nenhuma, conta o e-mail das outras —
-  // e só se apontarem todas para o mesmo (ambíguo = não se escolhe ao acaso).
-  const pickEmail = (rows: Array<{ email: string | null; user_id: string | null }> | null) => {
-    const unique = (list: Array<{ email: string | null }>) => {
-      const emails = new Set(
-        list
-          .map((row) =>
-            String(row.email ?? "")
-              .trim()
-              .toLowerCase(),
-          )
-          .filter((email) => email.includes("@")),
-      );
-      return emails.size === 1 ? [...emails][0] : null;
-    };
-    const all = rows ?? [];
-    const linked = all.filter((row) => row.user_id);
-    return linked.length ? unique(linked) : unique(all);
+  // Um BI pode existir em fichas de escolas diferentes. A ficha da pessoa
+  // NÃO é a fonte de verdade do email de autenticação: é editável na Secretaria.
+  // Só aceitamos um user_id explicitamente ligado; vários user_id são ambíguos.
+  // Resolução do email é sempre pela conta auth.users no servidor.
+  const authEmailForRows = async (rows: Array<{ user_id: string | null }> | null) => {
+    // Um resultado truncado poderia esconder outra conta ligada.
+    if (!rows?.length || rows.length >= 21) return null;
+    const userId = pickUnambiguousLinkedAuthUserId(rows);
+    if (!userId) return null;
+    const { data, error } = await db.auth.admin.getUserById(userId);
+    if (error) return null;
+    return data.user?.email?.trim().toLowerCase() || null;
   };
 
-  const { data: byBi } = await db
+  const { data: byBi, error: biError } = await db
     .from("people")
-    .select("email, user_id")
+    .select("user_id")
     .eq("national_id", searchId)
-    .limit(20);
-  const biEmail = pickEmail(byBi);
-  if (biEmail) return biEmail;
+    .is("deleted_at", null)
+    .limit(21);
+  // Falha na leitura não permite escolher ao acaso nem fazer fallback indevido.
+  if (biError) return trimmed;
+  if (byBi?.length) return (await authEmailForRows(byBi)) ?? trimmed;
 
-  // Havia aqui um segundo ramo que lia `profiles.email` quando a pessoa tinha
-  // `user_id`. `profiles` não tem coluna `email`, pelo que o PostgREST recusava
-  // a consulta e o ramo nunca devolvia nada — o e-mail já vinha de `people`.
-
-  // Fallback por telefone, também em `people` e pela mesma regra.
-  const { data: byPhone } = await db
+  // Compatibilidade com o login por telefone de contas realmente vinculadas.
+  // Não encaminhar BI para um email escrito à mão numa ficha sem vínculo Auth.
+  const { data: byPhone, error: phoneError } = await db
     .from("people")
-    .select("email, user_id")
+    .select("user_id")
     .eq("phone", searchId)
-    .limit(20);
-  const phoneEmail = pickEmail(byPhone);
+    .is("deleted_at", null)
+    .limit(21);
+  if (phoneError) return trimmed;
+  const phoneEmail = await authEmailForRows(byPhone);
   if (phoneEmail) return phoneEmail;
 
   return trimmed;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -36,6 +37,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _showAdminContact = false;
     });
 
+    if (sgaMode) {
+      // A conta é a do SIGA: a recuperação é a do portal (com captcha).
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'A sua conta é a do SIGA: recupere a palavra-passe no portal do SIGA.',
+          ),
+        ),
+      );
+      return;
+    }
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(
         email: _usernameController.text.trim(),
@@ -92,7 +105,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           color: AppColors.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           LucideIcons.mail,
                           size: 100,
                           color: AppColors.primary,
@@ -147,7 +160,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft, color: AppColors.textPrimary),
+          tooltip: 'Voltar',
+          icon: Icon(LucideIcons.arrowLeft, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -170,7 +184,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 LucideIcons.arrowLeft,
                 color: AppColors.textPrimary,
               ),
@@ -216,12 +230,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _handleSendResetLink,
               child: _isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 24,
                       height: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: AppColors.onPrimary,
                       ),
                     )
                   : const Text(
@@ -236,9 +250,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
+              color: AppColors.success.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+              border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,7 +262,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: const BoxDecoration(
-                        color: Colors.green,
+                        color: AppColors.success,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -258,7 +272,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -267,7 +281,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 18,
-                              color: Colors.green,
+                              color: AppColors.success,
                             ),
                           ),
                           SizedBox(height: 4),

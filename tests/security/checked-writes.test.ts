@@ -63,7 +63,7 @@ describe("pagamentos: estados depois do registo ficam nos registos", () => {
 
 describe("alunos", () => {
   it("trocar o encarregado principal verifica o erro", () => {
-    expect(read("src/features/students/server.ts")).toMatch(/error: primaryError/);
+    expect(read("src/features/students/guardian-links.ts")).toMatch(/error: primaryError/);
   });
 
   it("matricular numa turma confirma o aluno activo", () => {

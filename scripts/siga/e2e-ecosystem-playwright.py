@@ -21,6 +21,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import async_playwright
 
 WEB = os.environ.get("VITE_WEB_URL", "http://localhost:5174")
@@ -95,8 +96,16 @@ async def test_routes(page, failures: list[str]) -> None:
             status = response.status if response else 0
             if status >= 400 and status not in (302, 307):
                 failures.append(f"{label}: HTTP {status}")
-            if heading and not await page.get_by_role("heading", name=heading).is_visible():
-                failures.append(f"{label}: heading «{heading}» não visível")
+            if heading:
+                # O WEB carrega /start num pedaço à parte: o título chega depois do
+                # domcontentloaded. Esperar por ele, como o toBeVisible() do teste TS
+                # (tests/e2e/ecosystem-routes.spec.ts), em vez de olhar uma só vez.
+                try:
+                    await page.get_by_role("heading", name=heading).wait_for(
+                        state="visible", timeout=15_000
+                    )
+                except PlaywrightTimeoutError:
+                    failures.append(f"{label}: heading «{heading}» não visível")
         except Exception as exc:  # noqa: BLE001
             failures.append(f"{label}: {exc}")
 

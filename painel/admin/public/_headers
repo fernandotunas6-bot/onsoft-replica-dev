@@ -1,0 +1,13 @@
+# Cabeçalhos de segurança da consola da plataforma (exportação estática no
+# Cloudflare Pages: o next build copia public/ para out/). Sem servidor, não há
+# middleware em produção, por isso a protecção contra embeber a consola num iframe
+# (login, 2FA, suspensão de escolas) tem de vir daqui. A consola não é para motores
+# de pesquisa. Contrato verificado em tests/security/pages-security-headers.test.ts.
+/*
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  X-Robots-Tag: noindex, nofollow

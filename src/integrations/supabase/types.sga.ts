@@ -68,12 +68,17 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           id: string
+          metrics: Json
           name: string
           notes: string | null
           published_at: string | null
           published_by: string | null
           school_id: string
+          shift_id: string | null
+          snapshot: Json
+          source: string
           status: string
+          term: number | null
           updated_at: string
           updated_by: string | null
           valid_from: string | null
@@ -88,12 +93,17 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           id?: string
+          metrics?: Json
           name: string
           notes?: string | null
           published_at?: string | null
           published_by?: string | null
           school_id: string
+          shift_id?: string | null
+          snapshot?: Json
+          source?: string
           status?: string
+          term?: number | null
           updated_at?: string
           updated_by?: string | null
           valid_from?: string | null
@@ -108,12 +118,17 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           id?: string
+          metrics?: Json
           name?: string
           notes?: string | null
           published_at?: string | null
           published_by?: string | null
           school_id?: string
+          shift_id?: string | null
+          snapshot?: Json
+          source?: string
           status?: string
+          term?: number | null
           updated_at?: string
           updated_by?: string | null
           valid_from?: string | null
@@ -141,6 +156,13 @@ export type Database = {
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academic_schedules_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "school_shifts"
             referencedColumns: ["id"]
           },
         ]
@@ -3452,6 +3474,173 @@ export type Database = {
           },
         ]
       }
+      finance_cash_deposits: {
+        Row: {
+          amount: number
+          bank_reference: string
+          cash_session_id: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          deposited_at: string
+          deposited_by: string
+          id: string
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          school_id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          bank_reference: string
+          cash_session_id: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          deposited_at?: string
+          deposited_by: string
+          id?: string
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          school_id: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          bank_reference?: string
+          cash_session_id?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          deposited_at?: string
+          deposited_by?: string
+          id?: string
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          school_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_cash_deposits_cash_session_id_fkey"
+            columns: ["cash_session_id"]
+            isOneToOne: false
+            referencedRelation: "finance_cash_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_cash_deposits_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_cash_points: {
+        Row: {
+          active: boolean
+          created_at: string
+          enforce_from: string
+          id: string
+          name: string
+          school_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          enforce_from?: string
+          id?: string
+          name?: string
+          school_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          enforce_from?: string
+          id?: string
+          name?: string
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_cash_points_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_cash_sessions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          cash_point_id: string
+          closed_at: string | null
+          closed_by: string | null
+          counted_cash: number | null
+          difference: number | null
+          difference_reason: string | null
+          expected_cash: number | null
+          id: string
+          opened_at: string
+          opened_by: string
+          opening_float: number
+          school_id: string
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          cash_point_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          counted_cash?: number | null
+          difference?: number | null
+          difference_reason?: string | null
+          expected_cash?: number | null
+          id?: string
+          opened_at?: string
+          opened_by: string
+          opening_float: number
+          school_id: string
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          cash_point_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          counted_cash?: number | null
+          difference?: number | null
+          difference_reason?: string | null
+          expected_cash?: number | null
+          id?: string
+          opened_at?: string
+          opened_by?: string
+          opening_float?: number
+          school_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_cash_sessions_cash_point_id_fkey"
+            columns: ["cash_point_id"]
+            isOneToOne: false
+            referencedRelation: "finance_cash_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_cash_sessions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_contracts: {
         Row: {
           created_at: string
@@ -3749,9 +3938,11 @@ export type Database = {
       finance_receipts: {
         Row: {
           amount: number
+          cash_session_id: string | null
           created_at: string
           external_id: string | null
           id: string
+          idempotency_key: string | null
           invoice_id: string
           paid_on: string
           payment_method: string
@@ -3760,14 +3951,17 @@ export type Database = {
           reversal_reason: string | null
           reversed_at: string | null
           reversed_by: string | null
+          reversed_in_session_id: string | null
           school_id: string
           status: string
         }
         Insert: {
           amount: number
+          cash_session_id?: string | null
           created_at?: string
           external_id?: string | null
           id?: string
+          idempotency_key?: string | null
           invoice_id: string
           paid_on: string
           payment_method: string
@@ -3776,14 +3970,17 @@ export type Database = {
           reversal_reason?: string | null
           reversed_at?: string | null
           reversed_by?: string | null
+          reversed_in_session_id?: string | null
           school_id: string
           status?: string
         }
         Update: {
           amount?: number
+          cash_session_id?: string | null
           created_at?: string
           external_id?: string | null
           id?: string
+          idempotency_key?: string | null
           invoice_id?: string
           paid_on?: string
           payment_method?: string
@@ -3792,10 +3989,25 @@ export type Database = {
           reversal_reason?: string | null
           reversed_at?: string | null
           reversed_by?: string | null
+          reversed_in_session_id?: string | null
           school_id?: string
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "finance_receipts_cash_session_id_fkey"
+            columns: ["cash_session_id"]
+            isOneToOne: false
+            referencedRelation: "finance_cash_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_receipts_reversed_in_session_id_fkey"
+            columns: ["reversed_in_session_id"]
+            isOneToOne: false
+            referencedRelation: "finance_cash_sessions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "finance_receipts_school_id_fkey"
             columns: ["school_id"]
@@ -7446,6 +7658,53 @@ export type Database = {
           },
         ]
       }
+      offline_sync_receipts: {
+        Row: {
+          actor_id: string
+          completed_at: string | null
+          device_id: string | null
+          kind: string
+          op_id: string
+          payload_hash: string
+          result: Json | null
+          school_id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          actor_id: string
+          completed_at?: string | null
+          device_id?: string | null
+          kind: string
+          op_id: string
+          payload_hash: string
+          result?: Json | null
+          school_id: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          actor_id?: string
+          completed_at?: string | null
+          device_id?: string | null
+          kind?: string
+          op_id?: string
+          payload_hash?: string
+          result?: Json | null
+          school_id?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offline_sync_receipts_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_gateway_charges: {
         Row: {
           amount: number
@@ -9889,7 +10148,13 @@ export type Database = {
           starts_at: string | null
           status: string
           subject_id: string
+          teacher_checked_in_at: string | null
+          teacher_checked_in_by: string | null
+          teacher_checked_out_at: string | null
+          teacher_checkin_method: string | null
           teacher_id: string | null
+          teacher_late_minutes: number | null
+          teacher_presence_note: string | null
           timetable_slot_id: string | null
           updated_at: string
           updated_by: string | null
@@ -9908,7 +10173,13 @@ export type Database = {
           starts_at?: string | null
           status?: string
           subject_id: string
+          teacher_checked_in_at?: string | null
+          teacher_checked_in_by?: string | null
+          teacher_checked_out_at?: string | null
+          teacher_checkin_method?: string | null
           teacher_id?: string | null
+          teacher_late_minutes?: number | null
+          teacher_presence_note?: string | null
           timetable_slot_id?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -9927,7 +10198,13 @@ export type Database = {
           starts_at?: string | null
           status?: string
           subject_id?: string
+          teacher_checked_in_at?: string | null
+          teacher_checked_in_by?: string | null
+          teacher_checked_out_at?: string | null
+          teacher_checkin_method?: string | null
           teacher_id?: string | null
+          teacher_late_minutes?: number | null
+          teacher_presence_note?: string | null
           timetable_slot_id?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -9977,9 +10254,110 @@ export type Database = {
           },
         ]
       }
+      siga_calendar_events: {
+        Row: {
+          academic_year_id: string
+          audience: string
+          blocks_teaching: boolean
+          category: string
+          class_group_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          ends_at: string | null
+          ends_on: string
+          id: string
+          school_id: string
+          starts_at: string | null
+          starts_on: string
+          status: string
+          teacher_id: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          academic_year_id: string
+          audience?: string
+          blocks_teaching?: boolean
+          category: string
+          class_group_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          ends_at?: string | null
+          ends_on: string
+          id?: string
+          school_id: string
+          starts_at?: string | null
+          starts_on: string
+          status?: string
+          teacher_id?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          academic_year_id?: string
+          audience?: string
+          blocks_teaching?: boolean
+          category?: string
+          class_group_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          ends_at?: string | null
+          ends_on?: string
+          id?: string
+          school_id?: string
+          starts_at?: string | null
+          starts_on?: string
+          status?: string
+          teacher_id?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_calendar_events_group_fkey"
+            columns: ["school_id", "class_group_id"]
+            isOneToOne: false
+            referencedRelation: "class_groups"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "siga_calendar_events_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_calendar_events_teacher_fkey"
+            columns: ["school_id", "teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "siga_calendar_events_year_fkey"
+            columns: ["school_id", "academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["school_id", "id"]
+          },
+        ]
+      }
       siga_cash_expenses: {
         Row: {
           amount: number
+          approved_at: string | null
+          approved_by: string | null
+          cash_session_id: string | null
           category: string
           created_at: string
           created_by: string | null
@@ -9992,6 +10370,7 @@ export type Database = {
           reversal_reason: string | null
           reversed_at: string | null
           reversed_by: string | null
+          reversed_in_session_id: string | null
           school_id: string
           status: string
           updated_at: string
@@ -9999,6 +10378,9 @@ export type Database = {
         }
         Insert: {
           amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          cash_session_id?: string | null
           category: string
           created_at?: string
           created_by?: string | null
@@ -10011,6 +10393,7 @@ export type Database = {
           reversal_reason?: string | null
           reversed_at?: string | null
           reversed_by?: string | null
+          reversed_in_session_id?: string | null
           school_id: string
           status?: string
           updated_at?: string
@@ -10018,6 +10401,9 @@ export type Database = {
         }
         Update: {
           amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          cash_session_id?: string | null
           category?: string
           created_at?: string
           created_by?: string | null
@@ -10030,12 +10416,27 @@ export type Database = {
           reversal_reason?: string | null
           reversed_at?: string | null
           reversed_by?: string | null
+          reversed_in_session_id?: string | null
           school_id?: string
           status?: string
           updated_at?: string
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "siga_cash_expenses_cash_session_id_fkey"
+            columns: ["cash_session_id"]
+            isOneToOne: false
+            referencedRelation: "finance_cash_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_cash_expenses_reversed_in_session_id_fkey"
+            columns: ["reversed_in_session_id"]
+            isOneToOne: false
+            referencedRelation: "finance_cash_sessions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "siga_cash_expenses_school_id_fkey"
             columns: ["school_id"]
@@ -10190,8 +10591,105 @@ export type Database = {
           },
         ]
       }
+      siga_class_task_submissions: {
+        Row: {
+          attempt: number
+          body: string | null
+          created_at: string
+          created_by: string | null
+          enrollment_id: string
+          feedback: string | null
+          file_id: string | null
+          grade: number | null
+          graded_by: string | null
+          id: string
+          is_late: boolean
+          on_paper: boolean
+          returned_at: string | null
+          school_id: string
+          status: string
+          submitted_at: string | null
+          task_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          attempt?: number
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          enrollment_id: string
+          feedback?: string | null
+          file_id?: string | null
+          grade?: number | null
+          graded_by?: string | null
+          id?: string
+          is_late?: boolean
+          on_paper?: boolean
+          returned_at?: string | null
+          school_id: string
+          status?: string
+          submitted_at?: string | null
+          task_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          attempt?: number
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          enrollment_id?: string
+          feedback?: string | null
+          file_id?: string | null
+          grade?: number | null
+          graded_by?: string | null
+          id?: string
+          is_late?: boolean
+          on_paper?: boolean
+          returned_at?: string | null
+          school_id?: string
+          status?: string
+          submitted_at?: string | null
+          task_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_class_task_submissions_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_class_task_submissions_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "siga_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_class_task_submissions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_class_task_submissions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "siga_class_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       siga_class_tasks: {
         Row: {
+          accepts_late: boolean
+          assessment_item_id: string | null
           class_subject_id: string
           created_at: string
           created_by: string | null
@@ -10207,6 +10705,8 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          accepts_late?: boolean
+          assessment_item_id?: string | null
           class_subject_id: string
           created_at?: string
           created_by?: string | null
@@ -10222,6 +10722,8 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          accepts_late?: boolean
+          assessment_item_id?: string | null
           class_subject_id?: string
           created_at?: string
           created_by?: string | null
@@ -10237,6 +10739,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "siga_class_tasks_assessment_item_id_fkey"
+            columns: ["assessment_item_id"]
+            isOneToOne: false
+            referencedRelation: "siga_assessment_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "siga_class_tasks_class_subject_id_fkey"
             columns: ["class_subject_id"]
@@ -11013,6 +11522,158 @@ export type Database = {
           key_hash?: string
         }
         Relationships: []
+      }
+      siga_school_presence_settings: {
+        Row: {
+          allow_printed: boolean
+          center_latitude: number | null
+          center_longitude: number | null
+          created_at: string
+          geofence_radius_m: number
+          mode: string
+          offline_max_hours: number
+          qr_secret: string
+          qr_secret_version: number
+          require_location: boolean
+          rotation_seconds: number
+          school_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allow_printed?: boolean
+          center_latitude?: number | null
+          center_longitude?: number | null
+          created_at?: string
+          geofence_radius_m?: number
+          mode?: string
+          offline_max_hours?: number
+          qr_secret: string
+          qr_secret_version?: number
+          require_location?: boolean
+          rotation_seconds?: number
+          school_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allow_printed?: boolean
+          center_latitude?: number | null
+          center_longitude?: number | null
+          created_at?: string
+          geofence_radius_m?: number
+          mode?: string
+          offline_max_hours?: number
+          qr_secret?: string
+          qr_secret_version?: number
+          require_location?: boolean
+          rotation_seconds?: number
+          school_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_school_presence_settings_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_teacher_presence_scans: {
+        Row: {
+          accuracy_m: number | null
+          client_op_id: string | null
+          created_at: string
+          decision: string
+          device_id: string | null
+          device_scanned_at: string | null
+          distance_m: number | null
+          id: string
+          inside_geofence: boolean | null
+          location_mocked: boolean | null
+          offline: boolean
+          qr_kind: string
+          qr_step: number
+          reasons: string[]
+          received_at: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scanned_at: string
+          school_id: string
+          session_ids: string[]
+          teacher_id: string
+          user_id: string | null
+        }
+        Insert: {
+          accuracy_m?: number | null
+          client_op_id?: string | null
+          created_at?: string
+          decision: string
+          device_id?: string | null
+          device_scanned_at?: string | null
+          distance_m?: number | null
+          id?: string
+          inside_geofence?: boolean | null
+          location_mocked?: boolean | null
+          offline?: boolean
+          qr_kind: string
+          qr_step: number
+          reasons?: string[]
+          received_at?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scanned_at: string
+          school_id: string
+          session_ids?: string[]
+          teacher_id: string
+          user_id?: string | null
+        }
+        Update: {
+          accuracy_m?: number | null
+          client_op_id?: string | null
+          created_at?: string
+          decision?: string
+          device_id?: string | null
+          device_scanned_at?: string | null
+          distance_m?: number | null
+          id?: string
+          inside_geofence?: boolean | null
+          location_mocked?: boolean | null
+          offline?: boolean
+          qr_kind?: string
+          qr_step?: number
+          reasons?: string[]
+          received_at?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scanned_at?: string
+          school_id?: string
+          session_ids?: string[]
+          teacher_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_teacher_presence_scans_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_teacher_presence_scans_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       siga_timetable_slot_details: {
         Row: {
@@ -12139,6 +12800,86 @@ export type Database = {
           },
         ]
       }
+      teacher_document_entries: {
+        Row: {
+          created_at: string
+          created_by: string
+          document_code: string
+          file_id: string
+          id: string
+          person_id: string
+          school_id: string
+          teacher_id: string
+          updated_at: string
+          updated_by: string
+          validation_notes: string | null
+          validation_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          document_code: string
+          file_id: string
+          id?: string
+          person_id: string
+          school_id: string
+          teacher_id: string
+          updated_at?: string
+          updated_by: string
+          validation_notes?: string | null
+          validation_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          document_code?: string
+          file_id?: string
+          id?: string
+          person_id?: string
+          school_id?: string
+          teacher_id?: string
+          updated_at?: string
+          updated_by?: string
+          validation_notes?: string | null
+          validation_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_document_entries_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "siga_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_document_entries_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_document_entries_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_document_entries_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_subjects: {
         Row: {
           created_at: string
@@ -13106,6 +13847,20 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_timetable_plan_guarded: {
+        Args: {
+          p_actor: string
+          p_class_group_id: string
+          p_schedule_id?: string
+          p_school_id: string
+          p_slots: Json
+        }
+        Returns: number
+      }
+      approve_cash_difference: {
+        Args: { school_id: string; session_id: string }
+        Returns: Json
+      }
       approve_school_access_request: {
         Args: {
           p_person_id?: string
@@ -13160,8 +13915,18 @@ export type Database = {
         Args: { invoice_id: string; reason: string; school_id: string }
         Returns: Json
       }
+      cash_session_expected: { Args: { session_id: string }; Returns: number }
       claim_guardian_portal: { Args: never; Returns: Json }
       claim_student_portal: { Args: never; Returns: Json }
+      close_cash_session: {
+        Args: {
+          counted_cash: number
+          reason?: string
+          school_id: string
+          session_id: string
+        }
+        Returns: Json
+      }
       close_gradebook: {
         Args: { gradebook_id: string; school_id: string }
         Returns: Json
@@ -13174,6 +13939,10 @@ export type Database = {
           teacher_id: string
           weekly_periods: number
         }
+        Returns: Json
+      }
+      confirm_cash_deposit: {
+        Args: { deposit_id: string; school_id: string }
         Returns: Json
       }
       create_council_minutes: {
@@ -13313,6 +14082,10 @@ export type Database = {
           student_id: string
         }
         Returns: Json
+      }
+      ensure_school_shift_defaults: {
+        Args: { p_school_id: string }
+        Returns: number
       }
       has_school_permission: {
         Args: { p_permission: string; p_school_id: string }
@@ -13732,12 +14505,36 @@ export type Database = {
         }
         Returns: string
       }
+      offline_receipt_claim: {
+        Args: {
+          actor_id: string
+          device_id: string
+          kind: string
+          op_id: string
+          payload_hash: string
+          school_id: string
+          stale_seconds?: number
+        }
+        Returns: Json
+      }
+      offline_receipt_complete: {
+        Args: { op_id: string; result: Json; school_id: string }
+        Returns: boolean
+      }
+      offline_receipt_release: {
+        Args: { op_id: string; school_id: string }
+        Returns: boolean
+      }
       open_attendance_session: {
         Args: {
           school_id: string
           session_date: string
           timetable_slot_id: string
         }
+        Returns: Json
+      }
+      open_cash_session: {
+        Args: { opening_float: number; school_id: string }
         Returns: Json
       }
       open_gradebook: {
@@ -13771,6 +14568,48 @@ export type Database = {
       portal_ward_overview: {
         Args: { school_id: string; student_id: string }
         Returns: Json
+      }
+      publish_academic_schedule_atomic: {
+        Args: {
+          p_academic_year_id: string
+          p_actor: string
+          p_class_group_id: string
+          p_name?: string
+          p_school_id: string
+          p_valid_from?: string
+          p_valid_to?: string
+        }
+        Returns: {
+          academic_year_id: string
+          class_group_id: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          metrics: Json
+          name: string
+          notes: string | null
+          published_at: string | null
+          published_by: string | null
+          school_id: string
+          shift_id: string | null
+          snapshot: Json
+          source: string
+          status: string
+          term: number | null
+          updated_at: string
+          updated_by: string | null
+          valid_from: string | null
+          valid_to: string | null
+          version: number
+          version_number: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "academic_schedules"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       publish_announcement: {
         Args: {
@@ -13810,9 +14649,14 @@ export type Database = {
         }
         Returns: Json
       }
+      record_cash_deposit: {
+        Args: { amount: number; bank_reference: string; school_id: string }
+        Returns: Json
+      }
       register_payment: {
         Args: {
           amount: number
+          idempotency_key?: string
           invoice_id: string
           paid_on?: string
           payment_method: string
@@ -13896,6 +14740,10 @@ export type Database = {
           school_id: string
           status: string
         }
+        Returns: Json
+      }
+      reverse_cash_deposit: {
+        Args: { deposit_id: string; reason: string; school_id: string }
         Returns: Json
       }
       reverse_receipt: {
@@ -13988,6 +14836,16 @@ export type Database = {
           p_person: Json
           p_request_id: string
           p_school_id: string
+        }
+        Returns: Json
+      }
+      siga_merge_people: {
+        Args: {
+          p_actor: string
+          p_duplicate_id: string
+          p_reason: string
+          p_school_id: string
+          p_survivor_id: string
         }
         Returns: Json
       }

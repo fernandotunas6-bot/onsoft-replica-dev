@@ -1,0 +1,37 @@
+{
+  "investigado_em": "2026-10-30",
+  "relato": "mensagem «Reveja os campos obrigatorios e o formato (datas dd/mm/aaaa, valores so com numeros) e guarde outra vez. Referencia: 99034DE7»",
+  "o_que_e_a_referencia": {
+    "mecanismo": "src/lib/request-id.ts — o browser gera um UUID por chamada e envia-o em x-siga-request-id; o servidor usa-o nos registos e na auditoria, e o aviso mostra os 8 primeiros caracteres",
+    "nao_identifica_pessoas": true
+  },
+  "rasto_encontrado": {
+    "postgres_logs": "2026-10-30T16:41:14.307Z — new row for relation \"academic_levels\" violates check constraint \"academic_levels_sequence_check\"",
+    "edge_logs": "2026-10-30T16:41:14.194Z — POST 400 /rest/v1/academic_levels?on_conflict=school_id,code&columns=school_id,code,name,sequence,is_active&select=id",
+    "escola": "08676df5-771a-45bc-af3b-fcbf727e9d5e (ISPAB)"
+  },
+  "restricoes_na_base": {
+    "academic_levels_sequence_check": "CHECK ((sequence > 0))",
+    "grade_levels_sequence_check": "CHECK ((sequence > 0))"
+  },
+  "causa": {
+    "ficheiro": "src/features/academic/school-structure-plan.ts",
+    "ramo": "if (has(\"pre_escolar\"))",
+    "defeito": "o nivel «Iniciacao» nascia com sequence 0 e a sua classe com n 0; as duas tabelas exigem > 0",
+    "consequencia": "o ramo falhava sempre: nenhuma escola na base tem o nivel INIC, confirmado por consulta",
+    "porque_passou_despercebido": "o teste existente verificava a ORDEM dos codigos, nao os valores; com 0 a ordem saia certa e o upsert e que rebentava"
+  },
+  "correccao": {
+    "iniciacao": "sequence 1 e classe n 1",
+    "renumeracao": "EDUCATION_LEVELS de 1-5 para 2-6, para a Iniciacao continuar a vir antes do Primario",
+    "porque_e_segura": "a ordem e relativa dentro de cada escola e o deslocamento e monotono; o upsert usa ignoreDuplicates (DO NOTHING), logo as linhas ja escritas nao sao tocadas e continuam a ordenar bem ao lado das novas. Nao precisa de migracao de dados.",
+    "sincronizacao": "HIGHER_ED_LEVEL em higher-ed/program-shape.ts escreve o mesmo codigo «ES» por outro caminho e passou de 5 para 6; com valores diferentes, a ordem do nivel passaria a depender de qual caminho criou a linha primeiro",
+    "regressao": "tests/academic/school-structure-plan.test.ts — verifica que nenhum nivel ou classe nasce com sequence 0, em cinco combinacoes de etapas, e que a Iniciacao continua antes do Primario. Verificado a falhar com o 0 reposto."
+  },
+  "segundo_defeito_a_mensagem": {
+    "problema": "a regra process.invalid-value juntava 23514 (CHECK) com 23502/22P02/22001 (formato), e mandava rever datas dd/mm/aaaa num erro que nao tinha datas nenhumas",
+    "correccao": "23514 passa a ter regra propria, process.value-out-of-range: «O valor esta bem escrito mas nao e aceite — costuma ser um numero que tem de ser maior que zero, ou uma data fora do intervalo permitido.»",
+    "ordem": "a regra nova fica antes da generica, porque guidanceFor devolve a primeira que casa"
+  },
+  "limite": "o erro foi reproduzido a partir dos registos, nao em sessao: nao voltei a executar o ramo pre_escolar contra a producao."
+}

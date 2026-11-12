@@ -78,7 +78,7 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
       backgroundColor: const Color(0xFFE2E8F0),
       appBar: AppBar(
         title: const Text(
-          'Recibo de propina',
+          'Recibo',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: AppColors.background,
@@ -98,7 +98,7 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
             )
           else
             IconButton(
-              tooltip: 'Descarregar ou partilhar PDF',
+              tooltip: 'Descarregar / partilhar PDF',
               onPressed: () => _sharePdf(data),
               icon: const Icon(LucideIcons.download),
             ),

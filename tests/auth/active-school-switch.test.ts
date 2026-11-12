@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React from "react";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { keepPreviousData, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
  * Troca de escola (professor ou funcionário em várias escolas): os dados em cache são
@@ -65,6 +67,7 @@ describe("troca de escola", () => {
     localStorage.clear();
     document.cookie = "siga-active-school=; path=/; max-age=0";
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    accountContext.mockReset();
     accountContext.mockImplementation(async ({ data }) => ({
       school_id: data.preferredSchoolId ?? "escola-a",
       school_name: data.preferredSchoolId === "escola-b" ? "Escola B" : "Escola A",
@@ -72,6 +75,11 @@ describe("troca de escola", () => {
       roles: ["Professor"],
       cargo: "Professor",
     }));
+  });
+
+  afterEach(() => {
+    cleanup();
+    queryClient.clear();
   });
 
   it("descarta os dados da escola anterior e mantém a sessão", async () => {
@@ -104,6 +112,113 @@ describe("troca de escola", () => {
 
     expect(queryClient.getQueryData(["pedagogical-workspace"])).toEqual({ turmas: ["10ª A"] });
     expect(document.cookie).toContain("siga-active-school=escola-a");
+  });
+
+  it("sincroniza os consumidores já montados e os montados depois da troca", async () => {
+    const first = renderHook(() => useCurrentAccount(), { wrapper });
+    const second = renderHook(() => useCurrentAccount(), { wrapper });
+    await waitFor(() => expect(second.result.current.schoolId).toBe("escola-a"));
+
+    act(() => first.result.current.setActiveSchoolId("escola-b"));
+
+    await waitFor(() => expect(second.result.current.schoolId).toBe("escola-b"));
+    const third = renderHook(() => useCurrentAccount(), { wrapper });
+    await waitFor(() => expect(third.result.current.schoolId).toBe("escola-b"));
+    expect(document.cookie).toContain("siga-active-school=escola-b");
+  });
+
+  it("não usa o contexto anterior como placeholder enquanto a nova escola carrega", async () => {
+    queryClient.setDefaultOptions({ queries: { retry: false, placeholderData: keepPreviousData } });
+    const { result } = renderHook(() => useCurrentAccount(), { wrapper });
+    await waitFor(() => expect(result.current.schoolId).toBe("escola-a"));
+    let resolve!: (value: unknown) => void;
+    accountContext.mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+
+    act(() => result.current.setActiveSchoolId("escola-b"));
+
+    expect(result.current.schoolId).toBeNull();
+    expect(result.current.role).toBe("Utilizador");
+    await act(async () => resolve({ school_id: "escola-b", schools, cargo: "Professor" }));
+    await waitFor(() => expect(result.current.schoolId).toBe("escola-b"));
+  });
+
+  it("a troca noutra aba actualiza contexto e descarta os dados uma só vez", async () => {
+    const first = renderHook(() => useCurrentAccount(), { wrapper });
+    const second = renderHook(() => useCurrentAccount(), { wrapper });
+    await waitFor(() => expect(first.result.current.schoolId).toBe("escola-a"));
+    queryClient.setQueryData(["finance", "invoices"], [{ id: "privado-a" }]);
+    const reset = vi.spyOn(queryClient, "resetQueries");
+
+    act(() => {
+      localStorage.setItem("siga:active-school-id", "escola-b");
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "siga:active-school-id",
+          newValue: "escola-b",
+          storageArea: localStorage,
+        }),
+      );
+    });
+
+    await waitFor(() => expect(second.result.current.schoolId).toBe("escola-b"));
+    expect(first.result.current.schoolId).toBe("escola-b");
+    expect(queryClient.getQueryData(["finance", "invoices"])).toBeUndefined();
+    expect(reset).toHaveBeenCalledTimes(1);
+    expect(document.cookie).toContain("siga-active-school=escola-b");
+  });
+
+  it("a hidratação preserva a escola guardada no browser", async () => {
+    localStorage.setItem("siga:active-school-id", "escola-b");
+    function Probe() {
+      return React.createElement("span", null, useCurrentAccount().schoolId ?? "loading");
+    }
+    const view = React.createElement(wrapper, null, React.createElement(Probe));
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(view);
+    document.body.appendChild(container);
+    const root = hydrateRoot(container, view);
+    try {
+      await waitFor(() => expect(container.textContent).toBe("escola-b"));
+      expect(localStorage.getItem("siga:active-school-id")).toBe("escola-b");
+      expect(document.cookie).toContain("siga-active-school=escola-b");
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  it("uma resposta recusada da escola anterior não limpa a nova selecção", async () => {
+    const { result } = renderHook(() => useCurrentAccount(), { wrapper });
+    await waitFor(() => expect(result.current.schoolId).toBe("escola-a"));
+    act(() => result.current.setActiveSchoolId("escola-a"));
+    await waitFor(() => expect(result.current.profile.isFetching).toBe(false));
+    let reject!: (reason: Error) => void;
+    accountContext.mockImplementationOnce(
+      () =>
+        new Promise((_done, fail) => {
+          reject = fail;
+        }),
+    );
+    let pending!: Promise<unknown>;
+    act(() => {
+      pending = result.current.profile.refetch();
+    });
+    await waitFor(() => expect(reject).toBeTypeOf("function"));
+    act(() => result.current.setActiveSchoolId("escola-b"));
+    await waitFor(() => expect(result.current.schoolId).toBe("escola-b"));
+
+    await act(async () => {
+      reject(new Error("ACTIVE_SCHOOL_UNAVAILABLE"));
+      await pending;
+    });
+
+    expect(document.cookie).toContain("siga-active-school=escola-b");
+    expect(result.current.schoolId).toBe("escola-b");
   });
 
   it("no subdomínio de uma escola, essa escola fica activa", async () => {

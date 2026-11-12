@@ -134,7 +134,13 @@ describe("aulas do dia (presença)", () => {
   });
 
   it("professor sem ficha de docente não vê as aulas da escola inteira", () => {
-    expect(fn).toMatch(/if \(!linked\.teacher_id\) return \{ sessions: \[\]/);
+    expect(fn).toMatch(/if \(!linked\.teacher_id\)\s*return \{\s*sessions: \[\]/);
+  });
+
+  it("o filtro por professor só estreita: o professor vê sempre só as suas aulas", () => {
+    expect(fn).toMatch(
+      /\.eq\("teacher_id", linked\.teacher_id\);\s*\} else if \(data\.teacherId\) \{\s*classSubjectQuery = classSubjectQuery\.eq\("teacher_id", data\.teacherId\)/,
+    );
   });
 
   it("as sessões em falta criam-se numa só escrita, com erro verificado", () => {
@@ -182,7 +188,17 @@ describe("mudar estado em lote (alunos)", () => {
 });
 
 describe("lançar notas de avaliação", () => {
-  const fn = body(read("src/features/academic/server-legacy.ts"), "upsertAssessmentScores");
+  // A pauta e a devolução de trabalhos gravam pelo mesmo writeAssessmentScores.
+  const write = read("src/features/academic/assessment-score-write.ts");
+  const fn = write.slice(write.indexOf("export async function writeAssessmentScores"));
+
+  it("a pauta grava por writeAssessmentScores, depois do guarda de escrita", () => {
+    const upsert = body(read("src/features/academic/server-legacy.ts"), "upsertAssessmentScores");
+    expect(upsert.indexOf('requireSgaWriterForWrite(\n      "pedagogica"')).toBeGreaterThan(-1);
+    expect(upsert.indexOf("requireSgaWriterForWrite(")).toBeLessThan(
+      upsert.indexOf("writeAssessmentScores(db"),
+    );
+  });
 
   it("só aceita alunos da turma da avaliação, também para a Administração e a Secretaria", () => {
     expect(fn).toMatch(/\.eq\("class_group_id", String\(item\.class_group_id\)\)/);

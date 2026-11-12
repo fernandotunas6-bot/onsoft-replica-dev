@@ -33,5 +33,8 @@ jobs:
           node-version: "24"
       - name: Testar que a auditoria não envia dados nem segue redirects
         run: node --test tests/siga/postdeploy-readonly.test.mjs
+      # Num PR o código ainda não está em produção: apenas os testes puros
+      # podem ser gate de merge. A verificação HTTP é obrigatória após o deploy.
       - name: Verificar produção sem autenticar nem escrever
+        if: github.event_name != 'pull_request'
         run: node scripts/siga/postdeploy-readonly.mjs

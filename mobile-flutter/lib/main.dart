@@ -7,6 +7,8 @@ import 'gateway.dart';
 import 'identity.dart';
 import 'design.dart';
 import 'academic_page.dart';
+import 'presence.dart';
+import 'presence_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +42,15 @@ class _SigaAppState extends State<SigaApp> {
   final auth = Supabase.instance.client.auth;
   late final MobileGateway gateway = MobileGateway(
     Uri.base,
+    () async => auth.currentSession?.accessToken,
+  );
+
+  /// A presença vive na API principal do SIGA (onde está o QR da escola). Na Web
+  /// é a mesma origem; a app instalada recebe-a por --dart-define=SIGA_API_ORIGIN.
+  late final PresenceApi presenceApi = PresenceApi(
+    const String.fromEnvironment('SIGA_API_ORIGIN').isEmpty
+        ? Uri.base
+        : Uri.parse(const String.fromEnvironment('SIGA_API_ORIGIN')),
     () async => auth.currentSession?.accessToken,
   );
   late final GoRouter router;
@@ -151,6 +162,10 @@ class _SigaAppState extends State<SigaApp> {
                                   servicePage('Tarefas', '/tasks'),
                             ),
                             GoRoute(
+                              path: 'presence',
+                              builder: (_, _) => presencePage(),
+                            ),
+                            GoRoute(
                               path: 'classes/:id',
                               builder: (_, state) => servicePage(
                                 'Turma',
@@ -206,7 +221,13 @@ class _SigaAppState extends State<SigaApp> {
         school = role = factor = null;
       } else {
         final aal = auth.mfa.getAuthenticatorAssuranceLevel();
-        if (aal.currentLevel != AuthenticatorAssuranceLevels.aal2 &&
+        // O código só é pedido ao entrar se a conta ligou a opção no portal
+        // (app_metadata.siga_login_mfa_enabled, por omissão desligada). O portal
+        // aplica a mesma regra (src/features/auth/login-mfa-policy.ts).
+        final askCode =
+            auth.currentUser?.appMetadata['siga_login_mfa_enabled'] == true;
+        if (askCode &&
+            aal.currentLevel != AuthenticatorAssuranceLevels.aal2 &&
             aal.nextLevel == AuthenticatorAssuranceLevels.aal2) {
           final factors = await auth.mfa.listFactors();
           if (revision != generation || !mounted) return;
@@ -319,6 +340,13 @@ class _SigaAppState extends State<SigaApp> {
         child: shell,
       ),
     ),
+    floatingActionButton: role == 'professor' && shell.currentIndex == 0
+        ? FloatingActionButton.extended(
+            onPressed: () => router.go('/more/presence'),
+            icon: const Icon(Icons.qr_code_scanner),
+            label: const Text('Ler QR da escola'),
+          )
+        : null,
     bottomNavigationBar: SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -383,6 +411,14 @@ class _SigaAppState extends State<SigaApp> {
             'Serviços escolares',
             style: Theme.of(context).textTheme.titleLarge,
           ),
+          if (role == 'professor')
+            ListTile(
+              leading: const Icon(Icons.qr_code_scanner),
+              title: const Text('Presença na sala'),
+              subtitle: const Text('Ler o QR da escola antes da aula'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => router.go('/more/presence'),
+            ),
           ListTile(
             leading: const Icon(Icons.groups_outlined),
             title: const Text('Turmas'),
@@ -486,11 +522,31 @@ class _SigaAppState extends State<SigaApp> {
       groupId: groupId,
     ),
   );
+  Widget presencePage() => Scaffold(
+    appBar: AppBar(
+      title: const Text('Presença na sala'),
+      leading: IconButton(
+        tooltip: 'Voltar',
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => router.go('/more'),
+      ),
+    ),
+    body: role == 'professor' && school != null
+        ? PresencePage(
+            key: ValueKey('presence:$school'),
+            api: presenceApi,
+            prefs: widget.prefs,
+            schoolId: school!,
+          )
+        : const Center(child: Text('Disponível no perfil de professor.')),
+  );
+
   @override
   void dispose() {
     generation++;
     subscription?.cancel();
     gateway.dispose();
+    presenceApi.dispose();
     router.dispose();
     refresh.dispose();
     super.dispose();

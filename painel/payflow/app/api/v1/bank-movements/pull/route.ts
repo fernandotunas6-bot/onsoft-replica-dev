@@ -15,6 +15,7 @@ import {
   getBankConnectorUrl,
 } from "@/lib/runtime";
 import { schoolScopeForVerification } from "@/lib/school-scope";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = (await request.json().catch(() => ({}))) as { school_id?: string };
+    const body = ((await readJsonBody(request)) ?? {}) as { school_id?: string };
     const scope = schoolScopeForVerification({
       adminSchoolId: adminSession?.schoolId,
       requestedSchoolId: body.school_id,

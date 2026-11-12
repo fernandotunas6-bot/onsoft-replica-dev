@@ -51,7 +51,7 @@
   --font-weight-black: 600;
 
   /*
-   * Mínimos de leitura. A raiz está reduzida (12px no telemóvel, 11px no
+   * Mínimos de leitura. A raiz está reduzida (12px no telemóvel, 11,5px no
    * computador), o que deixava `text-xs` com 8–9px. Cada degrau da escala tem
    * um mínimo em px e a ordem mantém-se: xs 11 · sm 12 · base 13 · lg 14 · xl 15.
    * Acima do mínimo, continua a escalar com a raiz.
@@ -87,6 +87,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
@@ -145,17 +146,18 @@
   --secondary: oklch(0.962 0.008 286);
   --secondary-foreground: oklch(0.31 0.03 286);
   --muted: oklch(0.962 0.008 286);
-  --muted-foreground: oklch(0.545 0.02 286);
+  --muted-foreground: oklch(0.542 0.02 286);
   --accent: oklch(0.951 0.026 292);
   --accent-foreground: oklch(0.42 0.19 292);
 
-  --destructive: oklch(0.594 0.222 20);
+  --destructive: oklch(0.588 0.222 20);
+  --destructive-hover: oklch(0.54 0.2 20);
   --destructive-foreground: oklch(0.99 0.005 20);
-  --success: oklch(0.632 0.148 158);
+  --success: oklch(0.543 0.127 158);
   --success-foreground: oklch(0.985 0.01 158);
-  --warning: oklch(0.762 0.152 71);
+  --warning: oklch(0.676 0.146 71);
   --warning-foreground: oklch(0.26 0.05 71);
-  --info: oklch(0.622 0.14 240);
+  --info: oklch(0.554 0.127 240);
   --info-foreground: oklch(0.985 0.01 240);
 
   --primary-strong: oklch(0.452 0.208 292.5);
@@ -166,14 +168,14 @@
   --chart-2-strong: oklch(0.472 0.166 340);
 
   --border: oklch(0.918 0.008 286);
-  --input: oklch(0.918 0.008 286);
+  --input: oklch(0.65 0.008 286);
   --ring: oklch(0.556 0.235 292.5);
 
   --chart-1: oklch(0.556 0.235 292.5);
   --chart-2: oklch(0.677 0.157 340);
-  --chart-3: oklch(0.632 0.148 158);
-  --chart-4: oklch(0.762 0.152 71);
-  --chart-5: oklch(0.622 0.14 240);
+  --chart-3: oklch(0.543 0.127 158);
+  --chart-4: oklch(0.676 0.146 71);
+  --chart-5: oklch(0.554 0.127 240);
 
   --sidebar: oklch(0.204 0.024 285);
   --sidebar-foreground: oklch(0.955 0.006 286);
@@ -206,7 +208,8 @@
   --accent: oklch(0.298 0.052 292);
   --accent-foreground: oklch(0.925 0.04 292);
 
-  --destructive: oklch(0.652 0.19 22);
+  --destructive: oklch(0.579 0.19 22);
+  --destructive-hover: oklch(0.54 0.17 22);
   --destructive-foreground: oklch(0.985 0.01 22);
   --success: oklch(0.702 0.135 158);
   --success-foreground: oklch(0.16 0.03 158);
@@ -223,7 +226,7 @@
   --chart-2-strong: oklch(0.782 0.132 340);
 
   --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
+  --input: oklch(1 0 0 / 34%);
   --ring: oklch(0.652 0.208 292.5);
 
   --chart-1: oklch(0.652 0.208 292.5);
@@ -254,12 +257,6 @@
   }
 
   @media (min-width: 1024px) {
-    html {
-      font-size: 68.75%;
-    }
-  }
-
-  @media (min-width: 1536px) {
     html {
       font-size: 71.875%;
     }
@@ -373,12 +370,7 @@ html[data-density="spacious"] #conteudo-principal > .space-y-6 > :not([hidden]) 
   transition:
     background-color var(--siga-motion-fast) var(--siga-ease),
     color var(--siga-motion-fast) var(--siga-ease),
-    box-shadow var(--siga-motion-fast) var(--siga-ease),
-    transform var(--siga-motion-fast) var(--siga-ease);
-
-  &:active {
-    transform: scale(0.99);
-  }
+    box-shadow var(--siga-motion-fast) var(--siga-ease);
 
   &[data-active="true"] {
     box-shadow: var(--shadow-nav-active);
@@ -393,87 +385,18 @@ html[data-density="spacious"] #conteudo-principal > .space-y-6 > :not([hidden]) 
   padding-left: 0.625rem;
 }
 
-/* Cabeçalho translúcido: o conteúdo passa por baixo, desfocado (vidro). */
-@utility app-topbar {
-  background-color: color-mix(in oklch, var(--color-background) 62%, transparent);
-  backdrop-filter: blur(18px) saturate(1.6);
-  -webkit-backdrop-filter: blur(18px) saturate(1.6);
-  box-shadow: 0 1px 0 color-mix(in oklch, var(--color-foreground) 4%, transparent);
-}
-
-/* Botões-pílula do cabeçalho (ano, período, pesquisa). */
-@utility topbar-chip {
-  border-radius: 9999px;
-  border: 1px solid color-mix(in oklch, var(--color-border) 70%, transparent);
-  background-color: color-mix(in oklch, var(--color-secondary) 55%, transparent);
-  transition:
-    background-color 150ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease;
-  &:hover {
-    border-color: color-mix(in oklch, var(--color-primary) 40%, transparent);
-    background-color: color-mix(in oklch, var(--color-secondary) 85%, transparent);
-    box-shadow: 0 1px 3px color-mix(in oklch, var(--color-foreground) 8%, transparent);
-  }
-}
-
-/* Painel de notificações. */
-@utility notification-card {
-  border-radius: 1rem;
-  border: 1px solid color-mix(in oklch, var(--color-border) 70%, transparent);
-  background-color: var(--color-card);
-  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-foreground) 4%, transparent);
-  transition:
-    border-color 150ms ease,
-    box-shadow 150ms ease,
-    transform 150ms ease;
-  &:hover {
-    border-color: color-mix(in oklch, var(--color-primary) 35%, transparent);
-    box-shadow: 0 6px 18px -8px color-mix(in oklch, var(--color-foreground) 18%, transparent);
-  }
-}
-
-@utility notification-card-unread {
-  background-color: color-mix(in oklch, var(--color-primary) 5%, var(--color-card));
-  border-color: color-mix(in oklch, var(--color-primary) 25%, transparent);
-}
-
-@utility notifications-hero {
-  background-image: linear-gradient(
-    135deg,
-    color-mix(in oklch, var(--color-primary) 10%, transparent),
-    transparent 70%
-  );
-}
-
 /* Header icon button, circular like Minimals topbar. */
 @utility header-icon-btn {
-  width: 2.5rem;
-  height: 2.5rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
   transition:
     background-color var(--siga-motion-fast) var(--siga-ease),
-    color var(--siga-motion-fast) var(--siga-ease),
-    transform var(--siga-motion-fast) var(--siga-ease),
-    opacity var(--siga-motion-fast) var(--siga-ease);
+    color var(--siga-motion-fast) var(--siga-ease);
 
   &:hover {
     background-color: var(--color-secondary);
-  }
-
-  &:active {
-    transition-duration: 75ms;
-    transform: scale(0.985);
-    opacity: 0.96;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &:active {
-      transform: none;
-    }
   }
 }
 
@@ -1244,76 +1167,10 @@ h6,
   }
 }
 
-/* Microinteracções CSS: só o glifo se move; os alvos de toque mantêm-se fixos.
- * Sem timers ou animações decorativas contínuas. Ícones de carregamento
- * conservam a sua rotação e os controlos indisponíveis não dão feedback.
+/* Feedback dos controlos: estados de cor, foco visível e carregamento.
+ * Não rodar/deslocar/escalar ícones no hover ou no toque. As animações
+ * funcionais de progresso continuam nos respectivos componentes.
  */
-@media (prefers-reduced-motion: no-preference) {
-  .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"])
-    > svg:not(.animate-spin),
-  [data-nav-row] [data-nav-icon] > svg,
-  .siga-motion-nav svg,
-  .header-icon-btn:not(:disabled):not([aria-disabled="true"]) > svg:not(.animate-spin) {
-    transition: transform var(--siga-motion-fast) var(--siga-ease);
-    transform-origin: center;
-  }
-
-  /* Teclado e toque recebem o mesmo feedback, sem alterar o foco. */
-  .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):is(
-      :focus-visible,
-      :active
-    )
-    > svg:not(.animate-spin),
-  [data-nav-row]:is(:focus-visible, :active) [data-nav-icon] > svg,
-  .siga-motion-nav:is(:focus-visible, :active) svg,
-  .header-icon-btn:not(:disabled):not([aria-disabled="true"]):is(:focus-visible, :active)
-    > svg:not(.animate-spin) {
-    transform: scale(1.08);
-  }
-
-  .siga-check-indicator[data-state="checked"] {
-    animation: siga-check-enter var(--siga-motion-fast) var(--siga-ease);
-  }
-
-  /* Hover apenas para rato/trackpad; evita estados presos no telemóvel. */
-  @media (hover: hover) and (pointer: fine) {
-    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover
-      > svg:not(.animate-spin),
-    [data-nav-row]:hover [data-nav-icon] > svg,
-    .siga-motion-nav:hover svg,
-    .header-icon-btn:not(:disabled):not([aria-disabled="true"]):hover > svg:not(.animate-spin) {
-      transform: scale(1.08);
-    }
-
-    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover
-      > .lucide-download {
-      transform: translateY(2px);
-    }
-
-    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover
-      > .lucide-upload {
-      transform: translateY(-2px);
-    }
-
-    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover
-      > :is(.lucide-settings, .lucide-refresh-cw),
-    [data-nav-row]:hover [data-nav-icon] > .lucide-settings,
-    .header-icon-btn:not(:disabled):not([aria-disabled="true"]):hover > .lucide-settings {
-      transform: rotate(12deg);
-    }
-  }
-}
-
-@keyframes siga-check-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
 
 /* Marca: movimento apenas na entrada, sem vídeo e sem animação contínua. */
 .siga-wordmark {
@@ -1386,6 +1243,170 @@ h6,
 }
 @media (forced-colors: active) {
   .siga-wordmark-plus {
+    background: none;
+    color: CanvasText;
+    -webkit-text-fill-color: CanvasText;
+  }
+}
+
+/*
+ * Abertura «SIGA Plus» (SigaOpening): o vídeo de marca refeito em CSS. Céu azul-noite,
+ * nuvens a entrar pelos cantos, «SIGA» letra a letra e «Plus» com o degradê a percorrer.
+ * 3 s; desvanece sozinha entre 2,4 s e 3,0 s. Cores fixas: é igual em tema claro e escuro.
+ */
+.siga-opening {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 40%, #2a3d68 0%, #1d2c4f 55%, #152240 100%);
+  animation: siga-opening-out 600ms ease-in 2400ms both;
+  cursor: pointer;
+}
+.siga-opening-cloud {
+  position: absolute;
+  width: clamp(160px, 26vw, 320px);
+  fill: #33476f;
+  opacity: 0;
+  animation: siga-opening-cloud 1400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.siga-opening-cloud--tl {
+  top: 14%;
+  left: -4%;
+  animation-delay: 0ms;
+  --from: -40px;
+}
+.siga-opening-cloud--tr {
+  top: 26%;
+  right: -6%;
+  animation-delay: 120ms;
+  --from: 40px;
+  width: clamp(140px, 22vw, 280px);
+}
+.siga-opening-cloud--bl {
+  bottom: 8%;
+  left: -8%;
+  animation-delay: 220ms;
+  --from: -40px;
+  width: clamp(180px, 30vw, 360px);
+}
+.siga-opening-cloud--br {
+  bottom: 4%;
+  right: -10%;
+  animation-delay: 300ms;
+  --from: 40px;
+  width: clamp(200px, 34vw, 400px);
+}
+.siga-opening-mark {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.24em;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(44px, 9vw, 112px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  white-space: nowrap;
+}
+.siga-opening-siga {
+  display: inline-flex;
+  color: #ffffff;
+}
+.siga-opening-siga > span {
+  display: inline-block;
+  opacity: 0;
+  animation: siga-opening-letter 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.siga-opening-plus {
+  /* A metade esquerda é o degradê da marca; a direita, laranja liso. O varrimento
+     termina em 0%, com o degradê inteiro à vista. */
+  background: linear-gradient(
+    100deg,
+    #7b5cff 0%,
+    #b14dff 14%,
+    #ff4fa3 31%,
+    #ff8a3d 50%,
+    #ff8a3d 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+  animation:
+    siga-opening-plus 700ms cubic-bezier(0.22, 1, 0.36, 1) 560ms both,
+    siga-opening-sweep 1600ms ease-out 560ms both;
+}
+.siga-opening-skip {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding: 6px 12px;
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 8%);
+  color: rgb(255 255 255 / 85%);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.siga-opening-skip:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+@keyframes siga-opening-cloud {
+  from {
+    opacity: 0;
+    transform: translateX(var(--from, 0));
+  }
+  to {
+    opacity: 0.9;
+    transform: translateX(0);
+  }
+}
+@keyframes siga-opening-letter {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em) scale(0.96);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+@keyframes siga-opening-plus {
+  from {
+    opacity: 0;
+    transform: translateX(-0.2em) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+@keyframes siga-opening-sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+@keyframes siga-opening-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@media (forced-colors: active) {
+  .siga-opening-plus {
     background: none;
     color: CanvasText;
     -webkit-text-fill-color: CanvasText;

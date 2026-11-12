@@ -58,8 +58,8 @@ export function MobileHeader({
   };
 
   return (
-    <header className="sticky top-0 z-[30] border-b border-border bg-card lg:hidden">
-      <div className="flex min-h-[64px] items-center gap-2 px-3">
+    <header className="sticky top-0 z-[30] border-b border-border/70 bg-card/95 supports-[backdrop-filter]:bg-card/90 supports-[backdrop-filter]:backdrop-blur-sm lg:hidden">
+      <div className="flex min-h-[68px] items-center gap-2 px-3">
         {isRoot ? (
           <>
             <button

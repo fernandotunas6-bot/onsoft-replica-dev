@@ -1,7 +1,11 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { COLUNAS_ESPERA_MIGRACAO, FUNCOES_ESPERA_MIGRACAO } from "./espera-migracao";
+import {
+  COLUNAS_ESPERA_MIGRACAO,
+  FUNCOES_ESPERA_MIGRACAO,
+  VALORES_ESPERA_MIGRACAO,
+} from "./espera-migracao";
 
 /**
  * O código só lê e filtra colunas que existem na produção
@@ -109,7 +113,9 @@ describe("colunas usadas existem na produção", () => {
     const wrong: string[] = [];
     const check = (where: string, key: string, value: string) => {
       const values = allowed.get(key);
-      if (values && !values.has(value)) wrong.push(`${where} ${key}=${value}`);
+      if (values && !values.has(value) && !VALORES_ESPERA_MIGRACAO.has(`${key}=${value}`)) {
+        wrong.push(`${where} ${key}=${value}`);
+      }
     };
     for (const file of walk("src")) {
       const source = readFileSync(file, "utf8");

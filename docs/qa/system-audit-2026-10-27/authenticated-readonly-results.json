@@ -1,0 +1,71 @@
+[
+  {
+    "phase": "login",
+    "pathname": "/",
+    "needsMfa": false,
+    "loginStillVisible": false
+  },
+  {
+    "route": "/portal",
+    "status": 200,
+    "pathname": "/portal",
+    "loginVisible": false,
+    "pageErrors": [],
+    "mainVisible": true,
+    "schoolLabelPresent": true
+  },
+  {
+    "route": "/alunos",
+    "status": 200,
+    "pathname": "/alunos",
+    "loginVisible": false,
+    "pageErrors": [],
+    "mainVisible": true,
+    "schoolLabelPresent": true
+  },
+  {
+    "route": "/pedagogica",
+    "status": 200,
+    "pathname": "/pedagogica",
+    "loginVisible": false,
+    "pageErrors": [],
+    "mainVisible": true,
+    "schoolLabelPresent": true
+  },
+  {
+    "route": "/financeiro",
+    "status": 200,
+    "pathname": "/financeiro",
+    "loginVisible": false,
+    "pageErrors": [],
+    "mainVisible": true,
+    "schoolLabelPresent": true
+  },
+  {
+    "route": "/documentos",
+    "status": 200,
+    "pathname": "/documentos",
+    "loginVisible": false,
+    "pageErrors": [],
+    "mainVisible": true,
+    "schoolLabelPresent": true
+  },
+  {
+    "route": "/arquivos",
+    "status": 200,
+    "pathname": "/arquivos",
+    "loginVisible": false,
+    "pageErrors": [],
+    "mainVisible": true,
+    "schoolLabelPresent": true
+  },
+  {
+    "route": "/calendario",
+    "status": 200,
+    "pathname": "/calendario",
+    "loginVisible": false,
+    "pageErrors": [],
+    "mainVisible": true,
+    "schoolLabelPresent": true
+  }
+]

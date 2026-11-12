@@ -152,7 +152,9 @@ const fn = (name: string) => {
 
 describe("propina por classe no servidor", () => {
   it("a fatura escolhe o item pela classe da turma do aluno e, sem valor escrito, usa o preço dele", () => {
-    const body = fn("issueInvoice");
+    // A emissão vive em `issueInvoiceFor`, partilhada pela individual e pelo lote.
+    const start = finance.indexOf("async function issueInvoiceFor(");
+    const body = finance.slice(start, finance.indexOf("export const ", start + 1));
     expect(body).toMatch(
       /\.from\("class_groups"\)\s*\.select\("grade_level_id"\)\s*\.eq\("school_id", membership\.schoolId\)/,
     );
@@ -161,7 +163,7 @@ describe("propina por classe no servidor", () => {
     expect(body).toContain("kind ? gradeLevelId : null");
     expect(body).toContain("const amount = data.amount ?? feeItem.amount;");
     expect(body.indexOf("const amount =")).toBeLessThan(
-      body.indexOf("discountAmountFor(\n      amount,"),
+      body.search(/discountAmountFor\(\s*amount,/),
     );
     expect(body).toMatch(/\.insert\(\{[\s\S]*?amount,\n/);
   });

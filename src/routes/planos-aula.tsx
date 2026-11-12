@@ -1,6 +1,6 @@
-import { useFollowSelectedTerm } from "@/features/auth/use-school-settings";
+import { useFollowSelectedTerm } from "@/features/auth/use-follow-selected-term";
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { z } from "zod";
@@ -25,12 +25,15 @@ import {
 } from "@/features/lesson-plans/LessonPlanModal";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { NO_CLASS_SUBJECTS, subjectsOfClass } from "@/features/academic/pauta-subjects";
 
 const filterDefaults = { q: "", turma: "", disciplina: "", trimestre: "" };
 
 const planosSearchSchema = z.object({
   turma: z.string().guid().optional().catch(undefined),
   disciplina: z.string().guid().optional().catch(undefined),
+  // Os planos de um professor (menu do professor, SIGA Context Engine).
+  professor: z.string().guid().optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/planos-aula")({
@@ -98,6 +101,12 @@ function LessonPlansPage() {
     () => (workspaceQuery.data?.subjects ?? []).map((row) => ({ id: row.id, name: row.name })),
     [workspaceQuery.data],
   );
+  const classSubjects = workspaceQuery.data?.classSubjects ?? NO_CLASS_SUBJECTS;
+  // Com uma turma no filtro, a disciplina mostra só as dessa turma.
+  const filterSubjects = useMemo(
+    () => (filters.turma ? subjectsOfClass(subjects, classSubjects, filters.turma) : subjects),
+    [subjects, classSubjects, filters.turma],
+  );
 
   const plansQuery = useQuery({
     queryKey: [
@@ -118,9 +127,26 @@ function LessonPlansPage() {
     staleTime: 15_000,
   });
 
+  // `?professor=`: as disciplinas que o servidor diz que esse professor dá
+  // (`class_subjects.teacher_id`). Enquanto não chegam, nenhum plano passa.
+  const teacherFilter = useMemo(() => {
+    if (!search.professor) return null;
+    const rows = (workspaceQuery.data?.classSubjects ?? []).filter(
+      (row) => row.teacher_id === search.professor,
+    );
+    return {
+      name: rows.find((row) => row.teacher_name)?.teacher_name ?? null,
+      offerings: new Set(rows.map((row) => `${row.class_group_id}:${row.subject_id}`)),
+    };
+  }, [search.professor, workspaceQuery.data]);
+
   const plans = (plansQuery.data?.plans ?? []) as LessonPlanRow[];
   const query = filters.q.trim().toLowerCase();
-  const filtered = query ? plans.filter((plan) => plan.title.toLowerCase().includes(query)) : plans;
+  const filtered = plans.filter(
+    (plan) =>
+      (!query || plan.title.toLowerCase().includes(query)) &&
+      (!teacherFilter || teacherFilter.offerings.has(`${plan.class_group_id}:${plan.subject_id}`)),
+  );
 
   const grouped = useMemo(() => {
     const byTerm = new Map<number, LessonPlanRow[]>();
@@ -173,7 +199,7 @@ function LessonPlansPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Área Pedagógica"
+          group="Académico"
           title="Planos de Aula"
           description="Título, conteúdo e estrutura de avaliações/provas por turma, disciplina e trimestre — modelo angolano."
           actions={
@@ -190,9 +216,23 @@ function LessonPlansPage() {
         />
 
         <ListFilterBar
+          resultCount={filtered.length}
+          resultNoun="plano"
           values={filters}
           activeCount={activeCount}
-          onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
+          onChange={(name, value) => {
+            setFilter(name as keyof typeof filters, value);
+            if (
+              name === "turma" &&
+              value &&
+              filters.disciplina &&
+              !subjectsOfClass(subjects, classSubjects, value).some(
+                (subject) => subject.id === filters.disciplina,
+              )
+            ) {
+              setFilter("disciplina", "");
+            }
+          }}
           onReset={resetFilters}
           fields={[
             { name: "q", placeholder: "Pesquisar por título…", "aria-label": "Pesquisar" },
@@ -200,19 +240,27 @@ function LessonPlansPage() {
               name: "turma",
               type: "select",
               label: "Turma",
-              options: classGroups.map((group) => ({ value: group.id, label: group.name })),
+              // Sem a opção vazia, o select mostrava a primeira turma com o filtro desligado.
+              options: [
+                { value: "", label: "Todas" },
+                ...classGroups.map((group) => ({ value: group.id, label: group.name })),
+              ],
             },
             {
               name: "disciplina",
               type: "select",
               label: "Disciplina",
-              options: subjects.map((subject) => ({ value: subject.id, label: subject.name })),
+              options: [
+                { value: "", label: "Todas" },
+                ...filterSubjects.map((subject) => ({ value: subject.id, label: subject.name })),
+              ],
             },
             {
               name: "trimestre",
               type: "select",
               label: "Trimestre",
               options: [
+                { value: "", label: "Todos" },
                 { value: "1", label: "1º Trimestre" },
                 { value: "2", label: "2º Trimestre" },
                 { value: "3", label: "3º Trimestre" },
@@ -220,6 +268,20 @@ function LessonPlansPage() {
             },
           ]}
         />
+
+        {teacherFilter ? (
+          <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>
+              Planos das disciplinas de{" "}
+              <span className="font-semibold text-foreground">
+                {teacherFilter.name ?? "este professor"}
+              </span>
+            </span>
+            <Link to="/planos-aula" className="text-xs font-semibold text-primary hover:underline">
+              Ver todos os planos
+            </Link>
+          </p>
+        ) : null}
 
         {plansQuery.data?.available === false ? (
           <div className="rounded-xl border border-dashed border-border bg-secondary/30 p-6 text-sm text-muted-foreground">
@@ -229,7 +291,9 @@ function LessonPlansPage() {
           </div>
         ) : null}
 
-        {grouped.length === 0 && plansQuery.data?.available !== false ? (
+        {grouped.length === 0 &&
+        plansQuery.data?.available !== false &&
+        !(teacherFilter && workspaceQuery.isLoading) ? (
           <EmptyState
             icon={BookOpenCheck}
             firstUse
@@ -308,7 +372,7 @@ function LessonPlansPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="gap-1.5 text-destructive hover:text-destructive"
+                          className="gap-1.5 text-destructive-strong hover:text-destructive-strong"
                           onClick={() => remove(plan)}
                         >
                           <Trash2 className="size-3.5" /> Remover
@@ -328,6 +392,7 @@ function LessonPlansPage() {
         onOpenChange={setModalOpen}
         classGroups={classGroups}
         subjects={subjects}
+        classSubjects={classSubjects}
         initial={editing}
         {...(filters.turma ? { defaultClassGroupId: filters.turma } : {})}
         {...(filters.disciplina ? { defaultSubjectId: filters.disciplina } : {})}

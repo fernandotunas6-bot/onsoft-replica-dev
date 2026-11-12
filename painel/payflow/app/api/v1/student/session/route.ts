@@ -19,6 +19,7 @@ import {
 } from "@/lib/identifiers";
 import { corsHeaders, jsonResponse } from "@/lib/payflow";
 import { getPublicRuntimeStatus } from "@/lib/runtime";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
   try {
-    const parsed = lookupSchema.safeParse(await request.json());
+    const parsed = lookupSchema.safeParse(await readJsonBody(request));
     if (!parsed.success || !isStudentCode(parsed.data.student_code)) {
       return jsonResponse(
         { error: { code: "invalid_student_access", message: "Informe o código da escola, o ID de 7 dígitos e o PIN." } },

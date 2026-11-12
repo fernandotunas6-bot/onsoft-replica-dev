@@ -1,0 +1,90 @@
+{
+  "dateLuanda": "2026-10-25",
+  "project": "xodgfmxiaunpamctfeea",
+  "database": {
+    "migrations": [
+      {
+        "name": "teacher_number_and_merge_people",
+        "version": "20261025070201"
+      },
+      {
+        "name": "saas_audit_logs_server_only",
+        "version": "20261025070203"
+      },
+      {
+        "name": "access_cards_one_active_per_person",
+        "version": "20261025070206"
+      },
+      {
+        "name": "enrollment_public_server_only",
+        "version": "20261025070209"
+      },
+      {
+        "name": "lesson_meetings_server_only",
+        "version": "20261025070212"
+      },
+      {
+        "name": "academic_agenda_backend",
+        "version": "20261025070215"
+      },
+      {
+        "name": "reconcile_teacher_and_early_enrollment",
+        "version": "20261025070218"
+      },
+      {
+        "name": "capture_existing_cash_tables",
+        "version": "20261025070713"
+      },
+      {
+        "name": "preserve_long_teacher_numbers",
+        "version": "20261025071525"
+      }
+    ],
+    "rowCounts": {
+      "class_groups": 233,
+      "enrollments": 43,
+      "students": 42,
+      "teachers": 4
+    }
+  },
+  "snapshot": {
+    "capturedAt": "2026-10-25T07:15:29.239Z",
+    "summary": {
+      "buckets": 6,
+      "buckets_publicos": 1,
+      "com_rls": 210,
+      "funcoes_private": 142,
+      "politicas": 364,
+      "politicas_storage": 14,
+      "tabelas": 210,
+      "triggers": 229
+    }
+  },
+  "backendTests": {
+    "numPassedTests": 1194,
+    "numFailedTests": 0,
+    "numPendingTests": 1,
+    "numPassedTestSuites": 408,
+    "numFailedTestSuites": 0,
+    "testFilesPassed": 148
+  },
+  "subsequentFocusedChecks": {
+    "testsPassed": 31,
+    "filesPassed": 3
+  },
+  "productionBuild": "passed",
+  "functionalSql": "passed; teacher registration with >6 digits, early enrollment, numeric identifiers, date clamping, 184-day denial, MFA denial; transaction rolled back",
+  "uiTests": {
+    "failed": 15,
+    "files": 2,
+    "reason": "React resolves from node_modules for React Query and from node_modules/.pnpm/react@19.3.1 for Testing Library"
+  },
+  "typescript": "passed (npm run typecheck)",
+  "eslint": "passed for changed backend and agenda test files",
+  "finalFocusedChecks": {
+    "testsPassed": 130,
+    "testFilesPassed": 15,
+    "after": "last migration, type regeneration and production snapshot"
+  },
+  "deployment": "database migrations applied; application source remains in the local workspace"
+}

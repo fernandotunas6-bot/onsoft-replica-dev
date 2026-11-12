@@ -37,7 +37,9 @@ jobs:
           bun-version: latest
       - name: Instalar dependências
         run: bun install --frozen-lockfile
-      - name: Compilar app de produção
+      - name: Compilar app para ensaios de navegador
+        env:
+          SIGA_NITRO_PRESET: node-server
         run: bun run build
       - name: Medir Lighthouse mobile, sem autenticação
         run: npx --yes @lhci/cli@0.14.x autorun --config=lighthouserc.mobile.json

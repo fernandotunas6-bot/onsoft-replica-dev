@@ -17,6 +17,8 @@
 
 /** Páginas que só precisam da identidade da escola. Servidas desde o nascimento. */
 export const IDENTITY_PAGES = ["/", "/contactos/", "/login/", "/blog/"] as const;
+/** Rotas de cobrança da integração Kursinha são exclusivas do ISPAB. */
+export const ISPAB_PAYMENT_PAGES = ["/propinas/", "/propinas/confirmacao/"] as const;
 
 /**
  * Classes dos blocos que anunciam o catálogo do modelo: grelhas de curso,
@@ -50,15 +52,23 @@ const CARD_TAGS = ["article", "li", "div"] as const;
  */
 const CARD_CLASS = /(?:^|-)(?:card|option|item|tile|cell|path)$/;
 
-export function servedPages(adopted: readonly string[] = []): Set<string> {
-  return new Set<string>([...IDENTITY_PAGES, ...adopted]);
+export function servedPages(adopted: readonly string[] = [], schoolSlug?: string): Set<string> {
+  return new Set<string>([
+    ...IDENTITY_PAGES,
+    ...(schoolSlug === "ispab" ? ISPAB_PAYMENT_PAGES : []),
+    ...adopted,
+  ]);
 }
 
-export function isPageInScope(page: string, adopted: readonly string[] = []): boolean {
+export function isPageInScope(
+  page: string,
+  adopted: readonly string[] = [],
+  schoolSlug?: string,
+): boolean {
   const path = page.endsWith("/") ? page : page + "/";
   // O blog tem artigos por baixo de `/blog/`: o âmbito é o ramo, não a folha.
   if (path.startsWith("/blog/")) return true;
-  return servedPages(adopted).has(path);
+  return servedPages(adopted, schoolSlug).has(path);
 }
 
 /**
@@ -129,7 +139,11 @@ function containsModelBlock(block: string): boolean {
  */
 function internalPath(href: string): string | null {
   if (!href.startsWith("/") || href.startsWith("//")) return null;
-  const path = href.split(/[?#]/)[0];
+  let path = href.split(/[?#]/)[0];
+  // O website integrado vive em /site/ (ou /escolas/{slug}/ na origem central).
+  // Comparar sempre com os caminhos de template usados pelo âmbito da escola.
+  if (path.startsWith("/site/")) path = path.slice("/site".length);
+  else path = path.replace(/^\/escolas\/[a-z0-9-]+(?=\/)/, "");
   return path.endsWith("/") ? path : null;
 }
 
@@ -155,8 +169,12 @@ function isEmptyShell(block: string): boolean {
  * Corta do HTML servido tudo o que pertence ao catálogo do modelo ou aponta
  * para uma página fora do âmbito desta escola.
  */
-export function narrowToScope(html: string, adopted: readonly string[] = []): string {
-  const served = servedPages(adopted);
+export function narrowToScope(
+  html: string,
+  adopted: readonly string[] = [],
+  schoolSlug?: string,
+): string {
+  const served = servedPages(adopted, schoolSlug);
   let out = dropBlocks(html, ["section"], containsModelBlock);
   out = dropBlocks(out, BLOCK_TAGS, isModelBlock);
   out = dropBlocks(out, CARD_TAGS, (block) => {

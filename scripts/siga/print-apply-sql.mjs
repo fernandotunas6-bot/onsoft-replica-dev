@@ -83,6 +83,7 @@ export const SQL_CHECKLIST = {
       "curriculum_subjects",
       "teacher_availability",
       "academic_schedules",
+      "siga_calendar_events",
     ],
     notes: [
       "Função current_school_id() a partir de school_memberships — obrigatória",
@@ -91,6 +92,9 @@ export const SQL_CHECKLIST = {
       "Ciclo 57: Núcleo académico avançado — migration 20260908180000_advanced_academic_core.sql",
       "Ciclo 64: Backfill papéis Huambo (20260908200000) + captura 149 funções BD (20260908210000)",
       "Ciclo 64: Auditoria RBAC-v2 confirmada: ambas escolas têm 8 papéis × permissões correctas (510 linhas total)",
+      "Agenda unificada: após as actualizações de horários, aplicar migrations/20261025070215_academic_agenda_backend.sql (períodos continuam em terms)",
+      "Matrícula antecipada: usar migrations/20261025070218_reconcile_teacher_and_early_enrollment.sql; a versão 20261010130000 repõe a numeração antiga",
+      "Docentes: depois de 20261025070201, aplicar migrations/20261025071525_preserve_long_teacher_numbers.sql para não cortar números maiores que seis dígitos",
     ],
   },
   "supabase/APPLY_SAAS_PLATFORM.sql": {

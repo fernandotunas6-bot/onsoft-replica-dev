@@ -1,5 +1,6 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
+import { schoolAcceptsPublicEnrollment } from "./public-acceptance";
 import { serverFnClientIp } from "@/lib/server-fn-ip";
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
@@ -33,7 +34,6 @@ import {
   publicSchoolEmail,
   publicSchoolPhone,
 } from "@/features/integrations/install";
-import { requireAal2 } from "@/features/hr/require-aal2";
 import {
   candidacyProcessNumber,
   decideEnrollmentApplicationInputSchema,
@@ -47,7 +47,6 @@ import { schoolTodayIso } from "@/lib/school-date";
 import { addStudentToWaitlist } from "./waitlist";
 import { isClassFullError } from "./waitlist-rules";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
-import { getTenantAccessBlock } from "@/features/saas/tenant-access";
 import { publishedAdmissionFee, WEBSITE_DOMAIN } from "@/features/school-website/content-model";
 
 function slugFromSchoolName(name: string) {
@@ -156,33 +155,6 @@ export const updateEnrollmentForm = createServerFn({ method: "POST" })
     if (!form) throw new Error("Formulário não encontrado.");
     return form;
   });
-
-/**
- * O formulário público só recebe candidaturas de uma escola que pode trabalhar.
- * O bloqueio de uma escola suspensa, arquivada ou com o trial terminado vivia só
- * no ecrã do SIGA: o link público continuava aberto e as famílias candidatavam-se
- * a uma escola que não as podia receber (auditoria 13).
- */
-async function schoolAcceptsPublicEnrollment(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
-  schoolId: string,
-): Promise<boolean> {
-  const { data: school, error } = await db
-    .from("schools")
-    .select("status, tenant_id")
-    .eq("id", schoolId)
-    .maybeSingle();
-  if (error) throw publicDatabaseError(error, "Não foi possível validar a escola.");
-  if (!school || school.status === "archived") return false;
-  if (!school.tenant_id) return true;
-  const { data: tenant, error: tenantError } = await db
-    .from("tenants")
-    .select("status, subscription_status, trial_ends_at, billing_exempt")
-    .eq("id", school.tenant_id)
-    .maybeSingle();
-  if (tenantError) throw publicDatabaseError(tenantError, "Não foi possível validar a escola.");
-  return !getTenantAccessBlock(tenant as Parameters<typeof getTenantAccessBlock>[0] | null).blocked;
-}
 
 export const getPublicEnrollmentForm = createServerFn({ method: "GET" })
   .validator((input: unknown) => getPublicEnrollmentFormInputSchema.parse(input))
@@ -382,10 +354,8 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       "Administrador",
       "Secretaria",
     ]);
-    // Aceitar cria pessoa e aluno; register_student exige 2FA. Verificado antes
-    // de escrever: sem isto, cada tentativa sem 2FA deixava pessoas órfãs.
+    // Validar a capacidade antes de criar pessoa e aluno.
     if (data.decision === "accepted") {
-      requireAal2(context.claims, "Aceitar uma candidatura e criar o aluno");
       // Aceitar cria um aluno: conta para o limite do plano, como «Novo aluno».
       await assertCanAddStudentForSchool(membership.schoolId);
     }
@@ -626,7 +596,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
               }
             : null,
         });
-        // A base recusa sem 2FA (private.is_aal2) ou sem permissão. Antes, este
+        // A base recusa sem permissão de escrita na escola. Antes, este
         // ramo repetia a escrita com a chave de serviço — contornava a recusa e
         // o registo do encarregado. Recusar e explicar.
         if (!registered.ok) {
@@ -701,7 +671,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           // Sem desvio pela chave de serviço: saltaria a verificação de
           // capacidade da turma que enroll_student faz sob FOR UPDATE.
           throw rpcFailureError(enrolled, {
-            auth: "Aluno criado, mas esta conta precisa de 2FA activo para o colocar na turma.",
+            auth: "Aluno criado, mas esta conta não tem permissão para o colocar na turma.",
             fallback:
               "Candidatura aceite e aluno criado, mas não foi possível colocá-lo na turma. Faça-o na ficha do aluno.",
           });

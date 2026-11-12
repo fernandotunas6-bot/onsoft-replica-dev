@@ -14,12 +14,20 @@ const job = (name: string) => {
 };
 
 describe("workflow de publicação em produção", () => {
-  it("só publica a partir da main, depois da verificação, no ambiente production", () => {
+  it("só publica a partir da main, depois da verificação, num ambiente que por omissão é production", () => {
     expect(workflow).toMatch(/push:\n\s+branches: \[main\]/);
     expect(workflow).toMatch(/workflow_dispatch:/);
     const deploy = job("deploy");
     expect(deploy).toMatch(/needs: verify/);
-    expect(deploy).toMatch(/environment:\n\s+name: production/);
+    // Publica-se sempre dentro de um ambiente GitHub, que é onde ficam os
+    // segredos e onde se pode exigir aprovação. A 30/10 o `production` ficou
+    // sem um único segredo e as credenciais válidas estavam noutro ambiente,
+    // sem forma de as copiar: desde então o nome pode vir da variável
+    // `DEPLOY_ENVIRONMENT`. O que este teste garante é que, sem essa variável,
+    // se publica de onde sempre se publicou.
+    expect(deploy).toMatch(
+      /environment:\n\s+name: (production|\$\{\{ vars\.DEPLOY_ENVIRONMENT \|\| 'production' \}\})/,
+    );
     const verify = job("verify");
     for (const check of ["typecheck", "lint", "bun run test"]) expect(verify).toContain(check);
   });

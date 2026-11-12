@@ -11,6 +11,7 @@
  * por dois conceitos diferentes.
  */
 import {
+  ArrowLeftRight,
   CreditCard,
   Banknote,
   BookOpen,
@@ -24,6 +25,7 @@ import {
   CircleCheck,
   CircleX,
   ClipboardCheck,
+  ClipboardList,
   Clock,
   Clock3,
   Copy,
@@ -101,6 +103,8 @@ export const moduleIcons = {
   documents: FileText,
   files: FolderOpen,
   lessonPlans: NotebookPen,
+  /** Trabalhos e TPC da turma. */
+  classTasks: ClipboardList,
   communications: Megaphone,
   alumni: Network,
   import: FileUp,
@@ -116,6 +120,8 @@ export const moduleIcons = {
   institutionalLink: UserRoundCheck,
   /** Tesouraria: caixa e cobranças do dia. */
   treasury: Landmark,
+  /** Bancos e conciliação: cobranças do gateway contra o que entrou. */
+  reconciliation: ArrowLeftRight,
   /** Acompanhamento de alunos em risco de insucesso. */
   studentRisk: TrendingDown,
   /** Diagnóstico de erros do sistema. */

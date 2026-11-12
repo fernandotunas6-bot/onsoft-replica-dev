@@ -142,6 +142,23 @@ Task-focused agents that leverage separate context for focused work:
 - `cleanup-analyzer` - Analyze static analysis output (used by `/cleanup`)
 - `userguide-reviewer` - Review user guide against actual system features
 
+## SIGA multi-agent continuity
+
+Before work on SIGA Desktop, read `../docs/desktop/AGENT_HANDOFF_20261025.md`
+and `../.cursor/skills/siga-desktop/SKILL.md`. Check the actual GitHub
+PRs and `main` SHA; never overwrite another agent's changes or bypass
+the native vault / multi-tenant security guards.
+
 ## SIGA monorepo adaptation
 
 This directory is the full local desktop frontend. Native Rust lives only in `../src-tauri/`; all upstream references to `src-tauri/` resolve there. Use the adapted npm scripts. Do not introduce a second Tauri config or package manager. The remote school portal has a separate capability; never grant it the local template permissions. See `../docs/desktop/TAURI_RUNTIME.md`.
+
+## Divisão de trabalho offline (25/10/2026)
+
+- **Claude Code:** lado do servidor da sincronização (fase 3 do
+  `docs/desktop/OFFLINE_FIRST_ROADMAP.md`) e o bootstrap autorizado da fase 2: recibos por
+  `op_id`, endpoints de sincronização, migrações e ensaios em `tests/sql/`. Pasta
+  `src/features/offline-sync/`.
+- **Codex:** Tauri, Rust, janelas, capabilities, SQLite local, cofre e interface empacotada.
+- Na fila (`src/lib/offline/outbox.ts`), a parte do Claude limita-se a enviar `offlineOpId`
+  e a retomar os incertos protegidos. Mudanças maiores na fila combinam-se antes.

@@ -9,12 +9,24 @@ function portalModule(path = ""): "Académico" | "Financeiro" | null {
   return null;
 }
 
+/**
+ * Páginas sem destino próprio no menu que pertencem a uma área: o perfil do
+ * professor abre-se a partir de Pessoas, e a sidebar fica nessa área (com o menu
+ * do professor, SIGA Context Engine).
+ */
+const NAV_PARENT_PATHS: ReadonlyArray<readonly [prefix: string, parent: string]> = [
+  ["/professores/", "/pessoas"],
+];
+
 /** Resolve only from the navigation already filtered by role, grants and plan. */
 export function getNavigationContext(
   groups: NavGroup[],
-  pathname: string,
+  requestedPathname: string,
   search: Record<string, unknown> = {},
 ): NavGroup | null {
+  const pathname =
+    NAV_PARENT_PATHS.find(([prefix]) => requestedPathname.startsWith(prefix))?.[1] ??
+    requestedPathname;
   const candidates = groups.flatMap((group) =>
     group.items.flatMap((item) => {
       const links = item.children ?? (item.to ? [{ ...item, to: item.to }] : []);

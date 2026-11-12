@@ -1,3 +1,4 @@
+import 'package:yft_school_system/core/utils/date_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
@@ -15,10 +16,7 @@ class FeeReceiptTemplate extends StatelessWidget {
   static const _muted = Color(0xFF475569);
   static const _surface = Color(0xFFF8FAFC);
 
-  String _formatWhen(String raw) {
-    if (raw.isEmpty) return '—';
-    return raw.replaceFirst('T', ' ').split('.').first;
-  }
+  String _formatWhen(String raw) => formatServerDateTime(raw);
 
   @override
   Widget build(BuildContext context) {
@@ -143,7 +141,7 @@ class FeeReceiptTemplate extends StatelessWidget {
                         Container(height: 1, color: _border.withValues(alpha: 0.35)),
                         const SizedBox(height: 20),
                         Text(
-                          'RECIBO DE PROPINA',
+                          'RECIBO OFICIAL DE PROPINA',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.libreBaskerville(
                             fontSize: 15,
@@ -154,7 +152,7 @@ class FeeReceiptTemplate extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Este documento comprova o pagamento registado de propina.',
+                          'Este documento comprova um pagamento de propina registado.',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.inter(
                             fontSize: 11,
@@ -162,7 +160,7 @@ class FeeReceiptTemplate extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        _line('Número do recibo', r.id),
+                        _line('N.º do recibo', r.id),
                         _line('Data e hora', _formatWhen(r.createdAt)),
                         _line('Ano lectivo', data.displayAcademicYear),
                         _line('Período', data.displayFeeTerm),
@@ -176,12 +174,12 @@ class FeeReceiptTemplate extends StatelessWidget {
                           accentRow: true,
                         ),
                         _line(
-                          'Aplicado a propinas em dívida',
+                          'Abatido à dívida',
                           formatMoneyDisplay(r.currency, r.amountToDebt),
                         ),
                         if (r.creditAdded > 0)
                           _line(
-                            'Crédito acrescentado',
+                            'Crédito / adiantamento',
                             formatMoneyDisplay(r.currency, r.creditAdded),
                             labelColor: AppColors.primaryOnLight,
                             valueColor: AppColors.primaryOnLight,
@@ -211,7 +209,7 @@ class FeeReceiptTemplate extends StatelessWidget {
                             labelColor: AppColors.error,
                             valueColor: AppColors.error,
                           ),
-                        _line('Transaction reference', r.transactionId),
+                        _line('Referência da transacção', r.transactionId),
                         if (r.description != null && r.description!.trim().isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
@@ -219,7 +217,7 @@ class FeeReceiptTemplate extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Notes',
+                                  'Notas',
                                   style: GoogleFonts.inter(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
@@ -244,9 +242,9 @@ class FeeReceiptTemplate extends StatelessWidget {
                           padding: const EdgeInsets.all(14),
                           color: _surface,
                           child: Text(
-                            'Guarde este recibo. Para questões de facturação, '
-                            'contacte a secretaria pelos contactos acima. '
-                            'Recibo emitido pelo sistema de gestão escolar.',
+                            'Guarde este recibo. Para questões sobre pagamentos, '
+                            'contacte a secretaria da escola pelos contactos acima. '
+                            'Recibo emitido pelo sistema de gestão escolar SIGA Plus.',
                             style: GoogleFonts.inter(
                               fontSize: 10,
                               color: _muted,

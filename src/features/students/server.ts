@@ -12,7 +12,7 @@ import {
   assertWorkflowRpcAvailable,
 } from "@/integrations/supabase/workflow-rpcs";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { isMissingTable, publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
   requireSgaWriterFor,
@@ -44,7 +44,6 @@ import {
   hasCurrentEnrollment,
 } from "./enrollment-sync";
 import {
-  ENROLLMENT_2FA_MESSAGE,
   assertClassAcceptsEnrollment,
   assertNewEnrollmentAllowed,
   recordOutsideCycleEnrollments,
@@ -60,50 +59,14 @@ import {
 } from "./enrollment-core";
 import { buildPersonInsert, isMissingPeopleGeography } from "@/features/people/person-fields";
 import { syncBiDocumentFromNif } from "@/features/people/bi-document";
-import { requireAal2 } from "@/features/hr/require-aal2";
 import { assertCanSeeStudent, loadStudentScope } from "./student-scope";
 import { recordAccessAudit, recordAuditBatch } from "@/features/audit/record-audit";
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 import { schoolTodayIso } from "@/lib/school-date";
 import { pickCurrentEnrollment } from "./current-enrollment";
-
-async function linkGuardian(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
-  input: {
-    schoolId: string;
-    studentId: string;
-    guardianPersonId: string;
-    relationship: string;
-    isPrimary: boolean;
-    userId: string;
-  },
-) {
-  if (input.isPrimary) {
-    // Se falhar, o aluno ficava com dois encarregados principais.
-    const { error: primaryError } = await db
-      .from("student_guardians")
-      .update({ is_primary: false })
-      .eq("school_id", input.schoolId)
-      .eq("student_id", input.studentId)
-      .eq("is_primary", true);
-    if (primaryError) {
-      throw publicDatabaseError(primaryError, "Não foi possível trocar o encarregado principal.");
-    }
-  }
-
-  // SGA: id PK, is_pickup_authorized, created_by NOT NULL; no updated_by / authorized_pickup.
-  const { error } = await db.from("student_guardians").insert({
-    school_id: input.schoolId,
-    student_id: input.studentId,
-    guardian_person_id: input.guardianPersonId,
-    relationship: mapSgaGuardianRelationship(input.relationship),
-    is_primary: input.isPrimary,
-    is_pickup_authorized: true,
-    created_by: input.userId,
-  });
-  if (error) throw publicDatabaseError(error, "Não foi possível associar o encarregado.");
-}
+import { commitExistingEnrollmentPlacements } from "./enrollment-batch";
+import { closeGuardianLink, linkGuardian } from "./guardian-links";
 
 type StudentListRow = {
   id: string;
@@ -142,6 +105,18 @@ export const searchStudents = createServerFn({ method: "GET" })
     const db = await loadSgaAdminClient();
     const scope = await loadStudentScope(db, membership, context.userId);
     if (!scope.all && scope.studentIds.length === 0) return [];
+
+    // Mesmo com cliente privilegiado, não ler ou devolver facturas para quem não tem
+    // permissão financeira nesta escola. Falha fechado em caso de erro de autorização.
+    const canReadFinance = await requireSgaWriterFor(
+      "financeiro",
+      context.userId,
+      ["Administrador", "Secretaria", "Tesouraria"],
+      membership.schoolId,
+    ).then(
+      () => true,
+      () => false,
+    );
 
     // A lista pede até 1000 alunos e, a seguir, as fichas, matrículas, encarregados e
     // faturas de todos eles por `.in(...)`: com mais de ~200 alunos o URL passava o
@@ -214,6 +189,7 @@ export const searchStudents = createServerFn({ method: "GET" })
         ? reads
             .from("student_guardians")
             .select("student_id, guardian_person_id, is_primary")
+            .is("valid_until", null)
             .in("student_id", studentIds)
             .eq("school_id", membership.schoolId)
             .eq("is_primary", true)
@@ -238,34 +214,54 @@ export const searchStudents = createServerFn({ method: "GET" })
       if (picked) enrollmentByStudent.set(studentId, picked as Record<string, unknown>);
     }
 
-    // Carregamento financeiro para os alunos pesquisados
+    // Carregamento financeiro para os alunos pesquisados. Sem as tabelas do Financeiro
+    // (módulo por instalar) a lista abre sem dívidas. Qualquer outro erro falha: antes
+    // era engolido, e um recibo por ler punha alunos que já pagaram como devedores na
+    // lista de cobrança (ou uma fatura por ler dava «propinas regularizadas»).
     const enrollmentIds = (allEnrollments ?? []).map((e) => e.id);
-    let invoicesByStudent = new Map<string, InvoiceLike[]>();
-    try {
-      if (enrollmentIds.length) {
-        const { data: contracts } = await reads
-          .from("finance_contracts")
-          .select("id, enrollment_id")
-          .in("enrollment_id", enrollmentIds)
-          .eq("school_id", membership.schoolId);
+    const invoicesByStudent = new Map<string, InvoiceLike[]>();
+    const financeRead = <T>(result: { data: T[] | null; error: unknown }): T[] | null => {
+      const error = result.error as Parameters<typeof isMissingTable>[0];
+      if (!error) return result.data ?? [];
+      if (isMissingTable(error)) return null;
+      throw publicDatabaseError(error, "Não foi possível ler a situação financeira dos alunos.");
+    };
+    finance: {
+      if (canReadFinance && enrollmentIds.length) {
+        const contracts = financeRead(
+          await reads
+            .from("finance_contracts")
+            .select("id, enrollment_id")
+            .in("enrollment_id", enrollmentIds)
+            .eq("school_id", membership.schoolId),
+        );
+        if (!contracts) break finance;
 
         const contractIds = (contracts ?? []).map((c) => c.id);
         if (contractIds.length) {
-          const { data: invoices } = await reads
-            .from("finance_invoices")
-            .select("id, contract_id, amount, discount_amount, penalty_amount, due_date, status")
-            .in("contract_id", contractIds)
-            .eq("school_id", membership.schoolId)
-            .neq("status", "cancelled");
+          // A multa por atraso conta para a dívida, como em Faturas (invoiceNetTotal).
+          const invoices = financeRead(
+            await reads
+              .from("finance_invoices")
+              .select("id, contract_id, amount, discount_amount, penalty_amount, due_date, status")
+              .in("contract_id", contractIds)
+              .eq("school_id", membership.schoolId)
+              .neq("status", "cancelled"),
+          );
+          if (!invoices) break finance;
 
-          const invoiceIds = (invoices ?? []).map((inv) => inv.id);
-          const { data: receipts } = invoiceIds.length
-            ? await reads
-                .from("finance_receipts")
-                .select("invoice_id, amount, status")
-                .in("invoice_id", invoiceIds)
-                .eq("school_id", membership.schoolId)
-            : { data: [] };
+          const invoiceIds = invoices.map((inv) => inv.id);
+          const receipts = invoiceIds.length
+            ? financeRead(
+                await reads
+                  .from("finance_receipts")
+                  .select("invoice_id, amount, status")
+                  .in("invoice_id", invoiceIds)
+                  .eq("school_id", membership.schoolId),
+              )
+            : [];
+          // Faturas sem os recibos davam tudo por pagar: sem recibos, sem resumo.
+          if (!receipts) break finance;
 
           const paidByInvoice = sumPaidByInvoice(receipts);
 
@@ -297,9 +293,6 @@ export const searchStudents = createServerFn({ method: "GET" })
           }
         }
       }
-    } catch {
-      // Fallback gracioso caso o módulo financeiro ainda não esteja provisionado
-      invoicesByStudent = new Map();
     }
 
     const peopleById = new Map(
@@ -436,12 +429,12 @@ export const searchStudents = createServerFn({ method: "GET" })
           photo_url: (person?.["photo_url"] as string | null) ?? null,
           national_id: (person?.["national_id"] as string | null) ?? null,
           student_status: effectiveStatus,
-          payment_status: finSnapshot.paymentStatus,
-          debt_amount: finSnapshot.debtAmount,
-          overdue_count: finSnapshot.overdueCount,
-          has_debt: finSnapshot.hasDebt,
-          total_billed: finSnapshot.totalBilled,
-          total_paid: finSnapshot.totalPaid,
+          payment_status: canReadFinance ? finSnapshot.paymentStatus : null,
+          debt_amount: canReadFinance ? finSnapshot.debtAmount : undefined,
+          overdue_count: canReadFinance ? finSnapshot.overdueCount : undefined,
+          has_debt: canReadFinance ? finSnapshot.hasDebt : undefined,
+          total_billed: canReadFinance ? finSnapshot.totalBilled : undefined,
+          total_paid: canReadFinance ? finSnapshot.totalPaid : undefined,
           grade_name: (grade?.["name"] as string | null) ?? null,
           class_name: (classGroup?.["name"] as string | null) ?? null,
           class_group_id: (classGroup?.["id"] as string | null) ?? null,
@@ -529,6 +522,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       db
         .from("student_guardians")
         .select("guardian_person_id, relationship, is_primary")
+        .is("valid_until", null)
         .eq("student_id", student.id)
         .eq("school_id", membership.schoolId),
       // Matrículas correntes (activa ou pendente, que já ocupa lugar na turma). Com a
@@ -697,7 +691,6 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
       "Administrador",
       "Secretaria",
     ]);
-    requireAal2(context.claims, "Matricular alunos");
     // Um reenvio de uma operação já concluída não acrescenta alunos e deve
     // funcionar mesmo quando o primeiro pedido ocupou o último lugar do plano.
     const db = await loadSgaAdminClient();
@@ -914,11 +907,10 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       academicYearId: data.academicYearId ?? null,
       enrolledOn: data.enrolledOn ?? null,
       userId: context.userId,
-      hasAal2: context.claims?.["aal"] === "aal2",
       appRole: membership.appRole,
       overrideReason: data.outsideCycleReason ?? null,
     });
-    queueTenantUsageSync(membership.schoolId);
+    if (!placed.unchanged) queueTenantUsageSync(membership.schoolId);
     return {
       id: placed.enrollmentId,
       enrollment_number: placed.enrollmentNumber,
@@ -927,6 +919,7 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       academic_year_id: placed.academicYearId,
       status: placed.status,
       moved: placed.moved,
+      unchanged: placed.unchanged ?? false,
     };
   });
 
@@ -1201,13 +1194,14 @@ export const assignGuardian = createServerFn({ method: "POST" })
       throw new Error("Esta ficha está inactiva. Reactive-a em Pessoas antes de associar.");
     }
 
-    await linkGuardian(db, {
+    const link = await linkGuardian(db, {
       schoolId: membership.schoolId,
       studentId: data.studentId,
       guardianPersonId: data.guardianPersonId,
-      relationship: data.relationship,
+      relationship: mapSgaGuardianRelationship(data.relationship),
       isPrimary: data.isPrimary,
       userId: context.userId,
+      today: schoolTodayIso(),
     });
     // Quem é encarregado decide quem vê os dados do aluno: fica registado.
     await recordAccessAudit({
@@ -1219,6 +1213,13 @@ export const assignGuardian = createServerFn({ method: "POST" })
       metadata: {
         guardian_person_id: data.guardianPersonId,
         relationship: data.relationship ?? null,
+        ...(link.previous
+          ? {
+              reopened: true,
+              previous_valid_from: link.previous.validFrom,
+              previous_valid_until: link.previous.validUntil,
+            }
+          : {}),
       },
     });
     return { studentId: data.studentId, guardianPersonId: data.guardianPersonId };
@@ -1234,13 +1235,13 @@ export const removeGuardian = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    const { error } = await db
-      .from("student_guardians")
-      .delete()
-      .eq("student_id", data.studentId)
-      .eq("guardian_person_id", data.guardianPersonId)
-      .eq("school_id", membership.schoolId);
-    if (error) throw publicDatabaseError(error, "Não foi possível remover o encarregado.");
+    // Fecha a vigência em vez de apagar: o histórico do vínculo fica.
+    const closed = await closeGuardianLink(db, {
+      schoolId: membership.schoolId,
+      studentId: data.studentId,
+      guardianPersonId: data.guardianPersonId,
+      today: schoolTodayIso(),
+    });
     // Quem é encarregado decide quem vê os dados do aluno: fica registado.
     await recordAccessAudit({
       schoolId: membership.schoolId,
@@ -1248,7 +1249,15 @@ export const removeGuardian = createServerFn({ method: "POST" })
       action: "students.guardian_unlinked",
       entityType: "student",
       entityId: data.studentId,
-      metadata: { guardian_person_id: data.guardianPersonId },
+      metadata: {
+        guardian_person_id: data.guardianPersonId,
+        link_id: closed.id,
+        relationship: closed.relationship,
+        was_primary: closed.wasPrimary,
+        valid_from: closed.validFrom,
+        valid_until: closed.validUntil,
+        reason: data.reason ?? null,
+      },
     });
     return { studentId: data.studentId, guardianPersonId: data.guardianPersonId };
   });
@@ -1436,14 +1445,6 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       if (held) failed.push({ studentId, message: held });
       else toEnroll.push(studentId);
     }
-    // Matricular, mudar de turma e confirmar exigem 2FA (auditoria 14, A3): recusado
-    // antes de mexer em qualquer aluno.
-    if (
-      (toEnroll.length || toMove.length || toConfirm.length) &&
-      context.claims?.["aal"] !== "aal2"
-    ) {
-      throw new Error(ENROLLMENT_2FA_MESSAGE);
-    }
     const outsideCycle = toEnroll.length
       ? await assertNewEnrollmentAllowed(db, {
           schoolId,
@@ -1471,47 +1472,18 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       }
     }
 
-    // Data das matrículas novas: hoje, ou o início do ano se ainda não começou.
-    const enrolledOn = toEnroll.length
-      ? (
-          await assertClassAcceptsEnrollment(db, {
-            schoolId,
-            classGroupId: group.id,
-            academicYearId: data.academicYearId,
-          })
-        ).enrolledOn
-      : schoolTodayIso();
-
-    const enrolled = new Set(
-      currentRows.filter((row) => row.class_group_id === group.id).map((row) => row.student_id),
-    );
-
-    if (toMove.length) {
-      const { error: moveError } = await db
-        .from("enrollments")
-        .update({ class_group_id: group.id, status: "active", updated_by: context.userId })
-        .eq("school_id", schoolId)
-        .in(
-          "id",
-          toMove.map((row) => row.id),
-        );
-      if (moveError)
-        throw publicDatabaseError(moveError, "Não foi possível mudar os alunos de turma.");
-      for (const row of toMove) enrolled.add(String(row.student_id));
-    }
-    if (toConfirm.length) {
-      const { error: confirmError } = await db
-        .from("enrollments")
-        .update({ status: "active", updated_by: context.userId })
-        .eq("school_id", schoolId)
-        .in(
-          "id",
-          toConfirm.map((row) => row.id),
-        );
-      if (confirmError) {
-        throw publicDatabaseError(confirmError, "Não foi possível confirmar as matrículas.");
-      }
-    }
+    // Todos os vínculos do ano (inclusive os já activos na turma) devem ser
+    // confirmados contra o estado actual: uma lista carregada antes de outra
+    // transferência não é prova de que o aluno ainda está neste destino.
+    // O helper não grava os no-op; mudanças e pendentes usam CAS.
+    const committed = await commitExistingEnrollmentPlacements(db, {
+      schoolId,
+      targetClassGroupId: group.id,
+      userId: context.userId,
+      rows: currentRows,
+    });
+    const enrolled = new Set(committed.placedIds);
+    failed.push(...committed.failed);
 
     // Quem tinha saído (anulado, desistente…) volta a candidato para enroll_student o aceitar.
     const returning = toEnroll.filter((id) =>
@@ -1525,6 +1497,7 @@ export const batchAssignClass = createServerFn({ method: "POST" })
 
     // Matrículas novas pela mesma função que a matrícula individual. Em série,
     // porque cada chamada tranca a mesma turma.
+    const enrolledOn = schoolTodayIso();
     const toRestore: Array<{ studentId: string; status: string }> = [];
     for (const studentId of toEnroll) {
       const outcome = await enrollStudentRpc(context.supabase, {
@@ -1554,7 +1527,7 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       action: "atribuir turma em lote",
     });
 
-    await syncStudentStatusAfterPlacement(db, {
+    const reactivated = await syncStudentStatusAfterPlacement(db, {
       schoolId,
       students: [...enrolled].map((studentId) => ({
         studentId,
@@ -1564,7 +1537,9 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       userId: context.userId,
     });
 
-    queueTenantUsageSync(schoolId);
+    if (committed.placedIds.length || toEnroll.length || reactivated > 0) {
+      queueTenantUsageSync(schoolId);
+    }
     return { success: failed.length === 0, count: enrolled.size, className: group.name, failed };
   });
 

@@ -1,0 +1,210 @@
+[
+  {
+    "number": 369,
+    "title": "SIGA Plus: código de login configurável uma vez por conta",
+    "head": "eed44e16503d82153e2d97b67dcb6ca1dfb0c8e9",
+    "branch": "fix/login-mfa-opt-in-20261027",
+    "base": "ac9c8b1b20a3213594fb6ef73546115977e5ff64",
+    "draft": false
+  },
+  {
+    "number": 355,
+    "title": "feat(contexto): menu do trabalho, pasta como contexto, submenus por hover e cenários A–F",
+    "head": "efe5a37b04eda480283fbb9577f6c5e0871e0393",
+    "branch": "claude/project-thread-vlrjln",
+    "base": "351188fedbe9bc396af855e0cc74a9b69296fb6a",
+    "draft": false
+  },
+  {
+    "number": 345,
+    "title": "Corrigir integridade pedagógica e consolidar horários configurados",
+    "head": "8ba156064fb8e3dc80761e7ba9c7fa105adac46f",
+    "branch": "fix/pedagogy-consolidated-20261026",
+    "base": "ba289e0e0bd519e80c79d58bb41c6ab1eaabcab1",
+    "draft": true
+  },
+  {
+    "number": 342,
+    "title": "docs(claude): divisão oficial de agentes e plano de execução SIGA Plus",
+    "head": "99feffdbdac27dc724ea3a2663c791c873797a7c",
+    "branch": "docs/claude-divisao-agentes-20261026",
+    "base": "a39515a6d007672b6f3dbbd278d09cd98210cf93",
+    "draft": true
+  },
+  {
+    "number": 339,
+    "title": "feat(students): login por ID/BI, turmas por idade e transição anual — fase 1",
+    "head": "4efac02a35b47150324b2d25921ea59e635cc0c6",
+    "branch": "feat/student-login-classes-age-rollover-20261026",
+    "base": "a39515a6d007672b6f3dbbd278d09cd98210cf93",
+    "draft": true
+  },
+  {
+    "number": 338,
+    "title": "Horários completos: agenda publicada, 14 funções, importação e visual",
+    "head": "42a73b589781a870c4b265d27a602647e728a76e",
+    "branch": "feat/horarios-completos-2026-10-26",
+    "base": "bf05e8660c58be5190c190676415986f1c946404",
+    "draft": false
+  },
+  {
+    "number": 325,
+    "title": "feat(marca): abertura SIGA Plus animada, com o som da marca",
+    "head": "cfb93e70fba9e1ab96521481c52cdcf125ffc680",
+    "branch": "feat/abertura-siga-plus-animada",
+    "base": "d8d6c1c32277317aae3e6b121a433b8919170d9b",
+    "draft": false
+  },
+  {
+    "number": 291,
+    "title": "test(staging): falhar E2E sem destino isolado + roteiro open source em 5 fases",
+    "head": "ed7ea968fbaa917fb2e9c747a798992fb887336a",
+    "branch": "codex/oss-rollout-staging-gate-20261025",
+    "base": "06660720df68a5db59e8419a267c6cf8f7d5eb66",
+    "draft": true
+  },
+  {
+    "number": 277,
+    "title": "feat(website): dedicated Puck Studio with conflict recovery on current publication base",
+    "head": "4fe4ff0134e5a0a89644bf491c58349f3005ac23",
+    "branch": "feat/website-studio-puck-20261024",
+    "base": "ffcc250147c328a27a1cf2f3426455c3bc9fe0ca",
+    "draft": true
+  },
+  {
+    "number": 275,
+    "title": "fix(website): enforce school publication guards on current main",
+    "head": "ffcc250147c328a27a1cf2f3426455c3bc9fe0ca",
+    "branch": "fix/school-website-publication-20261024",
+    "base": "fbf1875875338fd87bd723b68376af556cc59cf6",
+    "draft": true
+  },
+  {
+    "number": 212,
+    "title": "Estudo YFT e cliente Flutter com backend (colide com 5 PRs — ver corpo)",
+    "head": "d4a3659bf8733b6a8f0c8a5a4a1d5cec5dc3e985",
+    "branch": "ccr-b4b58ce3-7k7ae1",
+    "base": "300ff2f05149740c37cd466992ea864f2c20d3a2",
+    "draft": true
+  },
+  {
+    "number": 211,
+    "title": "Nº de aluno nas listas, fichas e impressões (colide com o #148 — ver corpo)",
+    "head": "8e6f238d33456298416ea6f1739fc2dd074f2ec4",
+    "branch": "ccr-680ee371-6vebkz",
+    "base": "300ff2f05149740c37cd466992ea864f2c20d3a2",
+    "draft": true
+  },
+  {
+    "number": 210,
+    "title": "Cobrança de assinaturas configurável e períodos no ADMIN (18 conflitos — ver corpo)",
+    "head": "95e9a52767600d9469bf604a8e7355549a3ff003",
+    "branch": "claude/ecstatic-shannon-wek2yt",
+    "base": "300ff2f05149740c37cd466992ea864f2c20d3a2",
+    "draft": true
+  },
+  {
+    "number": 206,
+    "title": "Integração: o editor do SIGA e a camada de conteúdo num só ramo",
+    "head": "ef2f2dc44d757092a5279d1f4352b8d6275037ea",
+    "branch": "integration/escolas-site-unificado-20261021",
+    "base": "b3c27ce7781cb65c30e13dab38f5f8af9bf0246b",
+    "draft": false
+  },
+  {
+    "number": 205,
+    "title": "Website escolar configurável por escola: conteúdo, identidade e modo de demonstração",
+    "head": "550c894a7c5ac1d280f3d17cb63ff716eaa3541f",
+    "branch": "feat/escolas-site-personalizavel-20261021",
+    "base": "b3c27ce7781cb65c30e13dab38f5f8af9bf0246b",
+    "draft": false
+  },
+  {
+    "number": 200,
+    "title": "feat: websites institucionais multi-tenant por escola (v1 segura)",
+    "head": "98e22e230f7737dd97af6b9866ed314299eb6188",
+    "branch": "feat/school-sites-multitenant-20261020",
+    "base": "12b988826cba13ec01ea76950e4ada59aa5322bb",
+    "draft": true
+  },
+  {
+    "number": 154,
+    "title": "feat(estudo/yft): ecrãs SIGA Plus 5–12 e paleta do mockup",
+    "head": "6bab2db9a3c7b4f17574bd8399fc85a05b4138a7",
+    "branch": "ccr-797179ec-129c5n",
+    "base": "71ed0b2d4108a4223ba386ee9dee2167214d74a2",
+    "draft": false
+  },
+  {
+    "number": 136,
+    "title": "Claude/flutter visual analysis deploy qn49ie",
+    "head": "44207572fd4da993cdc10053aec51201041c470a",
+    "branch": "claude/flutter-visual-analysis-deploy-qn49ie",
+    "base": "df78e817577ba8f8ce806ca4402b44f2e6319d0a",
+    "draft": false
+  },
+  {
+    "number": 133,
+    "title": "Feat/siga flutter motion 2026",
+    "head": "67b5fc911095c409795f1326deb782ee10d717bc",
+    "branch": "feat/siga-flutter-motion-2026",
+    "base": "df78e817577ba8f8ce806ca4402b44f2e6319d0a",
+    "draft": false
+  },
+  {
+    "number": 132,
+    "title": "App SIGA Plus (Flutter) + Mobile V4: entregas em PDF e transporte escolar",
+    "head": "43927c0ecbf9c23a40bffb8c21047b0ebc049e45",
+    "branch": "ccr-6a21e4bf-flutter-ui",
+    "base": "0726a9234740b813cd2eee52b641b6d7bf271818",
+    "draft": true
+  },
+  {
+    "number": 130,
+    "title": "feat(siga-ai): assistente de IA local a partir do Project NOMAD",
+    "head": "94c9fe6ee3e4c84df138be526a6aef7d4bb59f77",
+    "branch": "ccr-8f75a64f-eqauu9",
+    "base": "3bf5305f56bc762140c6b74d4e5c729c417275cf",
+    "draft": true
+  },
+  {
+    "number": 128,
+    "title": "Refinamento: Finanças, Documentos, RH, Matrículas, Presenças, Comunicações, Superior, Importação e Arquivos",
+    "head": "ad807943a10f43ebf595d320af2a165efad2fc04",
+    "branch": "ccr-0a9116e5-4zox11",
+    "base": "7af7f60e498b06fc2dcda5ccf7fd6747ba76242d",
+    "draft": true
+  },
+  {
+    "number": 119,
+    "title": "feat(mobile-v4): publicar a app móvel em m.portal-siga.com pelo Worker do portal",
+    "head": "55d21fa46a76d69d6630b7647fb19652fc525997",
+    "branch": "ccr-351feaee-8fj77g",
+    "base": "c69955e35a9d2be443f2c2d28d1a3eb7d033dcee",
+    "draft": true
+  },
+  {
+    "number": 118,
+    "title": "Auditoria 14: núcleo único da matrícula, ciclos de matrícula e filtro «Sem matrícula»",
+    "head": "10804d401c325b537bb625b85bd7f128fa23e91c",
+    "branch": "ccr-3914277c-077wck",
+    "base": "a72c85f891b8b52f7b5630f746ccacd74fee23ed",
+    "draft": true
+  },
+  {
+    "number": 116,
+    "title": "feat(mobile-v4): integrar consultas, avisos, propinas e chat ao Sga",
+    "head": "0249dab7eaa814be3231342672156fda210e3ccb",
+    "branch": "feat/siga-plus-mobile-v4-isolated",
+    "base": "e6ece696bdff5bd507ac7a958b805971a405722a",
+    "draft": true
+  },
+  {
+    "number": 35,
+    "title": "feat(ui): navegação, listas e modais responsivos do SIGA Plus",
+    "head": "76c2e9bd4b3ed4d265afb371f7bc77274427bc96",
+    "branch": "feat/mobile-clean-shell-20260928",
+    "base": "1ff0e4fad0d13413cbc1121dd45cca2757179056",
+    "draft": true
+  }
+]

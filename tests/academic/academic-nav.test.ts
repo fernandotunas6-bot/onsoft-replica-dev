@@ -39,6 +39,30 @@ describe("academic nav tree", () => {
     expect(tree[0]?.classes[0]?.subjects).toHaveLength(2);
   });
 
+  it("guarda o professor de cada disciplina na turma, quando vem do servidor", () => {
+    const tree = buildAcademicNavTree([
+      {
+        classGroupId: "t1",
+        className: "10ª A",
+        gradeName: "10ª Classe",
+        subjectId: "mat",
+        subjectName: "Matemática",
+        teacherId: "prof-1",
+      },
+      {
+        classGroupId: "t1",
+        className: "10ª A",
+        gradeName: "10ª Classe",
+        subjectId: "fis",
+        subjectName: "Física",
+      },
+    ]);
+    expect(tree[0]?.classes[0]?.subjects).toEqual([
+      { id: "fis", name: "Física" },
+      { id: "mat", name: "Matemática", teacherId: "prof-1" },
+    ]);
+  });
+
   it("agrupa II ciclo por curso e 9ª por classe", () => {
     const tree = buildAcademicNavTree([
       {

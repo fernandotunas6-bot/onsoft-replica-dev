@@ -21,6 +21,10 @@ WEB vende (`painel/web`). ADMIN controla (`painel/admin`). SIGA trabalha (raiz).
 
 Handoff e estado dos ciclos: [docs/agents/CONTINUE.md](docs/agents/CONTINUE.md).
 
+**Segurança e infraestrutura — fase 1 (02/11/2026):** [handoff para Claude e critérios de validação](docs/agents/HANDOFF_SECURITY_2026-11-02.md). Alterações iniciais de limite de JSON e cache de login em branch isolada; não fazer merge nem deploy sem testes.
+
+**Continuação coordenada com Claude Code (25/10/2026):** [correcção das categorias existentes de Definições, validações e pendências](docs/agents/HANDOFF_SETTINGS_2026-10-25.md). Ler antes de voltar a alterar SettingsCenter, sidebar ou modais.
+
 Skills: `.cursor/skills/siga/SKILL.md`, `siga-web`, `siga-admin`, `siga-docs`, `siga-saas`, `siga-identity`, e `.cursor/skills/siga-*/SKILL.md` por módulo escolar.
 
 **Velocidade e refinamento:** `.cursor/skills/siga-performance/SKILL.md` — optimizar o
@@ -28,6 +32,9 @@ que existe, sem acrescentar/remover funcionalidades ou elementos, sem aumentar a
 interface nem alterar a identidade. Medir antes/depois e preservar segurança e dados.
 
 **Visual mestre (sidebar/modais):** [docs/design/SIGA_VISUAL_MASTER_2026-10-23.md](docs/design/SIGA_VISUAL_MASTER_2026-10-23.md) — concavidade à direita e margem esquerda recta; catálogo autorizado, contexto por papel/escola e diálogos simples, sem eliminar campos nem fluxos. Evitar conflitos com a PR #259.
+
+**Navegação contextual (Context Engine):** [docs/specs/SIGA_CONTEXT_ENGINE_2026.md](docs/specs/SIGA_CONTEXT_ENGINE_2026.md) —
+motor único em `context-resolver.ts`/`context-registry.ts` (PR #332), menu em `ContextEntityNav`; opção A (sem coluna nova); não criar segunda sidebar nem segundo painel.
 
 **Identidade Digital (domínios, e-mail, subdomínios):** skill `siga-identity` + docs em `docs/domains/`, `docs/email/`, `docs/cloudflare/`, `docs/multi-tenant/`, `docs/provisioning/`.
 
@@ -40,6 +47,10 @@ npm run siga:scaffold -- <modulo> [--route=/caminho] [--with-page]
 ```
 
 No SGA não aplicar migrações Lovable. SQL correcto: `npm run siga:sql`.
+
+**Publicação (deploy):** contínua a cada merge na `main`, com vigilância que repete publicações
+falhadas e abre a issue «Deploy de produção parado». Vias alternativas, segredos e diagnóstico:
+[docs/releases/DEPLOY_VIAS.md](docs/releases/DEPLOY_VIAS.md).
 
 **Base de dados — ler antes de qualquer SQL:** [docs/agents/DATABASE_RULES.md](docs/agents/DATABASE_RULES.md).
 O Lovable está ligado à base de **produção**: uma migração aprovada corre nas escolas reais.
@@ -65,3 +76,12 @@ e o segundo reúne as orientações e evidências recuperadas do outro agente.
 Não sobrescrever as alterações já publicadas das PRs #252, #259 ou #270.
 Actualizar [a matriz de execução](docs/design/VISUAL_MASTER_STATUS.md) com
 evidência por fase e módulo; não omitir requisitos nem declarar validação sem teste.
+
+## Financeiro
+
+Antes de alterar Tesouraria, Caixa, Faturas, Conciliação, Relatórios Financeiros ou
+`src/features/finance`, ler [docs/specs/finance/FINANCE_MASTER_2026.md](docs/specs/finance/FINANCE_MASTER_2026.md):
+a matriz rota → funções, a auditoria de integridade e as pendências. Regras permanentes:
+uma página, uma finalidade; estados do dinheiro por `payment-states.ts`; nada aparece como
+pago sem confirmação do fornecedor; o SIGA não é software certificado pela AGT e não o pode
+sugerir. A aceitação mede-se por [docs/qa/finance/FINANCE_ACCEPTANCE_CHECKLIST.md](docs/qa/finance/FINANCE_ACCEPTANCE_CHECKLIST.md).

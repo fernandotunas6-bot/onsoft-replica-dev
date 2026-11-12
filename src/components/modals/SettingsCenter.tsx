@@ -6,9 +6,11 @@ import {
   CreditCard,
   GraduationCap,
   FolderOpen,
+  FileCheck2,
   Gauge,
   Globe,
   KeyRound,
+  Monitor,
   Palette,
   Link2,
   Plug,
@@ -33,7 +35,9 @@ import {
 import { EnrollmentCampaignPanel } from "@/features/enrollment/EnrollmentCampaignPanel";
 import { SpotlightSettingsPanel } from "@/features/spotlight/SpotlightSettingsPanel";
 import { FilesSettingsPanel } from "@/features/arquivos/FilesSettingsPanel";
+import { TeacherDocumentsSettingsPanel } from "@/features/people/TeacherDocumentsSettingsPanel";
 import { PerformancePanel } from "@/features/school/PerformancePanel";
+import { AppDownloads } from "@/features/desktop/AppDownloads";
 import { actionIcons } from "@/lib/app-icons";
 
 const WebsiteSettingsPanel = lazy(() =>
@@ -48,8 +52,8 @@ const BlogSettingsPanel = lazy(() =>
 );
 
 /**
- * Centro único de configurações do SIGA: tudo o que antes vivia espalhado
- * (página /configuracoes, atalhos no cabeçalho) fica aqui, num só modal.
+ * Centro de configurações do SIGA: reúne os painéis já existentes numa
+ * página por omissão, preservando a alternativa modal definida pela escola.
  */
 
 function useSettingsPanels(): StackPanel[] {
@@ -75,6 +79,20 @@ function useSettingsPanels(): StackPanel[] {
             icon: Building2,
             tone: "info",
             to: "escola",
+          },
+          {
+            label: "Identidade Digital",
+            description: "Domínio e e-mail institucional",
+            icon: Globe,
+            tone: "primary",
+            to: "identidade",
+          },
+          {
+            label: "Pedagógico",
+            description: "Níveis, cursos e disciplinas",
+            icon: GraduationCap,
+            tone: "primary",
+            to: "pedagogico",
           },
           {
             label: "Financeiro",
@@ -119,6 +137,13 @@ function useSettingsPanels(): StackPanel[] {
             to: "arquivos",
           },
           {
+            label: "Documentos de professores",
+            description: "Obrigatórios por escola e nível de ensino",
+            icon: FileCheck2,
+            tone: "info",
+            to: "pessoas.documentos_professores",
+          },
+          {
             label: "Integrações",
             description: "Gmail e outros canais",
             icon: Plug,
@@ -145,6 +170,13 @@ function useSettingsPanels(): StackPanel[] {
             icon: Gauge,
             tone: "info",
             to: "sistema.desempenho",
+          },
+          {
+            label: "Apps do SIGA",
+            description: "Computador e Android",
+            icon: Monitor,
+            tone: "primary",
+            to: "sistema.app",
           },
         ],
       },
@@ -267,6 +299,14 @@ function useSettingsPanels(): StackPanel[] {
         render: () => <FilesSettingsPanel />,
       },
       {
+        id: "pessoas.documentos_professores",
+        title: "Documentos de professores",
+        description: "Exigências institucionais por nível de ensino.",
+        icon: FileCheck2,
+        tone: "info",
+        render: () => <TeacherDocumentsSettingsPanel />,
+      },
+      {
         id: "integracoes",
         title: "Integrações",
         description: "Estado real de cada canal ligado ao SIGA.",
@@ -297,6 +337,14 @@ function useSettingsPanels(): StackPanel[] {
         icon: Gauge,
         tone: "info",
         render: () => <PerformancePanel />,
+      },
+      {
+        id: "sistema.app",
+        title: "Apps do SIGA",
+        description: "Transfira o SIGA Plus para o computador ou para o Android.",
+        icon: Monitor,
+        tone: "primary",
+        render: () => <AppDownloads />,
       },
     ],
     [],

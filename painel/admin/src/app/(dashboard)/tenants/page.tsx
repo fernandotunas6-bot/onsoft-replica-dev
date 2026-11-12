@@ -30,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
-import { getCreateSchoolUrl, getSaasApiUrl, getSigaSchoolUrl } from "@/lib/ecosystem-urls"
+import { getCreateSchoolUrl, getSaasApiUrl, getSchoolPortalUrl, getSchoolWebsiteUrl } from "@/lib/ecosystem-urls"
 import { setTenantStatus, syncSaasUsage } from "@/lib/saas-api"
 import {
   TenantSubscriptionDialog,
@@ -451,9 +451,16 @@ export default function TenantsPage() {
                                   Domínios
                                 </Link>
                               </DropdownMenuItem>
+                              {getSchoolWebsiteUrl(tenant.slug) ? (
+                                <DropdownMenuItem asChild>
+                                  <a href={getSchoolWebsiteUrl(tenant.slug) ?? undefined} target="_blank" rel="noopener noreferrer">
+                                    Website da escola <ExternalLink className="size-3" />
+                                  </a>
+                                </DropdownMenuItem>
+                              ) : null}
                               <DropdownMenuItem asChild>
-                                <a href={getSigaSchoolUrl(tenant.slug)}>
-                                  Abrir no SIGA <ExternalLink className="size-3" />
+                                <a href={getSchoolPortalUrl(tenant.slug)} target="_blank" rel="noopener noreferrer">
+                                  Portal SIGA Plus <ExternalLink className="size-3" />
                                 </a>
                               </DropdownMenuItem>
                               {tenant.status === "cancelled" || tenant.status === "archived" ? null : (

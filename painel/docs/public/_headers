@@ -1,0 +1,10 @@
+# Cabeçalhos de segurança da documentação (o VitePress copia public/ para
+# .vitepress/dist, publicado no Cloudflare Pages). Mesma base do SIGA
+# (src/lib/security-headers.ts). Contrato em tests/security/pages-security-headers.test.ts.
+/*
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()

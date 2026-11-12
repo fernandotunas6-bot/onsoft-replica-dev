@@ -5,8 +5,10 @@ import {
   payflowSettlementInputSchema,
 } from "@/features/finance/payflow-settlement";
 import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
-import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { isRateLimitBypassed } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { clientIpFromRequest } from "@/lib/request-ip";
+import { BODY_LIMITS, readJsonBodyLimited, rejectedBody } from "@/lib/read-json-body";
 
 // style-check: route-exempt — webhook HTTP PayFlow → SIGA (sem shell administrativo).
 
@@ -20,16 +22,21 @@ export const Route = createFileRoute("/api/finance/payflow/settlement")({
     handlers: {
       POST: async ({ request }) => {
         const rateLimitKey = `ip:${clientIpFromRequest(request)}`;
+        // Limitador partilhado entre instâncias do Worker (com recurso à memória
+        // se a base falhar): o limite só em memória valia por instância e não
+        // travava tentativas distribuídas.
         if (
           !isRateLimitBypassed(rateLimitKey) &&
-          !checkRateLimit([rateLimitKey], PAYFLOW_SETTLEMENT_RATE_LIMIT)
+          !(await consumeRateLimit(
+            [`payflow_settlement:${rateLimitKey}`],
+            PAYFLOW_SETTLEMENT_RATE_LIMIT,
+          ))
         ) {
           return Response.json(
             { ok: false, message: "Demasiados pedidos. Tente mais tarde." },
             { status: 429 },
           );
         }
-        recordRateLimitAttempt([rateLimitKey], PAYFLOW_SETTLEMENT_RATE_LIMIT);
 
         if (!payflowSettlementAuthorized(request.headers.get("authorization"))) {
           return Response.json(
@@ -38,12 +45,12 @@ export const Route = createFileRoute("/api/finance/payflow/settlement")({
           );
         }
 
-        let body: unknown;
-        try {
-          body = await request.json();
-        } catch {
-          return Response.json({ ok: false, message: "Corpo JSON inválido." }, { status: 400 });
+        const read = await readJsonBodyLimited(request, BODY_LIMITS.webhook);
+        if (!read.ok) {
+          const { status, message } = rejectedBody(read.reason);
+          return Response.json({ ok: false, message }, { status });
         }
+        const body = read.value;
 
         const parsed = payflowSettlementInputSchema.safeParse(body);
         if (!parsed.success) {

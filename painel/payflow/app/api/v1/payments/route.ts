@@ -19,6 +19,7 @@ import {
   type PaymentRecord,
 } from "@/lib/payflow";
 import { getTransferExpiryHours, isSandboxRuntime } from "@/lib/runtime";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,9 @@ const createPaymentSchema = z
         phone: z.string().trim().max(30).optional().default(""),
       })
       .optional()
-      .default({}),
+      // zod 4: o valor por omissão do objecto já é o resultado final (não volta a
+      // passar pelos `default` interiores), por isso vai completo.
+      .default({ name: "", email: "", phone: "" }),
     external_reference: z.string().trim().max(100).optional().default(""),
     source_app: z.string().trim().max(80).optional().default("API"),
     payment_method: z.enum(["bank_transfer", "sandbox"]).default("bank_transfer"),
@@ -101,7 +104,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = createPaymentSchema.safeParse(await request.json());
+    const parsed = createPaymentSchema.safeParse(await readJsonBody(request));
     if (!parsed.success) {
       return jsonResponse(
         {

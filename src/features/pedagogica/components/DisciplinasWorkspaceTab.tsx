@@ -488,7 +488,7 @@ export function DisciplinasWorkspaceTab({
                                     <Button
                                       size="sm"
                                       variant="ghost"
-                                      className="gap-1.5 text-destructive"
+                                      className="gap-1.5 text-destructive-strong"
                                       onClick={open}
                                     >
                                       <Trash2 className="size-3.5" /> Desactivar

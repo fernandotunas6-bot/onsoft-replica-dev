@@ -7,6 +7,7 @@ import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 
 /// Full-screen flow to record a fee payment: pick a student from the roster
 /// (name, **ID**, class, balance) so payments are not mis-attributed, then confirm.
@@ -80,14 +81,14 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Indique um valor maior do que zero.')),
+        const SnackBar(content: Text('Escreva um valor maior que zero.')),
       );
       return;
     }
     if (!_confirmChecked) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Confirme que o pagamento é do aluno escolhido.'),
+          content: Text('Confirme que o pagamento é deste aluno.'),
         ),
       );
       return;
@@ -111,9 +112,9 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
       final credit = result.creditAddedOrZero;
       final msg = StringBuffer('Pagamento registado.');
       if (credit > 0) {
-        msg.write(' Credit added: $payCur ${credit.toStringAsFixed(2)}.');
+        msg.write(' Crédito: $payCur ${credit.toStringAsFixed(2)}.');
       }
-      msg.write(' New balance: $payCur ${result.balance.toStringAsFixed(2)}.');
+      msg.write(' Novo saldo: $payCur ${result.balance.toStringAsFixed(2)}.');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg.toString())),
       );
@@ -142,7 +143,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Registar pagamento',
+          'Registar pagamento de propina',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -207,7 +208,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                       TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Procurar por nome ou número…',
+                          hintText: 'Pesquisar por nome ou n.º do aluno…',
                           prefixIcon: const Icon(LucideIcons.search, size: 20),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -243,7 +244,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Escolha o aluno certo. O número é único mesmo quando os nomes coincidem.',
+                        'Escolha o aluno certo: o n.º é único mesmo quando os nomes se repetem.',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary.withValues(alpha: 0.95),
@@ -293,7 +294,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                     border: Border.all(
                                       color: selected
                                           ? AppColors.primaryOnLight
-                                          : Colors.grey.shade200,
+                                          : AppColors.border,
                                       width: selected ? 2 : 1,
                                     ),
                                     borderRadius: BorderRadius.circular(16),
@@ -326,7 +327,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                             ),
                                             const SizedBox(height: 4),
                                             SelectableText(
-                                              'Número: ${s.id}',
+                                              'N.º do aluno: ${s.id}',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 fontFamily: 'monospace',
@@ -337,7 +338,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                             const SizedBox(height: 2),
                                             Text(
                                               'Turma: $dc',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 12,
                                                 color: AppColors.textSecondary,
                                               ),
@@ -346,7 +347,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                                 s.parentName!.trim().isNotEmpty)
                                               Text(
                                                 'Encarregado: ${s.parentName!.trim()}',
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 11,
                                                   color: AppColors.textSecondary,
                                                 ),
@@ -365,14 +366,14 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                             ),
                                           ),
                                           Text(
-                                            '$currency ${s.balance.toStringAsFixed(2)}',
+                                            formatMoneyDisplay(currency, s.balance),
                                             style: TextStyle(
                                               fontWeight: FontWeight.w600,
                                               fontSize: 14,
                                               color: s.balance < 0
                                                   ? AppColors.error
                                                   : (s.balance > 0
-                                                      ? Colors.blue.shade800
+                                                      ? AppColors.primary
                                                       : AppColors.textSecondary),
                                             ),
                                           ),
@@ -414,14 +415,14 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                               decoration: BoxDecoration(
                                 color: AppColors.background,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade300),
+                                border: Border.all(color: AppColors.border),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _summaryRow('Aluno', _selected!.name),
                                   _summaryRow(
-                                    'Número',
+                                    'N.º do aluno',
                                     _selected!.id,
                                     mono: true,
                                   ),
@@ -430,8 +431,8 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                     _displayClass(_selected!, classNames),
                                   ),
                                   _summaryRow(
-                                    'Saldo anterior',
-                                    '$currency ${_selected!.balance.toStringAsFixed(2)}',
+                                    'Saldo antes',
+                                    formatMoneyDisplay(currency, _selected!.balance),
                                   ),
                                 ],
                               ),
@@ -463,8 +464,8 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                               controlAffinity: ListTileControlAffinity.leading,
                               contentPadding: EdgeInsets.zero,
                               title: Text(
-                                'Confirmo que o pagamento é de ${_selected!.name} '
-                                '(ID: ${_selected!.id}).',
+                                'Confirmo que este pagamento é de ${_selected!.name} '
+                                '(n.º ${_selected!.id}).',
                                 style: const TextStyle(fontSize: 13, height: 1.35),
                               ),
                             ),
@@ -476,12 +477,12 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                     ? null
                                     : () => _submit(currency),
                                 child: _submitting
-                                    ? const SizedBox(
+                                    ? SizedBox(
                                         width: 22,
                                         height: 22,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          color: Colors.white,
+                                          color: AppColors.onPrimary,
                                         ),
                                       )
                                     : const Text(
@@ -516,7 +517,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
             width: 110,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500,

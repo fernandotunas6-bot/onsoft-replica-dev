@@ -474,7 +474,7 @@ function DocumentosPage() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-destructive"
+                  className="text-destructive-strong"
                   disabled={advancingId === d.id}
                   onClick={open}
                 >
@@ -767,6 +767,8 @@ function DocumentosPage() {
           action={
             <ListFilterBar
               className="border-0 bg-transparent p-0 shadow-none"
+              resultCount={filtered.length}
+              resultNoun="documento"
               values={filters}
               activeCount={activeCount}
               onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
@@ -927,7 +929,7 @@ function DocumentosPage() {
                       <TableRow>
                         <TableCell
                           colSpan={7}
-                          className="py-8 text-center text-sm text-destructive"
+                          className="py-8 text-center text-sm text-destructive-strong"
                         >
                           Não foi possível carregar os pedidos de documentos.
                         </TableCell>

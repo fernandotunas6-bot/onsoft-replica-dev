@@ -156,7 +156,9 @@ export function AssessmentTermClosePanel({
           >
             <span>{item.label}</span>
             <span
-              className={item.ok ? "font-semibold text-primary" : "font-semibold text-destructive"}
+              className={
+                item.ok ? "font-semibold text-primary" : "font-semibold text-destructive-strong"
+              }
             >
               {item.ok ? "Pronto" : "Bloqueia"}
             </span>
@@ -166,7 +168,9 @@ export function AssessmentTermClosePanel({
           <span>Todas as turmas com docentes atribuídos e sem notas pendentes</span>
           <span
             className={
-              readiness.allReady ? "font-semibold text-primary" : "font-semibold text-destructive"
+              readiness.allReady
+                ? "font-semibold text-primary"
+                : "font-semibold text-destructive-strong"
             }
           >
             {readiness.allReady ? "Pronto" : `Bloqueia (${readiness.notReady.length} turma(s))`}

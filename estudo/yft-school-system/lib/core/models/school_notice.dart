@@ -9,6 +9,11 @@ class SchoolNotice {
   final String createdAt;
   final bool isRead;
 
+  /// 'all' | 'parents' | 'teachers' | 'class'.
+  final String audience;
+  final String? classId;
+  final String? className;
+
   const SchoolNotice({
     required this.id,
     required this.schoolId,
@@ -19,7 +24,18 @@ class SchoolNotice {
     required this.category,
     required this.createdAt,
     required this.isRead,
+    this.audience = 'parents',
+    this.classId,
+    this.className,
   });
+
+  /// "Para: …", para quem publicou perceber a quem chegou.
+  String get audienceLabel => switch (audience) {
+    'all' => 'Todos',
+    'teachers' => 'Professores',
+    'class' => className != null ? 'Encarregados da $className' : 'Uma turma',
+    _ => parentUid != null ? 'Só para si' : 'Encarregados',
+  };
 
   factory SchoolNotice.fromJson(Map<String, dynamic> json) {
     final readFlag = json['read_flag'];
@@ -36,6 +52,9 @@ class SchoolNotice {
       category: json['category'] as String? ?? 'general',
       createdAt: json['created_at'] as String? ?? '',
       isRead: read,
+      audience: json['audience'] as String? ?? 'parents',
+      classId: json['class_id'] as String?,
+      className: json['class_name'] as String?,
     );
   }
 }

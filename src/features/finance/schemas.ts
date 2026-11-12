@@ -33,11 +33,18 @@ export const listInvoicesInputSchema = z
   .object({
     limit: z.number().int().min(1).max(1000).default(100),
     studentId: z.string().guid().optional(),
+    /** Junta às mais recentes todas as faturas por pagar, por mais antigas que sejam. */
+    includeOpen: z.boolean().optional(),
   })
   .refine((input) => Boolean(input.studentId) || input.limit <= 250, {
     message: "Sem aluno, a lista vai até 250 faturas.",
     path: ["limit"],
   });
+
+/** Uma fatura da escola activa, com o aluno e os recibos (página da fatura). */
+export const getInvoiceDetailInputSchema = z.object({
+  invoiceId: z.string().guid(),
+});
 
 export const recordInvoicePaymentInputSchema = z.object({
   invoiceId: z.string().guid(),
@@ -48,6 +55,7 @@ export const recordInvoicePaymentInputSchema = z.object({
   amount: z.number().positive().max(999_999_999_999.99),
   method: z.enum([
     "cash",
+    "tpa",
     "multicaixa",
     "transfer",
     "express",
@@ -56,6 +64,11 @@ export const recordInvoicePaymentInputSchema = z.object({
   ]),
   reference: z.string().trim().max(160).optional(),
   paidAt: z.string().datetime({ offset: true }).optional(),
+  /**
+   * Gerada pelo formulário ao abrir e reenviada em cada tentativa: repetir depois
+   * de um tempo esgotado devolve o recibo que já entrou em vez de emitir outro.
+   */
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 export type RecordInvoicePaymentInput = z.infer<typeof recordInvoicePaymentInputSchema>;
@@ -71,6 +84,13 @@ export const issueInvoiceInputSchema = z.object({
 });
 
 export type IssueInvoiceInput = z.infer<typeof issueInvoiceInputSchema>;
+
+/**
+ * Separação de funções nas despesas (§8, decidido a 25/10/2026): acima deste valor a
+ * despesa fica por aprovar até um Administrador que não a registou a aprovar, e não
+ * conta como saída antes disso.
+ */
+export const EXPENSE_APPROVAL_THRESHOLD = 50_000;
 
 export const recordCashExpenseInputSchema = z.object({
   documentNumber: z.string().trim().min(1).max(64),
@@ -168,3 +188,22 @@ export const syncStudentToPayflowInputSchema = z.object({
   studentId: z.string().guid(),
 });
 export type SyncStudentToPayflowInput = z.infer<typeof syncStudentToPayflowInputSchema>;
+
+/** Mês da exportação para o contabilista, «AAAA-MM». */
+export const accountantExportInputSchema = z.object({
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Indique o mês (AAAA-MM)."),
+});
+
+/** Lote limitado por pedido, com selecção opcional dentro da turma/ano. */
+export const TUITION_BATCH_LIMIT = 60;
+export const issueTuitionBatchInputSchema = z
+  .object({
+    classGroupId: z.string().guid().optional(),
+    studentIds: z.array(z.string().guid()).min(1).max(TUITION_BATCH_LIMIT).optional(),
+    academicYearId: z.string().guid().optional(),
+    dueOn: z.string().date(),
+    issuedOn: z.string().date().optional(),
+  })
+  .refine((value) => Boolean(value.classGroupId) || Boolean(value.studentIds), {
+    message: "Seleccione uma turma e/ou alunos específicos.",
+  });

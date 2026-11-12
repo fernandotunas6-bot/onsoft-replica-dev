@@ -9,8 +9,6 @@ import { toast } from "@/lib/toast";
 import {
   Bell,
   ChevronDown,
-  BellOff,
-  Check,
   CircleHelp,
   FileText,
   Maximize2,
@@ -23,6 +21,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { ActiveContextProvider } from "./ActiveContextProvider";
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
@@ -78,6 +77,7 @@ import {
 import type { SchoolAlert } from "@/features/dashboard/alerts";
 
 import { workspacePresentation } from "@/lib/workspace-presentation";
+import { usePersistedSidebar } from "@/hooks/use-persisted-sidebar";
 const SettingsCenter = lazy(() =>
   import("@/components/modals/SettingsCenter").then(({ SettingsCenter }) => ({
     default: SettingsCenter,
@@ -90,7 +90,13 @@ const RightRail = lazy(() =>
 );
 
 export function AppShell({ children }: { children: ReactNode }) {
-  return <AuthenticatedAppShell>{children}</AuthenticatedAppShell>;
+  // O contexto da página (turma, disciplina, aluno) é resolvido uma vez aqui e
+  // lido pelo breadcrumb do PageHeader.
+  return (
+    <ActiveContextProvider>
+      <AuthenticatedAppShell>{children}</AuthenticatedAppShell>
+    </ActiveContextProvider>
+  );
 }
 
 function AuthenticatedAppShell({ children }: { children: ReactNode }) {
@@ -102,8 +108,11 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const currentUser = useCurrentAccount();
   const { activePlan, activeTenant } = useTenant();
   const navigationGroups = useMemo(
-    () => getPortalNavigation(currentUser.role, currentUser.grants, activePlan),
-    [currentUser.role, currentUser.grants, activePlan],
+    () =>
+      getPortalNavigation(currentUser.role, currentUser.grants, activePlan, {
+        enabledModules: currentUser.enabledModules,
+      }),
+    [currentUser.role, currentUser.grants, activePlan, currentUser.enabledModules],
   );
   const navigationContext = getNavigationContext(navigationGroups, pathname, locationSearch);
   const trialDaysLeft = trialDaysRemaining(activeTenant?.trial_ends_at);
@@ -113,11 +122,15 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     activePlan,
   );
   const { unread, unreadCount } = useInboxUnread();
-  const { alerts, alertCount } = useSchoolAlerts();
-  const personalNotifications = usePersonalNotifications();
+  const { alerts } = useSchoolAlerts();
+  const personalNotifications = usePersonalNotifications(
+    currentUser.id,
+    currentUser.schoolId ?? "",
+  );
   const personalUnread = personalNotifications.data?.unread ?? 0;
   const personalCount = personalNotifications.data?.items.length ?? 0;
-  const noticeCount = unreadCount + alertCount + personalUnread;
+  // Pendências financeiras/pedagógicas são acções por resolver, não mensagens não lidas.
+  const noticeCount = unreadCount + personalUnread;
   const {
     selectedYearLabel,
     selectedYearId,
@@ -134,10 +147,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const activeYearLabel = activeYear?.label ?? selectedYearLabel;
 
   const presentation = workspacePresentation(school?.preferences);
-  const [sidebarOverride, setSidebarOverride] = useState<{
-    schoolId: string;
-    collapsed: boolean;
-  } | null>(null);
+  const { collapsed, toggleCollapsed } = usePersistedSidebar(currentUser.id, school?.id);
   const { isDark, toggleDark } = useAppearance();
   const { favorited, toggleFavorite, current: navCurrent } = useNavigationMemory();
   const [accountOpen, setAccountOpen] = useState(false);
@@ -224,15 +234,6 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     });
   }, [router, currentUser.role, currentUser.grants]);
 
-  const collapsed =
-    sidebarOverride && sidebarOverride.schoolId === school?.id
-      ? sidebarOverride.collapsed
-      : !presentation.expandedSidebar;
-
-  const toggleCollapsed = () => {
-    if (school?.id) setSidebarOverride({ schoolId: school.id, collapsed: !collapsed });
-  };
-
   const selectYear = (yearId: string) => {
     if (yearId === "fallback") return;
     setSelectedYearId(yearId);
@@ -290,13 +291,15 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             onOpenAccount={() => setAccountOpen(true)}
           />
 
-          <header className="sticky top-0 z-30 hidden h-14 min-w-0 items-center gap-1.5 border-b border-border/70 bg-card px-3 lg:flex xl:gap-2 xl:px-5">
+          <header className="sticky top-0 z-30 hidden h-16 min-w-0 items-center gap-1.5 border-b border-border/70 bg-card/95 px-3 supports-[backdrop-filter]:bg-card/90 supports-[backdrop-filter]:backdrop-blur-sm lg:flex xl:gap-2 xl:px-5">
             <Button
               variant="ghost"
               size="icon"
               className="header-icon-btn hidden lg:inline-flex"
               onClick={toggleCollapsed}
               aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+              aria-expanded={!collapsed}
+              aria-controls="siga-sidebar-navigation"
             >
               <Menu className="size-5" />
             </Button>
@@ -316,7 +319,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                     {selectedYearLabel}
                     {selectedYearId && selectedYearId === activeYear?.id ? " (Atual)" : ""}
                   </span>
-                  <ChevronDown className="size-4 shrink-0 opacity-60" />
+                  <ChevronDown className="size-3.5 shrink-0 opacity-60" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
@@ -341,30 +344,17 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                     className="hidden min-w-0 max-w-28 items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 md:flex 2xl:max-w-44"
                   >
                     <span className="truncate whitespace-nowrap">{selectedTermLabel}</span>
-                    <ChevronDown className="size-4 shrink-0 opacity-60" />
+                    <ChevronDown className="size-3.5 shrink-0 opacity-60" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
                   <DropdownMenuLabel>Período lectivo</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {terms.map((term) => (
-                    <DropdownMenuItem
-                      key={term.id}
-                      className="gap-2"
-                      onClick={() => {
-                        setSelectedTermId(term.id);
-                        toast.success("Período alterado", {
-                          description: `Notas e pautas passam a mostrar ${term.label}.`,
-                        });
-                      }}
-                    >
-                      <span className="flex-1">{term.label}</span>
-                      {term.id === currentTermId ? (
-                        <span className="text-[11px] text-muted-foreground">Actual</span>
-                      ) : null}
-                      {term.id === selectedTermId ? (
-                        <Check className="size-3.5 text-primary" />
-                      ) : null}
+                    <DropdownMenuItem key={term.id} onClick={() => setSelectedTermId(term.id)}>
+                      {term.label}
+                      {/* «Actual» é o período em que hoje cai, não o seleccionado. */}
+                      {term.id === currentTermId ? " (Actual)" : ""}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -416,6 +406,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 size="icon"
                 className="header-icon-btn"
                 aria-label={favorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                aria-pressed={favorited}
                 title={favorited ? "Remover dos favoritos" : "Favoritar página"}
                 onClick={() => {
                   toggleFavorite();
@@ -476,6 +467,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 className="header-icon-btn relative"
                 aria-label="Notificações"
                 aria-haspopup="dialog"
+                aria-expanded={notificationsOpen}
                 onClick={() => setNotificationsOpen(true)}
               >
                 <Bell className="size-5" />
@@ -542,7 +534,18 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   <SheetTitle>Notificações</SheetTitle>
                 </SheetHeader>
                 <div className="mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto [scrollbar-width:thin]">
-                  <PersonalNotificationsList open={notificationsOpen} />
+                  <PersonalNotificationsList
+                    open={notificationsOpen}
+                    onClose={() => setNotificationsOpen(false)}
+                    userId={currentUser.id}
+                    schoolId={currentUser.schoolId ?? ""}
+                    query={personalNotifications}
+                  />
+                  {alerts.length ? (
+                    <p className="pt-2 text-xs font-semibold text-muted-foreground">
+                      Pendências de gestão (permanecem até serem resolvidas)
+                    </p>
+                  ) : null}
                   {alerts.map((alert) => (
                     <SchoolAlertRow
                       key={alert.id}
@@ -554,6 +557,11 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                       }}
                     />
                   ))}
+                  {unread.length ? (
+                    <p className="pt-2 text-xs font-semibold text-muted-foreground">
+                      Mensagens por ler
+                    </p>
+                  ) : null}
                   {unread.map((row) => (
                     <button
                       key={row.conversationId}
@@ -579,84 +587,24 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                       </span>
                     </button>
                   ))}
-                  {!alerts.length && !unread.length && !personalCount ? (
+                  {!alerts.length &&
+                  !unread.length &&
+                  !personalCount &&
+                  !personalUnread &&
+                  !personalNotifications.isError ? (
                     <p className="rounded-2xl border border-border bg-secondary/40 px-4 py-5 text-sm text-muted-foreground">
                       Sem notificações novas. Candidaturas, documentos, faturas em atraso e
                       mensagens internas aparecem aqui.
                     </p>
                   ) : null}
-                  {alerts.length ? (
-                    <NotificationSection title="Escola" count={alerts.length}>
-                      <div className="space-y-2">
-                        {alerts.map((alert) => (
-                          <SchoolAlertRow
-                            key={alert.id}
-                            alert={alert}
-                            onClose={() => setNotificationsOpen(false)}
-                            onOpenSettings={(panelId) => {
-                              setNotificationsOpen(false);
-                              openSettings(panelId);
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </NotificationSection>
-                  ) : null}
-                  {unread.length ? (
-                    <NotificationSection title="Mensagens" count={unread.length}>
-                      <div className="space-y-2">
-                        {unread.map((row) => (
-                          <button
-                            key={row.conversationId}
-                            type="button"
-                            className="notification-card flex w-full items-start gap-3 px-3.5 py-3 text-left"
-                            onClick={() => {
-                              setNotificationsOpen(false);
-                              requestOpenConversation(row.conversationId);
-                            }}
-                          >
-                            <UserAvatar
-                              url={row.avatar_url}
-                              initials={initialsFromName(row.full_name)}
-                              className="size-10 bg-primary-soft text-xs font-bold text-primary"
-                            />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-semibold">
-                                {row.full_name}
-                              </span>
-                              <span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                                {row.lastBody}
-                              </span>
-                            </span>
-                            <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
-                          </button>
-                        ))}
-                      </div>
-                    </NotificationSection>
-                  ) : null}
-                  {!alerts.length && !unread.length && !personalCount ? (
-                    <div className="flex flex-col items-center px-6 py-14 text-center">
-                      <span className="grid size-16 place-items-center rounded-full bg-primary-soft text-primary">
-                        <BellOff className="size-7" />
-                      </span>
-                      <p className="mt-4 text-sm font-semibold">Sem notificações novas</p>
-                      <p className="mt-1 max-w-[18rem] text-xs text-muted-foreground">
-                        Candidaturas, documentos, faturas em atraso e mensagens internas aparecem
-                        aqui.
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-
-                {canAccessPath("/comunicacoes", currentUser.role) ? (
-                  <div className="border-t border-border/60 bg-background/80 p-4 backdrop-blur">
-                    <Button asChild className="w-full rounded-xl">
+                  {canAccessPath("/comunicacoes", currentUser.role) ? (
+                    <Button asChild variant="outline" className="w-full">
                       <Link to="/comunicacoes" onClick={() => setNotificationsOpen(false)}>
                         Abrir comunicações
                       </Link>
                     </Button>
-                  </div>
-                ) : null}
+                  ) : null}
+                </div>
               </SheetContent>
             </Sheet>
 
@@ -698,7 +646,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 className={cn(
                   "mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border px-4 py-2.5 text-sm",
                   studentCapacity.atLimit
-                    ? "border-destructive/40 bg-destructive/10 text-destructive"
+                    ? "border-destructive/40 bg-destructive/10 text-destructive-strong"
                     : "border-warning/30 bg-warning/10 text-warning",
                 )}
               >
@@ -785,30 +733,6 @@ const alertChip: Record<SchoolAlert["kind"], { icon: typeof FileText; tone: Chip
   faturas: { icon: Wallet, tone: "destructive" },
 };
 
-function NotificationSection({
-  title,
-  count,
-  children,
-}: {
-  title: string;
-  count?: number;
-  children: ReactNode;
-}) {
-  return (
-    <section className="space-y-2">
-      <h3 className="flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {title}
-        {count ? (
-          <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] text-primary">
-            {count}
-          </span>
-        ) : null}
-      </h3>
-      {children}
-    </section>
-  );
-}
-
 function SchoolAlertRow({
   alert,
   onClose,
@@ -828,7 +752,8 @@ function SchoolAlertRow({
       </span>
     </>
   );
-  const className = "notification-card flex w-full items-start gap-3 px-3.5 py-3 text-left";
+  const className =
+    "flex w-full items-start gap-3 rounded-2xl border border-border bg-secondary/40 px-3 py-3 text-left transition-colors hover:bg-secondary";
 
   if (alert.settingsPanel) {
     return (

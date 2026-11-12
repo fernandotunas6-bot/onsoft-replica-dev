@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getFinanceReporting, listCashEntries, listInvoices } from "@/features/finance/server";
 import { cn } from "@/lib/utils";
+import { ChargeInvoiceButton, useAppyPayStatus } from "@/features/finance/AppyPayPanel";
 import {
-  AppyPayPanel,
-  ChargeInvoiceButton,
-  useAppyPayStatus,
-} from "@/features/finance/AppyPayPanel";
+  CashClosingsPanel,
+  CashDepositsPanel,
+  CashDifferencesPanel,
+} from "@/features/finance/components/CashSession";
 import { schoolTodayIso } from "@/lib/school-date";
 
 export const Route = createFileRoute("/tesouraria")({
@@ -63,17 +64,17 @@ const monthLabel = (iso: string) =>
 
 function TreasuryPage() {
   const reporting = useQuery({
-    queryKey: ["tesouraria", "reporting"],
+    queryKey: ["finance", "reporting"],
     queryFn: () => getFinanceReporting(),
     retry: false,
   });
   const invoices = useQuery({
-    queryKey: ["tesouraria", "invoices"],
-    queryFn: () => listInvoices({ data: { limit: 250 } }),
+    queryKey: ["finance", "invoices"],
+    queryFn: () => listInvoices({ data: { limit: 250, includeOpen: true } }),
     retry: false,
   });
   const cash = useQuery({
-    queryKey: ["tesouraria", "cash"],
+    queryKey: ["finance", "cash-entries"],
     queryFn: () => listCashEntries({ data: { limit: 250 } }),
     retry: false,
   });
@@ -110,15 +111,15 @@ function TreasuryPage() {
           icon={moduleIcons.treasury}
         />
         {error ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-sm text-destructive-strong">
             {(error as Error).message}
           </p>
         ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Saldo de caixa", value: summary?.cash_balance },
-            { label: "Entradas", value: summary?.cash_in },
+            { label: "Saldo em numerário", value: summary?.drawer_balance },
+            { label: "Saldo bancário registado", value: summary?.bank_balance },
             { label: "Saídas", value: summary?.cash_out },
             { label: "Por cobrar (em atraso)", value: summary?.overdue },
           ].map((k) => (
@@ -130,6 +131,10 @@ function TreasuryPage() {
             </div>
           ))}
         </div>
+
+        <CashDifferencesPanel />
+        <CashDepositsPanel />
+        <CashClosingsPanel />
 
         <Panel
           title="Fluxo de caixa mensal"
@@ -180,7 +185,7 @@ function TreasuryPage() {
                   <span
                     className={cn(
                       "text-right font-medium",
-                      m.received - m.expense < 0 ? "text-destructive" : "text-foreground",
+                      m.received - m.expense < 0 ? "text-destructive-strong" : "text-foreground",
                     )}
                   >
                     {kz(m.received - m.expense)}
@@ -262,7 +267,7 @@ function TreasuryPage() {
                     <tr key={i.id} className="border-t border-border">
                       <td className="py-2 pr-3 font-mono text-xs">{i.number}</td>
                       <td className="py-2 pr-3">{i.student_name}</td>
-                      <td className={cn("py-2 pr-3", i.overdue && "text-destructive")}>
+                      <td className={cn("py-2 pr-3", i.overdue && "text-destructive-strong")}>
                         {i.due_on ?? "—"}
                         {i.overdue ? " · em atraso" : ""}
                       </td>
@@ -283,8 +288,6 @@ function TreasuryPage() {
             </div>
           )}
         </Panel>
-
-        <AppyPayPanel />
 
         <Panel
           title="Últimos movimentos de caixa"
@@ -350,7 +353,7 @@ function TreasuryPage() {
                   <span
                     className={cn(
                       "shrink-0 font-medium",
-                      c.direction === "out" ? "text-destructive" : "text-foreground",
+                      c.direction === "out" ? "text-destructive-strong" : "text-foreground",
                     )}
                   >
                     {c.direction === "out" ? "−" : "+"}

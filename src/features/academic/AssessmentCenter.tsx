@@ -51,6 +51,7 @@ import {
   AssessmentFiltersPanel,
   AssessmentHistoryPanel,
 } from "@/features/academic/AssessmentCenterPanels";
+import { subjectsOfClass } from "@/features/academic/pauta-subjects";
 import { AssessmentStat, OfficialPautaView } from "@/features/academic/OfficialPautaView";
 import {
   buildClassCourseMap,
@@ -239,6 +240,17 @@ export function AssessmentCenter({
   // Centro → Topbar apenas numa acção do utilizador, nunca num efeito de render.
   const changeFilter = (key: keyof typeof filterDefaults, value: string) => {
     setFilter(key, value);
+    if (
+      key === "turma" &&
+      filters.disciplina !== "todas" &&
+      value !== "todas" &&
+      !subjectsOfClass(subjects, classSubjects ?? [], value).some(
+        (subject) => subject.id === filters.disciplina,
+      )
+    ) {
+      // A disciplina escolhida não é da nova turma.
+      setFilter("disciplina", "todas");
+    }
     if (key !== "trimestre") return;
     const match = academicTerms.find((item) => item.sequence === Number(value));
     if (match && match.id !== globalTerm?.id) setSelectedTermId(match.id);
@@ -249,10 +261,15 @@ export function AssessmentCenter({
     if (match && match.id !== globalTerm?.id) setSelectedTermId(match.id);
   };
 
+  // Só as disciplinas atribuídas à turma em causa.
+  const groupSubjects = useMemo(
+    () => subjectsOfClass(subjects, classSubjects ?? [], selectedGroup?.id ?? ""),
+    [subjects, classSubjects, selectedGroup?.id],
+  );
   const selectedSubject =
     filters.disciplina !== "todas"
       ? (subjects.find((subject) => subject.id === filters.disciplina) ?? null)
-      : (subjects[0] ?? null);
+      : (groupSubjects[0] ?? null);
 
   const roster = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
@@ -859,7 +876,7 @@ export function AssessmentCenter({
             classes={classes}
             courses={courses}
             classGroups={classGroups}
-            subjects={subjects}
+            subjects={filters.turma === "todas" ? subjects : groupSubjects}
             periodNoun={periodNoun}
             periodOptions={periodOptions}
           />

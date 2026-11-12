@@ -94,6 +94,12 @@ describe("access policy", () => {
 
   it("never lets a grant widen access for students or guardians", () => {
     expect(canAccessPath("/faturas", "Aluno", { financeiro: "Total" })).toBe(false);
+    // `/financeiro` deixa-os entrar para pagar; a conciliação é só da tesouraria.
+    expect(canAccessPath("/financeiro/conciliacao", "Aluno")).toBe(false);
+    expect(canAccessPath("/financeiro/conciliacao", "Encarregado", { financeiro: "Total" })).toBe(
+      false,
+    );
+    expect(canAccessPath("/financeiro/conciliacao", "Tesouraria")).toBe(true);
     expect(canAccessPath("/importar", "Encarregado", { importacao: "Total" })).toBe(false);
     expect(canAccessPath("/professores", "Aluno", { pessoas: "Escrita" })).toBe(false);
     expect(canWriteModule("Aluno", "pessoas", { pessoas: "Total" })).toBe(false);

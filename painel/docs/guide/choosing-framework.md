@@ -44,7 +44,7 @@ Detalhe canónico: [Arquitetura do ecossistema](/arquitetura/) e [Responsabilida
 ## Não fazer
 
 - Não «migrar o SIGA para Next» nem unificar design systems.
-- Não tratar `/components/` ou `/theme-customizer/` como mapa do produto escolar.
+- Não reintroduzir no DOC guias do modelo de UI (componentes, personalizador de temas) como se fossem o produto.
 - Não aplicar migrações Lovable ao projecto SGA.
 
 ---

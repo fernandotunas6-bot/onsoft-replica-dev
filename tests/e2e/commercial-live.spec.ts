@@ -104,6 +104,15 @@ test.describe("Provisionamento comercial @live", () => {
       await expect(page.getByRole("link", { name: /Painel Administrativo/ })).toBeVisible();
       await expect(page.getByRole("link", { name: /Portal Escolar/ })).toBeVisible();
       await expect(page.getByRole("link", { name: /Assistente de configuração/ })).toBeVisible();
+      // Configurar primeiro, entrar depois; endereços públicos da escola à mão.
+      await expect(page.getByRole("link", { name: /Website da escola/ })).toHaveAttribute(
+        "href",
+        `https://${slug}.portal-siga.com/`,
+      );
+      await expect(page.getByRole("link", { name: /Portal SIGA Plus/ })).toHaveAttribute(
+        "href",
+        `https://${slug}.portal-siga.com/portal?escola=${slug}`,
+      );
       await expect(page.getByText(`${slug}.portal-siga.com`).first()).toBeVisible();
     } finally {
       await cleanupE2ETenantBySlug(slug, email).catch(() => undefined);

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 // @ts-expect-error — script Node em JavaScript, sem declarações de tipos.
 import * as stableAssets from "../../scripts/desktop/stable-assets.mjs";
 import { DESKTOP_ASSETS, DESKTOP_CHECKSUMS_FILE } from "../../painel/web/src/lib/desktop-downloads";
+import { DESKTOP_ASSETS as SIGA_DESKTOP_ASSETS } from "@/lib/desktop-app-downloads";
 
 const { STABLE_ASSET_NAMES, stableAssetName, stableCopies } = stableAssets as {
   STABLE_ASSET_NAMES: Record<string, string>;
@@ -45,6 +46,11 @@ describe("instaladores com nomes fixos para o site", () => {
     const published = Object.values(STABLE_ASSET_NAMES).sort();
     const linked = DESKTOP_ASSETS.map((asset) => asset.file).sort();
     expect(linked).toEqual(published);
+  });
+
+  it("a página /transferir do SIGA liga aos mesmos nomes", () => {
+    const published = Object.values(STABLE_ASSET_NAMES).sort();
+    expect(SIGA_DESKTOP_ASSETS.map((asset) => asset.file).sort()).toEqual(published);
   });
 
   it("o workflow de publicação exige os mesmos ficheiros", () => {

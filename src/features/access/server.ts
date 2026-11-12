@@ -73,6 +73,17 @@ export function cargoRequiresAdministrator(cargoOrRoleCode: string): boolean {
   );
 }
 
+/**
+ * Activar um Administrador é permitido sem 2FA, mas só por quem já administra
+ * a escola e mediante reconfirmação recente da identidade. O requisito AAL2
+ * mantém-se exclusivamente para atribuir Tesouraria neste fluxo.
+ */
+const TREASURY_ROLE_CODES = new Set(mapAppRoleToSgaCodes("Tesouraria"));
+
+export function cargoRequiresMfaForAssignment(cargoOrRoleCode: string): boolean {
+  return TREASURY_ROLE_CODES.has(cargoOrRoleCode.trim().toLowerCase());
+}
+
 type SchoolBanPlan = {
   update: boolean;
   banDuration?: "876000h" | "none";
@@ -145,11 +156,17 @@ export async function otherSchoolAccess(
   userId: string,
   schoolId: string,
 ) {
-  const { data: memberships } = await admin
+  const { data: memberships, error: membershipError } = await admin
     .from("school_memberships")
     .select("id, school_id, status")
     .eq("user_id", userId);
-  const rows = (memberships ?? []) as Array<{ id: string; school_id: string; status: string }>;
+  // Uma falha de leitura não significa "sem outras escolas". Em operações
+  // globais de Auth, assumir lista vazia permitiria alterar acessos de
+  // outra escola sem saber. Falhar fechado antes de decidir bloqueio ou senha.
+  if (membershipError || !Array.isArray(memberships)) {
+    throw new Error("Não foi possível confirmar os vínculos da conta às escolas.");
+  }
+  const rows = memberships as Array<{ id: string; school_id: string; status: string }>;
   const otherActive = rows.filter((m) => m.school_id !== schoolId && m.status === "active");
 
   let adminAnywhere = false;
@@ -282,11 +299,13 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
         `Apenas um Administrador pode convidar ou criar contas com cargo de ${data.cargo}.`,
       );
     }
-    // Dar administração ou tesouraria a alguém vale mais do que pagar um salário,
-    // que já exige 2FA: a mesma exigência aqui.
+    // Atribuir Administração não exige 2FA; conserva autorização por escola
+    // e reconfirmação recente. Tesouraria mantém o requisito adicional AAL2.
     if (cargoRequiresAdministrator(data.cargo)) {
-      requireAal2(context.claims ?? {}, `Criar uma conta com cargo de ${data.cargo}`);
       requireRecentVerification(context.claims ?? {}, `Criar uma conta com cargo de ${data.cargo}`);
+    }
+    if (cargoRequiresMfaForAssignment(data.cargo)) {
+      requireAal2(context.claims ?? {}, `Criar uma conta com cargo de ${data.cargo}`);
     }
     const admin = await loadAdminClient();
 
@@ -503,7 +522,7 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
       throw new Error(`Apenas um Administrador pode atribuir o cargo de ${data.cargo}.`);
     }
     requireRecentVerification(context.claims ?? {}, "Mudar o cargo de uma conta");
-    if (cargoRequiresAdministrator(data.cargo)) {
+    if (cargoRequiresMfaForAssignment(data.cargo)) {
       requireAal2(context.claims ?? {}, `Atribuir o cargo de ${data.cargo}`);
     }
 
@@ -634,25 +653,28 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
       throw publicDatabaseError(profileError, "Não foi possível localizar a conta.");
     if (!membership) throw new Error("Conta não encontrada nesta escola.");
 
-    const { error } = await admin
-      .from("school_memberships")
-      .update({ status: data.disabled ? "suspended" : "active" })
-      .eq("id", membership.id);
-    if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado da conta.");
-
-    // O bloqueio de auth.users vale para todas as escolas. Com acesso activo a
-    // outra escola, suspende-se só a membership desta — as outras escolas
-    // decidem por si. Cada escola que bloqueia fica anotada na conta; ao
-    // reactivar, só se levanta o bloqueio global se foi esta escola que o pôs e
-    // nenhuma outra o mantém. Um bloqueio da plataforma (ou de outra escola)
-    // não é desfeito por aqui.
+    // Antes de suspender ou reactivar, verificar os vínculos e cargos em TODAS
+    // as escolas. Se a consulta falhar, nenhuma escrita deve ter começado.
+    // O cargo em profiles pode não reflectir um Administrador de outra escola.
     const access = await otherSchoolAccess(admin, data.userId, schoolId);
+    if (access.adminAnywhere) {
+      throw new Error("Não é permitido suspender a conta de outro Administrador.");
+    }
     const { data: authUser, error: authUserError } = await admin.auth.admin.getUserById(
       data.userId,
     );
     if (authUserError || !authUser.user) {
       throw new Error("Não foi possível ler a conta de acesso.");
     }
+
+    // A operação global de Auth só pode acontecer quando a avaliação dos
+    // vínculos e da conta chegou ao fim. Outras escolas mantêm os seus acessos.
+    const { error } = await admin
+      .from("school_memberships")
+      .update({ status: data.disabled ? "suspended" : "active" })
+      .eq("id", membership.id);
+    if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado da conta.");
+
     const appMetadata = (authUser.user.app_metadata ?? {}) as Record<string, unknown>;
     const plan = planSchoolBan({
       disabled: data.disabled,
@@ -1066,7 +1088,13 @@ export const createSchoolInvitation = createServerFn({ method: "POST" })
       );
     }
     if (isAdministratorRole(data.roleCode) || cargoRequiresAdministrator(data.roleCode)) {
-      requireAal2(context.claims ?? {}, "Convidar com cargo de Administrador ou Tesouraria");
+      requireRecentVerification(
+        context.claims ?? {},
+        "Convidar com cargo de Administrador ou Tesouraria",
+      );
+    }
+    if (cargoRequiresMfaForAssignment(data.roleCode)) {
+      requireAal2(context.claims ?? {}, "Convidar com cargo de Tesouraria");
     }
     const admin = await loadAdminClient();
 

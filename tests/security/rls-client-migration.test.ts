@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
-import { resolve, relative } from "node:path";
+import { execFileSync } from "node:child_process";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * Progresso do ARQ-01, travado por teste.
@@ -55,6 +56,70 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Endereços da escola (2026-11-01): website, portal e inscrições online do
+  // Administrador. tenants e tenant_domains só têm SELECT para administradores da
+  // plataforma (platform_admin_all_*), e o domínio school_website de
+  // school_settings é só do servidor (school_web_content_server_only) — pg_policies
+  // confirmados na produção nesta data. Guarda: só Administrador; a escola vem da
+  // membership; devolve só URLs públicas, as mesmas que o website serve.
+  "src/features/school/school-addresses-server.ts",
+  // Documentos docentes: teacher_document_entries é uma tabela privada com FORCE RLS
+  // e sem GRANT para authenticated. O endpoint exige membership, valida teacher,
+  // person e escola e devolve apenas campos autorizados; a associação do ficheiro
+  // também é verificada por um trigger SQL contra school/person/file.
+  "src/features/people/teacher-documents-server.ts",
+  // Configuração institucional dos requisitos: school_settings tem escrita
+  // reservada à Administração; o servidor exige papel e escrita na Gestão.
+  "src/features/people/teacher-documents-settings-server.ts",
+  // Registo de pessoal: os vínculos e a tabela de cargos de RH são controlados
+  // pelo servidor. Atribuir o cargo exige Administrador, valida person/escola,
+  // não atribui privilégios de login e reutiliza o vínculo laboral existente.
+  "src/features/hr/staff-positions-server.ts",
+  // Lista financeira (28/10/2026): dados de alunos, matrículas, contratos,
+  // facturas e recibos usam context.supabase/RLS. Apenas class_groups,
+  // grade_levels, programs e academic_levels usam o cliente privilegiado:
+  // pg_policies e role_permissions confirmados na produção nesta data;
+  // treasury não tem academic.classes.read/academic.structure.read. A guarda
+  // Administrador/Tesouraria e school_id limitam o catálogo à escola activa.
+  "src/features/finance/student-ledger-server.ts",
+  // Presença do professor na aula (2026-10-26): authenticated só tem SELECT em
+  // siga_attendance_sessions (as chamadas escrevem-se no servidor), por isso a
+  // entrada/saída do professor também. Aqui decide-se quem: o professor da aula,
+  // na janela da aula, ou a Direcção/Secretaria com motivo.
+  "src/features/pedagogica/teacher-presence-server.ts",
+  // QR da escola (2026-10-26): siga_school_presence_settings guarda o segredo que
+  // assina o QR e siga_teacher_presence_scans a assiduidade do pessoal; as duas
+  // nascem com FORCE RLS e sem privilégios para authenticated. Aqui decide-se quem:
+  // a Direcção vê e decide, o professor só regista a sua leitura.
+  "src/features/pedagogica/school-qr-server.ts",
+  // Entregas de trabalhos (2026-10-25): siga_class_task_submissions nasce sem
+  // políticas e sem privilégios para authenticated (trabalhos de menores), por
+  // isso só o service role a lê. Aqui decide-se o âmbito: professor da
+  // disciplina ou direcção; aluno na sua matrícula activa; encarregado só lê.
+  "src/features/academic/task-submissions-server.ts",
+  // Renovação de matrícula para o ano seguinte (2026-10-25): grava matrículas
+  // por placeStudentInClass, que recebe o cliente privilegiado (como
+  // enrollStudentInClass em students/server.ts) e mantém a RPC enroll_student,
+  // o 2FA e o histórico de estado. Guarda Administrador/Secretaria; todas as
+  // leituras filtram pela escola da membership.
+  "src/features/academic/year-rollover-server.ts",
+  // Organizar turmas por idade (2026-10-26): lê matrículas, fichas e registos de
+  // notas/presenças da classe para decidir quem pode mudar, e muda por
+  // placeStudentInClass (cliente privilegiado, 2FA, gatilho de lotação).
+  // Guarda Administrador/Secretaria; tudo filtrado pela escola da membership.
+  "src/features/academic/class-organization-server.ts",
+  // Contas dos alunos (2026-10-26): criar contas no Auth, perfil, membership e
+  // ligar a ficha exige a chave de serviço (auth.admin). Guarda Administrador/
+  // Secretaria + 2FA; só contas que são apenas de aluno nesta escola.
+  "src/features/students/student-accounts-server.ts",
+  // Primeira senha: só a própria conta (context.userId) e só com o sinal
+  // must_change_password, que vive em app_metadata (só o servidor escreve).
+  "src/features/auth/first-password-server.ts",
+  // Sessões de caixa (2026-10-24): as tabelas nascem sem políticas e sem
+  // privilégios para authenticated; escrevem-se só pelas RPC (sessão do
+  // utilizador, AAL2). A leitura do estado corre aqui, depois da guarda de
+  // Administrador/Tesouraria, filtrada pela escola da membership.
+  "src/features/finance/cash-session.functions.ts",
   // Conteúdos escolares (2026-10-21): a política RESTRICTIVE retira aos JWT
   // todo o acesso a school_website/school_blog.* para não expor rascunhos.
   // Os editores exigem Administrador + Gestão e a sonda da base antes de ler
@@ -296,22 +361,18 @@ function usaClientePrivilegiado(código: string): boolean {
 }
 
 function ficheirosComClientePrivilegiado(): string[] {
-  const encontrados: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
-      const full = resolve(dir, entry);
-      if (statSync(full).isDirectory()) {
-        walk(full);
-        continue;
-      }
-      if (!/\.tsx?$/.test(entry)) continue;
-      if (usaClientePrivilegiado(readFileSync(full, "utf8"))) {
-        encontrados.push(relative(REPO, full));
-      }
-    }
-  };
-  walk(resolve(REPO, "src"));
-  return encontrados.sort();
+  // Apenas fontes rastreadas pelo Git. Ficheiros efémeros gerados durante
+  // builds ou outros testes paralelos não são parte da dívida versionada.
+  // Isto evita contagens instáveis sem aumentar o tecto nem criar excepções.
+  const tracked = execFileSync("git", ["ls-files", "-z", "--", "src"], {
+    cwd: REPO,
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter((file) => /\.tsx?$/.test(file));
+  return tracked
+    .filter((file) => usaClientePrivilegiado(readFileSync(resolve(REPO, file), "utf8")))
+    .sort();
 }
 
 const privilegiados = ficheirosComClientePrivilegiado();
@@ -357,6 +418,11 @@ describe("migração para o cliente que respeita RLS (ARQ-01)", () => {
       ).toBe(true);
     },
   );
+
+  it("a nova consulta paginada não abre um novo cliente privilegiado", () => {
+    const source = readFileSync(resolve(REPO, "src/features/people/directory-server.ts"), "utf8");
+    expect(usaClientePrivilegiado(source)).toBe(false);
+  });
 
   it("a dívida não cresce", () => {
     const emDívida = privilegiados.filter((f) => !PRIVILEGIO_POR_DESENHO.has(f));

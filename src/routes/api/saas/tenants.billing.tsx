@@ -13,7 +13,7 @@ import {
   PUBLIC_SCHOOL_REQUIREMENTS,
   tenantBillingProfileInputSchema,
 } from "@/features/saas/tenant-billing-rules";
-import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
+import { corsPreflight, jsonWithCors, readJsonWithCors } from "@/lib/ecosystem-cors";
 
 const APPS = ["admin"] as const;
 
@@ -103,16 +103,9 @@ export const Route = createFileRoute("/api/saas/tenants/billing")({
         }
       },
       POST: async ({ request }) => {
-        let body: unknown;
-        try {
-          body = await request.json();
-        } catch {
-          return jsonWithCors(
-            request,
-            { error: "Corpo JSON inválido." },
-            { status: 400, apps: [...APPS] },
-          );
-        }
+        const read = await readJsonWithCors(request, [...APPS]);
+        if (!read.ok) return read.response;
+        const body = read.value;
         const parsed = actionSchema.safeParse(body);
         if (!parsed.success) {
           const flat = parsed.error.flatten();

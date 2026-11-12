@@ -77,6 +77,8 @@ export function ScheduleWorkspace({
   onUpdateSlot,
   onDeleteSlot,
   onPublishSchedule,
+  initialClassGroupId,
+  initialTeacherId,
 }: {
   activeYearLabel: string;
   activeYearId?: string;
@@ -93,10 +95,34 @@ export function ScheduleWorkspace({
   onUpdateSlot: (input: ScheduleSlotUpdate) => Promise<void>;
   onDeleteSlot: (slotId: string) => Promise<void>;
   onPublishSchedule?: (classGroupId: string) => Promise<{ notified?: number } | void>;
+  /** A turma da URL (`?turma=`): abre o horário dessa turma. */
+  initialClassGroupId?: string | undefined;
+  /** O professor da URL (`?professor=`, sem turma): abre o horário desse professor. */
+  initialTeacherId?: string | undefined;
 }) {
-  const [viewMode, setViewMode] = useState<"turma" | "professor" | "sala">("turma");
-  const [classGroupId, setClassGroupId] = useState("");
-  const [teacherId, setTeacherId] = useState("");
+  const [viewMode, setViewMode] = useState<"turma" | "professor" | "sala">(
+    !initialClassGroupId && initialTeacherId ? "professor" : "turma",
+  );
+  const [classGroupId, setClassGroupId] = useState(initialClassGroupId ?? "");
+  // Outra turma na URL (por exemplo, pelo menu da turma) volta a abrir o horário dela.
+  const [urlClassGroupId, setUrlClassGroupId] = useState(initialClassGroupId);
+  if (initialClassGroupId !== urlClassGroupId) {
+    setUrlClassGroupId(initialClassGroupId);
+    if (initialClassGroupId) {
+      setClassGroupId(initialClassGroupId);
+      setViewMode("turma");
+    }
+  }
+  const [teacherId, setTeacherId] = useState(initialTeacherId ?? "");
+  // Outro professor na URL (pelo menu do professor) volta a abrir o horário dele.
+  const [urlTeacherId, setUrlTeacherId] = useState(initialTeacherId);
+  if (initialTeacherId !== urlTeacherId) {
+    setUrlTeacherId(initialTeacherId);
+    if (initialTeacherId && !initialClassGroupId) {
+      setTeacherId(initialTeacherId);
+      setViewMode("professor");
+    }
+  }
   const [roomId, setRoomId] = useState("");
   const [query, setQuery] = useState("");
   const [publishing, setPublishing] = useState(false);
@@ -712,8 +738,8 @@ export function ScheduleWorkspace({
 
       {/* Alertas de Conflito em Tempo Real */}
       {selectedConflicts.length > 0 && (
-        <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-xs text-destructive">
-          <div className="flex items-center gap-2 font-bold text-destructive">
+        <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-xs text-destructive-strong">
+          <div className="flex items-center gap-2 font-bold text-destructive-strong">
             <AlertTriangle className="size-4 shrink-0" />
             <span>
               Motor de Conflitos: Foram detectadas {selectedConflicts.length} colisões de horário
@@ -885,7 +911,7 @@ export function ScheduleWorkspace({
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="size-6 p-0 text-muted-foreground hover:text-destructive"
+                                      className="size-6 p-0 text-muted-foreground hover:text-destructive-strong"
                                       onClick={open}
                                     >
                                       <Trash2 className="size-3" />

@@ -35,7 +35,6 @@ export interface MulticaixaReference {
   amountNumber: number;
   expiresAt: string;
   status: "pending" | "paid" | "expired";
-  qrCodeText: string;
 }
 
 export interface MobileWalletPayment {
@@ -95,7 +94,9 @@ export function generateMulticaixaReference(
   const expDate = new Date();
   expDate.setDate(expDate.getDate() + expiryDays);
 
-  const qrCodeText = `EMIS|ENT:${entity}|REF:${referenceDigits}|AMT:${amount.toFixed(2)}|CUR:AOA`;
+  // Sem QR: a EMIS não publica um formato de QR para referências, e um texto
+  // `EMIS|ENT:…|REF:…` inventado aqui pareceria um QR de pagamento que nenhum
+  // terminal lê. O QR de pagamento real vem do fornecedor (FINANCE_MASTER_2026.md).
 
   return {
     entity,
@@ -107,7 +108,6 @@ export function generateMulticaixaReference(
     amountNumber: amount,
     expiresAt: expDate.toISOString().split("T")[0] ?? expDate.toISOString(),
     status: "pending",
-    qrCodeText,
   };
 }
 

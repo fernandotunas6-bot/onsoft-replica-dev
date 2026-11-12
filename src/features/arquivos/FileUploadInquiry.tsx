@@ -364,7 +364,7 @@ export function FileUploadInquiryModal({
               {checkingExisting ? (
                 <p className="mt-1 text-xs text-muted-foreground">A verificar…</p>
               ) : existingCheckError ? (
-                <p className="mt-1 text-xs text-destructive">
+                <p className="mt-1 text-xs text-destructive-strong">
                   Não foi possível verificar possíveis cópias.
                 </p>
               ) : existingLocations.length ? (
@@ -403,7 +403,7 @@ export function FileUploadInquiryModal({
                 <p className="mt-1 text-xs text-muted-foreground">Sem correspondências.</p>
               )}
               {existingCheckIncomplete ? (
-                <p className="mt-2 text-xs text-destructive">Pesquisa incompleta.</p>
+                <p className="mt-2 text-xs text-destructive-strong">Pesquisa incompleta.</p>
               ) : null}
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Correspondência por nome e tamanho; conteúdo não confirmado.
@@ -446,7 +446,7 @@ export function FileUploadInquiryModal({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="file-meta-area">
-                Área de destino <span className="text-destructive">*</span>
+                Área de destino <span className="text-destructive-strong">*</span>
               </Label>
               <select
                 id="file-meta-area"
@@ -476,7 +476,7 @@ export function FileUploadInquiryModal({
             <div className="mt-3 space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="file-meta-desc">
-                  Descrição <span className="text-destructive">*</span>
+                  Descrição <span className="text-destructive-strong">*</span>
                 </Label>
                 <textarea
                   id="file-meta-desc"
@@ -539,7 +539,7 @@ export function FileUploadInquiryModal({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="file-meta-user">
-                  Utilizador relacionado <span className="text-destructive">*</span>
+                  Utilizador relacionado <span className="text-destructive-strong">*</span>
                 </Label>
                 <select
                   id="file-meta-user"
@@ -619,7 +619,7 @@ export function FileUploadInquiryModal({
               </span>
             </label>
           ) : null}
-          {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
+          {formError ? <p className="text-sm text-destructive-strong">{formError}</p> : null}
         </div>
         <DialogFooter className="border-t border-border bg-secondary/30 px-5 py-3">
           <Button type="button" variant="ghost" onClick={guardedCancel}>

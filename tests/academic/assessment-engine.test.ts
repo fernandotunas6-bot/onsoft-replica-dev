@@ -164,3 +164,34 @@ describe("Delegação consistente — lib/angola-academic, assessment-engine e p
     expect(pautaTrimesterAverage(15, null)).toBeNull();
   });
 });
+
+describe("periodicidade numa escola com Primário e Superior", () => {
+  const twoTerms = [
+    { subjectId: "lp", subjectName: "Língua Portuguesa", mt1: 12, mt2: 13, mt3: null, mfd: 12.5 },
+    { subjectId: "mat", subjectName: "Matemática", mt1: 11, mt2: 12, mt3: null, mfd: 11.5 },
+  ];
+
+  it("com 2 períodos configurados, o Primário decide sem esperar pelo 3.º", () => {
+    expect(
+      evaluateStudentPromotion({
+        subjectResults: twoTerms,
+        cycle: "primario",
+        options: { periodCount: 2 },
+      }).status,
+    ).toBe("TRANSITA");
+    // Sem a configuração da escola, o ciclo pede 3 e a decisão fica pendente.
+    expect(evaluateStudentPromotion({ subjectResults: twoTerms, cycle: "primario" }).status).toBe(
+      "PENDENTE",
+    );
+  });
+
+  it("com 3 configurados para o Primário, o Superior continua semestral", () => {
+    expect(
+      evaluateStudentPromotion({
+        subjectResults: twoTerms,
+        cycle: "superior",
+        options: { periodCount: 3 },
+      }).status,
+    ).not.toBe("PENDENTE");
+  });
+});

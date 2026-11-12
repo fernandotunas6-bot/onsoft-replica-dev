@@ -40,6 +40,20 @@ describe('SIGA desktop actions', () => {
     )
   })
 
+  it('opens a bundled school preview without replacing the remote portal', async () => {
+    render(<MainWindowContent />)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Pré-visualização local' })
+    )
+    await waitFor(() =>
+      expect(commands.openOfflineShell).toHaveBeenCalledOnce()
+    )
+    expect(commands.openSigaPortal).not.toHaveBeenCalled()
+    expect(
+      screen.getByText(/não contém notas, presenças nem alunos/)
+    ).toBeVisible()
+  })
+
   it('does not report an unsigned installation as up to date', async () => {
     render(<MainWindowContent />)
     fireEvent.click(
@@ -49,6 +63,30 @@ describe('SIGA desktop actions', () => {
       expect(screen.getByRole('status')).toHaveTextContent(/configurad/i)
     )
     expect(commands.desktopUpdateStatus).toHaveBeenCalledOnce()
+  })
+
+  it('checks for new releases on network reconnection without opening the portal', async () => {
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    vi.mocked(commands.desktopUpdateStatus).mockResolvedValueOnce({
+      status: 'ok',
+      data: {
+        configured: true,
+        available: true,
+        version: '1.2.3',
+        notes: 'Actualização assinada',
+      },
+    })
+
+    render(<MainWindowContent />)
+    expect(commands.desktopUpdateStatus).not.toHaveBeenCalled()
+    online.mockReturnValue(true)
+    window.dispatchEvent(new Event('online'))
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('1.2.3')
+    )
+    expect(commands.desktopUpdateStatus).toHaveBeenCalledOnce()
+    expect(commands.openSigaPortal).not.toHaveBeenCalled()
+    online.mockRestore()
   })
 
   it('shows the offline state and keeps the portal button', () => {

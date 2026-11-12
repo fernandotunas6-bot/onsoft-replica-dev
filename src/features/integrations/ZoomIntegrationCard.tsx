@@ -69,7 +69,7 @@ export function ZoomIntegrationCard({ item }: ZoomIntegrationCardProps) {
             size="sm"
             onClick={handleDisconnect}
             disabled={loading}
-            className="text-xs text-destructive hover:bg-destructive/10 gap-1.5 self-start sm:self-auto"
+            className="text-xs text-destructive-strong hover:bg-destructive/10 gap-1.5 self-start sm:self-auto"
           >
             {loading ? (
               <LoaderCircle className="size-3 animate-spin" />

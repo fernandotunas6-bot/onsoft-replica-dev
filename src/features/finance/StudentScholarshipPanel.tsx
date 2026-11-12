@@ -13,7 +13,12 @@ import {
   grantScholarship,
   revokeScholarship,
 } from "./student-scholarship-server";
-import { SCHOLARSHIP_KINDS, scholarshipKindLabel, type ScholarshipKind } from "./scholarships";
+import {
+  SCHOLARSHIP_KINDS,
+  TREASURY_DISCOUNT_LIMIT,
+  scholarshipKindLabel,
+  type ScholarshipKind,
+} from "./scholarships";
 
 /**
  * Bolsa de estudo do aluno (ficha do aluno). A Secretaria vê; a Administração e a
@@ -146,6 +151,9 @@ export function StudentScholarshipPanel({ studentId }: { studentId: string }) {
               value={form.percent}
               onChange={(event) => setForm({ ...form, percent: event.target.value })}
             />
+            <p className="text-xs text-muted-foreground">
+              A Tesouraria dá até {TREASURY_DISCOUNT_LIMIT} %; acima disso, só um Administrador.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="sch-scope">Aplica-se a</Label>

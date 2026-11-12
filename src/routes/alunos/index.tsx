@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { numberMatches } from "@/features/education-catalog/identifiers";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { realtimeInvalidator } from "@/lib/realtime-invalidate";
@@ -16,7 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  Eye,
   FileBadge,
   FileDown,
   FileText,
@@ -45,7 +44,6 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { buildEmisExportPayload } from "@/features/integrations/emis";
 import { StudentEnrollmentSheet } from "@/features/students/StudentEnrollmentSheet";
-import { StudentExtensiveModal } from "@/features/students/components/StudentExtensiveModal";
 import { StudentStatusBadge } from "@/features/students/components/StudentStatusBadge";
 import { StudentFinanceBadge } from "@/features/students/components/StudentFinanceBadge";
 import {
@@ -65,6 +63,7 @@ import {
   OUTSIDE_CYCLE_FIELD,
   useEnrollmentWindow,
 } from "@/features/enrollment/use-enrollment-window";
+import { buildBulkClassFeedback } from "@/features/students/batch-feedback";
 import { studentStatusOptions } from "@/features/students/schemas";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import { MediaAvatar } from "@/components/ui/media-frame";
@@ -145,10 +144,24 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { StudentMobileList } from "@/features/students/components/StudentMobileList";
+import { StudentRowActions } from "@/features/students/components/StudentRowActions";
+import { StudentBulkTools } from "@/features/students/components/StudentBulkTools";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
+import {
+  canReadStudentFinance,
+  canIssueStudentTuition,
+  canOpenStudentAccounts,
+  canReadStudentSection,
+} from "@/features/students/student-sections";
+import {
+  visibleSelectedRows,
+  restrictSelectionToVisibleRows,
+} from "@/features/students/visible-selection";
 
 const alunosSearchSchema = z
   .object({
     action: z.enum(["matricular", "confirmar", "estado"]).optional(),
+    classGroupId: z.string().uuid().optional().catch(undefined),
   })
   .passthrough();
 
@@ -199,9 +212,9 @@ const pagamentoLabels: Record<string, string> = {
 };
 
 const pagamentoTone: Record<string, string> = {
-  settled: "bg-success/15 text-success",
-  pending: "bg-warning/20 text-warning-foreground",
-  overdue: "bg-destructive/12 text-destructive",
+  settled: "bg-success/15 text-success-strong",
+  pending: "bg-warning/20 text-warning-strong",
+  overdue: "bg-destructive/12 text-destructive-strong",
 };
 
 type StudentRow = {
@@ -231,10 +244,13 @@ type SortKey = "processo" | "nome" | "email" | "telefone" | "estado";
 function StudentsPage() {
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
+  const currentAccount = useCurrentAccount();
+  const canReadFinance = canReadStudentFinance(currentAccount.role, currentAccount.grants);
+  const canIssueTuition = canIssueStudentTuition(currentAccount.role, currentAccount.grants);
   const { activePlan, activeTenant, refreshTenant } = useTenant();
   const { activeYearLabel, selectedYearId, selectedYear, selectedYearLabel, school } =
     useSchoolSettings();
-  const { action } = Route.useSearch();
+  const { action, classGroupId } = Route.useSearch();
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "alunos",
     alunosFilterDefaults,
@@ -251,8 +267,10 @@ function StudentsPage() {
   const pageSize = Number(filters.pageSize) || 10;
   const page = Math.max(1, Number(filters.page) || 1);
   const setPage = (next: number) => setFilter("page", String(next));
-  const [extensiveModalStudent, setExtensiveModalStudent] = useState<StudentRow | null>(null);
+  const navigate = useNavigate();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // Uma selecção nunca deve sobreviver a uma mudança de escola ou ano lectivo.
+  useEffect(() => setSelectedIds([]), [activeTenant?.id, selectedYearId]);
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const sigeOn = installed.hasCapability("sige.export_students");
@@ -327,7 +345,17 @@ function StudentsPage() {
           : null;
 
   const studentsQuery = useQuery({
-    queryKey: ["students", "search"],
+    // Evita reutilizar respostas de outro utilizador, escola ou cargo após mudar
+    // o contexto. O prefixo permite manter as invalidações já existentes.
+    queryKey: [
+      "students",
+      "search",
+      currentAccount.id,
+      currentAccount.schoolId,
+      currentAccount.role,
+      canReadFinance,
+    ],
+    enabled: Boolean(currentAccount.id && currentAccount.schoolId),
     queryFn: () => searchStudents({ data: { limit: 1000, offset: 0 } }),
   });
   const pendingApplicationsQuery = useQuery({
@@ -390,7 +418,8 @@ function StudentsPage() {
         (s.primary_guardian_name ?? "").toLowerCase().includes(q);
       const matchStatus = estado === "todos" || s.student_status === estado;
       const matchTurma = turma === "todas" || (s.class_name ?? "") === turma;
-      const matchPagamento = pagamento === "todos" || (s.payment_status ?? "") === pagamento;
+      const matchPagamento =
+        !canReadFinance || pagamento === "todos" || (s.payment_status ?? "") === pagamento;
       const studentYear = (s.academic_year ?? "").toLowerCase();
       const matchYear =
         !selectedYear ||
@@ -435,11 +464,29 @@ function StudentsPage() {
     estado,
     turma,
     pagamento,
+    canReadFinance,
     sortKey,
     sortDir,
     selectedYear,
     activeYearLabel,
   ]);
+
+  // A selecção pode abranger várias páginas, mas não registos excluídos pelos filtros.
+  // Assim a contagem e as operações aplicam-se exactamente ao que está visível.
+  const selectedStudents = useMemo(
+    () => visibleSelectedRows(filtered, selectedIds),
+    [filtered, selectedIds],
+  );
+  const effectiveSelectedIds = useMemo(
+    () => selectedStudents.map((student) => student.id),
+    [selectedStudents],
+  );
+  useEffect(() => {
+    setSelectedIds((previous) => {
+      const next = restrictSelectionToVisibleRows(previous, filtered);
+      return next.length === previous.length ? previous : next;
+    });
+  }, [filtered]);
 
   const quickCounts = useMemo(
     () => computeDynamicCounters(allStudents, pendingApplicationsCount),
@@ -470,11 +517,15 @@ function StudentsPage() {
       label: "Estado",
       value: (row: StudentRow) => academicStatusLabel(row.student_status),
     },
-    {
-      label: "Pagamento",
-      value: (row: StudentRow) =>
-        row.payment_status ? (pagamentoLabels[row.payment_status] ?? row.payment_status) : "",
-    },
+    ...(canReadFinance
+      ? [
+          {
+            label: "Pagamento",
+            value: (row: StudentRow) =>
+              row.payment_status ? (pagamentoLabels[row.payment_status] ?? row.payment_status) : "",
+          },
+        ]
+      : []),
     { label: "Telefone", value: (row: StudentRow) => row.phone ?? "" },
     { label: "Email", value: (row: StudentRow) => row.email ?? "" },
   ];
@@ -656,6 +707,7 @@ function StudentsPage() {
             />
             <StudentEnrollmentSheet
               autoOpen={action === "matricular" && !capacityBlocked}
+              initialClassGroupId={classGroupId}
               classGroups={classGroups.map((group) => ({
                 id: group.id,
                 name: group.name,
@@ -665,8 +717,15 @@ function StudentsPage() {
                 // Sem o nome, o selector «Ano lectivo» caía no fallback e
                 // mostrava o UUID cru ao utilizador.
                 academic_year_name: String(group.academic_year_name ?? ""),
+                course_id: group.course_id,
+                shift: group.shift,
+                room_name: group.room_name,
+                capacity: group.capacity,
+                enrolled_count: group.enrolled_count,
+                status: group.status,
               }))}
               people={peopleQuery.data ?? []}
+              existingStudents={studentsQuery.data ?? []}
               onCreated={async () => {
                 await Promise.all([
                   queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
@@ -717,7 +776,7 @@ function StudentsPage() {
           <div
             className={
               studentCapacity.atLimit
-                ? "rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                ? "rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive-strong"
                 : "rounded-xl border border-border bg-muted/60 px-4 py-3 text-sm text-foreground"
             }
           >
@@ -764,13 +823,15 @@ function StudentsPage() {
             icon={GraduationCap}
             tone="success"
           />
-          <StatCard
-            title="Pagamentos em dívida"
-            value={allStudents.filter((s) => s.payment_status === "overdue").length}
-            subtitle="Requer regularização"
-            icon={ArrowDown}
-            tone="destructive"
-          />
+          {canReadFinance ? (
+            <StatCard
+              title="Pagamentos em dívida"
+              value={allStudents.filter((s) => s.payment_status === "overdue").length}
+              subtitle="Requer regularização"
+              icon={ArrowDown}
+              tone="destructive"
+            />
+          ) : null}
           <StatCard
             title="Transferidos / Concluídos"
             value={
@@ -816,7 +877,7 @@ function StudentsPage() {
             ...(turma !== "todas"
               ? [{ name: "turma", label: "Turma", value: turma, emptyValue: "todas" }]
               : []),
-            ...(pagamento !== "todos"
+            ...(canReadFinance && pagamento !== "todos"
               ? [
                   {
                     name: "pagamento",
@@ -858,16 +919,23 @@ function StudentsPage() {
                 ),
               ],
             },
-            {
-              name: "pagamento",
-              type: "select",
-              label: "Pagamento",
-              emptyValue: "todos",
-              options: [
-                { value: "todos", label: "Todos os pagamentos" },
-                ...Object.entries(pagamentoLabels).map(([value, label]) => ({ value, label })),
-              ],
-            },
+            ...(canReadFinance
+              ? [
+                  {
+                    name: "pagamento",
+                    type: "select" as const,
+                    label: "Pagamento",
+                    emptyValue: "todos",
+                    options: [
+                      { value: "todos", label: "Todos os pagamentos" },
+                      ...Object.entries(pagamentoLabels).map(([value, label]) => ({
+                        value,
+                        label,
+                      })),
+                    ],
+                  },
+                ]
+              : []),
           ]}
         />
 
@@ -983,7 +1051,7 @@ function StudentsPage() {
                     "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                     categoria === "divida"
                       ? "bg-destructive text-destructive-foreground shadow-xs"
-                      : "bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20",
+                      : "bg-destructive/10 text-destructive-strong hover:bg-destructive/20 border border-destructive/20",
                   )}
                 >
                   Com Dívida ({quickCounts.overdue})
@@ -1128,7 +1196,7 @@ function StudentsPage() {
                     "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
                     subInactivos === "cancelled"
                       ? "bg-destructive text-destructive-foreground"
-                      : "bg-destructive/10 text-destructive hover:bg-destructive/20",
+                      : "bg-destructive/10 text-destructive-strong hover:bg-destructive/20",
                   )}
                 >
                   Cancelados ({quickCounts.inactivesDetail.cancelled})
@@ -1187,7 +1255,7 @@ function StudentsPage() {
                 error={studentsQuery.isError ? studentsQuery.error : undefined}
                 onRetry={() => void studentsQuery.refetch()}
                 onOpenStudent={(student) =>
-                  setExtensiveModalStudent(paged.find((row) => row.id === student.id) ?? null)
+                  void navigate({ to: "/alunos/$studentId", params: { studentId: student.id } })
                 }
                 onClearFilters={resetFilters}
                 emptyTitle={
@@ -1216,6 +1284,17 @@ function StudentsPage() {
                 }
                 whatsappEnabled={whatsappOn}
                 whatsappHref={whatsappHref}
+                financeAllowed={canReadFinance}
+                // A mesma regra do menu da tabela (StudentRowActions) no computador.
+                academicAllowed={canReadStudentSection(
+                  "academico",
+                  currentAccount.role,
+                  currentAccount.grants,
+                )}
+                studentAccountsAllowed={canOpenStudentAccounts(
+                  currentAccount.role,
+                  currentAccount.grants,
+                )}
               />
             }
             desktop={
@@ -1228,7 +1307,10 @@ function StudentsPage() {
                           type="checkbox"
                           aria-label="Seleccionar todos nesta página"
                           className="size-4 rounded border-border text-primary cursor-pointer accent-primary"
-                          checked={paged.length > 0 && selectedIds.length >= paged.length}
+                          checked={
+                            paged.length > 0 &&
+                            paged.every((student) => selectedIds.includes(student.id))
+                          }
                           onChange={(e) => {
                             if (e.target.checked) {
                               setSelectedIds([
@@ -1265,7 +1347,7 @@ function StudentsPage() {
                       <TableRow>
                         <TableCell
                           colSpan={9}
-                          className="py-10 text-center text-sm text-destructive"
+                          className="py-10 text-center text-sm text-destructive-strong"
                         >
                           Não foi possível carregar os estudantes:{" "}
                           {studentsQuery.error instanceof Error
@@ -1281,7 +1363,9 @@ function StudentsPage() {
                             "cursor-pointer transition-colors hover:bg-muted/60 group",
                             selectedIds.includes(s.id) && "bg-primary/5",
                           )}
-                          onClick={() => setExtensiveModalStudent(s)}
+                          onClick={() =>
+                            void navigate({ to: "/alunos/$studentId", params: { studentId: s.id } })
+                          }
                         >
                           <TableCell className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
                             <input
@@ -1375,28 +1459,21 @@ function StudentsPage() {
                           <TableCell>
                             <div className="flex justify-end gap-2">
                               <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8 gap-1 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setExtensiveModalStudent(s);
-                                }}
-                              >
-                                <Eye className="size-3.5" /> Visualizar
-                              </Button>
-                              <Button
                                 asChild
                                 variant="outline"
                                 size="sm"
-                                className="h-8 gap-1 px-2 text-xs"
+                                className="h-8 gap-1 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
                                 onClick={(event) => event.stopPropagation()}
                               >
                                 <Link to="/alunos/$studentId" params={{ studentId: s.id }}>
                                   <FileText className="size-3.5" /> Ficha
                                 </Link>
                               </Button>
+                              <StudentRowActions
+                                student={s}
+                                role={currentAccount.role}
+                                grants={currentAccount.grants}
+                              />
                               {isWithoutEnrollment(s) &&
                               s.student_status !== "suspended" &&
                               s.student_status !== "locked" &&
@@ -1572,20 +1649,22 @@ function StudentsPage() {
           />
 
           {/* Barra Flutuante de Ações em Massa */}
-          {selectedIds.length > 0 ? (
+          {effectiveSelectedIds.length > 0 ? (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary-soft/80 p-3 shadow-sm animate-in fade-in slide-in-from-bottom-2">
               <div className="flex items-center gap-2">
                 <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                  {selectedIds.length}
+                  {effectiveSelectedIds.length}
                 </span>
                 <span className="text-xs font-semibold text-foreground">
-                  {selectedIds.length === 1 ? "aluno seleccionado" : "alunos seleccionados"}
+                  {effectiveSelectedIds.length === 1
+                    ? "aluno seleccionado"
+                    : "alunos seleccionados"}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {turmaOptions.length > 0 ? (
                   <QuickFormModal
-                    title={`Atribuir turma a ${selectedIds.length} alunos`}
+                    title={`Atribuir turma a ${effectiveSelectedIds.length} alunos`}
                     description="Matricula em massa os alunos seleccionados na turma indicada."
                     submitLabel="Atribuir turma em lote"
                     successDescription="Turma atribuída aos alunos seleccionados."
@@ -1614,20 +1693,37 @@ function StudentsPage() {
                         throw new Error("Seleccione uma turma com ano lectivo.");
                       const result = await batchAssignClass({
                         data: {
-                          studentIds: selectedIds,
+                          studentIds: effectiveSelectedIds,
                           classGroupId: group.id,
                           academicYearId: yearId,
                           outsideCycleReason: values[OUTSIDE_CYCLE_FIELD] || undefined,
                         },
                       });
-                      toast.success(`${result.count} alunos na turma ${result.className}.`);
-                      if (result.failed.length) {
-                        toast.warning(
-                          `${result.failed.length} não ficaram matriculados: ${result.failed[0]?.message ?? ""}`,
+                      const feedback = buildBulkClassFeedback(
+                        result,
+                        selectedIds,
+                        new Map(allStudents.map((student) => [student.id, student.full_name])),
+                      );
+                      // Conservar só os alunos com falha: o utilizador pode
+                      // corrigir o problema e repetir sem nova pesquisa.
+                      setSelectedIds(feedback.retryStudentIds);
+                      await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
+                        queryClient.invalidateQueries({
+                          queryKey: ["academic", "pedagogical-workspace"],
+                        }),
+                        queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+                      ]);
+                      if (feedback.failureMessage) {
+                        if (feedback.successMessage) toast.success(feedback.successMessage);
+                        // O QuickFormModal mantém-se aberto e mostra o erro;
+                        // não anuncia sucesso total perante resultados parciais.
+                        throw new Error(
+                          [feedback.failureMessage, feedback.failureDetails]
+                            .filter(Boolean)
+                            .join("\n"),
                         );
                       }
-                      setSelectedIds([]);
-                      await queryClient.invalidateQueries({ queryKey: ["students", "search"] });
                     }}
                     trigger={(open) => (
                       <Button
@@ -1643,7 +1739,7 @@ function StudentsPage() {
                 ) : null}
 
                 <QuickFormModal
-                  title={`Alterar estado de ${selectedIds.length} alunos`}
+                  title={`Alterar estado de ${effectiveSelectedIds.length} alunos`}
                   description="Actualiza o estado institucional de todos os alunos seleccionados."
                   submitLabel="Actualizar estado em lote"
                   successDescription="Estado dos alunos actualizado."
@@ -1666,12 +1762,12 @@ function StudentsPage() {
                   onSubmit={async (values) => {
                     const result = await batchUpdateStudentStatus({
                       data: {
-                        studentIds: selectedIds,
+                        studentIds: effectiveSelectedIds,
                         newStatus: values["estado"] as (typeof studentStatusOptions)[number],
                         reason: values["motivo"] || undefined,
                       },
                     });
-                    const unchanged = selectedIds.length - result.count;
+                    const unchanged = effectiveSelectedIds.length - result.count;
                     toast.success(
                       unchanged > 0
                         ? `Estado de ${result.count} aluno(s) actualizado; ${unchanged} já estava(m) nesse estado.`
@@ -1692,6 +1788,15 @@ function StudentsPage() {
                   )}
                 />
 
+                <StudentBulkTools
+                  students={selectedStudents}
+                  canReadFinance={canReadFinance}
+                  canIssueTuition={canIssueTuition}
+                  canUseGrades={
+                    ["Administrador", "Secretaria", "Professor"].includes(currentAccount.role) &&
+                    currentAccount.grants.pedagogica !== "Nenhum"
+                  }
+                />
                 <Button
                   size="sm"
                   variant="ghost"
@@ -1714,15 +1819,6 @@ function StudentsPage() {
               setPage(1);
             }}
             pageSizeOptions={[10, 25, 50, 100]}
-          />
-
-          <StudentExtensiveModal
-            open={Boolean(extensiveModalStudent)}
-            onOpenChange={(open) => {
-              if (!open) setExtensiveModalStudent(null);
-            }}
-            studentId={extensiveModalStudent?.id ?? null}
-            initialData={extensiveModalStudent}
           />
         </div>
       </div>

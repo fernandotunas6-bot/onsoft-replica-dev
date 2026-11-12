@@ -95,3 +95,6 @@ Full App Gen Docs.md
 
 # Root package-lock.json (artifact, not needed)
 /package-lock.json
+
+# Capturas dos ecrãs geradas pelo CI (test/screenshots): não se guardam no Git.
+/test/screenshots/goldens/

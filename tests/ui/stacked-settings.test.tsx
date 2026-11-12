@@ -70,6 +70,37 @@ describe("definições em página e modal", () => {
       expect(screen.getByText("Dados institucionais")).toBeTruthy();
     },
   );
+  it("protege alterações pendentes quando um deep link muda a categoria de Definições", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const onDirtyChange = vi.fn();
+    const onOpenChange = vi.fn();
+    const view = (initialPanelId: string) => (
+      <StackedModal
+        open
+        presentation="page"
+        panels={panels}
+        rootId="root"
+        onOpenChange={onOpenChange}
+        onDirtyChange={onDirtyChange}
+        initialPanelId={initialPanelId}
+      />
+    );
+    const { rerender } = render(view("conta"));
+    expect(screen.getByRole("button", { name: "Fechar formulário" })).toBeTruthy();
+
+    rerender(view("escola"));
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(screen.queryByText("Dados institucionais")).toBeNull();
+    expect(screen.getByRole("button", { name: "Fechar formulário" })).toBeTruthy();
+
+    confirm.mockReturnValue(true);
+    rerender(view("conta"));
+    rerender(view("escola"));
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("Dados institucionais")).toBeTruthy();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+  });
+
   it("consulta o estado dirty actual ao fechar pelo formulário", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
     const close = vi.fn();

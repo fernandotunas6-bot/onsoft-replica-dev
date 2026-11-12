@@ -65,7 +65,7 @@ function UnitSheetsPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Pedagógica"
+          group="Académico"
           title="Pautas do Ensino Superior"
           description="Lance a frequência e os exames de cada cadeira. As épocas disponíveis seguem o regulamento da instituição."
           icon={ClipboardList}

@@ -236,13 +236,13 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
       {error && (
         <p
           role="alert"
-          className="rounded-lg border border-destructive p-3 text-sm text-destructive"
+          className="rounded-lg border border-destructive p-3 text-sm text-destructive-strong"
         >
           {error}
         </p>
       )}
       {templateMismatch && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive-strong">
           O modelo foi actualizado. É necessário compatibilizar os campos do rascunho antes de
           publicar. Os conteúdos anteriores permanecem guardados.
         </p>
@@ -291,7 +291,7 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
           disabled={busy}
           onChange={(e) => changeDraft({ ...draft, campaignSlug: e.target.value })}
         >
-          <option value="">Manter candidatura demonstrativa</option>
+          <option value="">Automático: a campanha aberta da escola</option>
           {(query.data?.campaigns ?? []).map((campaign) => (
             <option key={campaign.slug} value={campaign.slug}>
               {campaign.title || campaign.slug}
@@ -300,8 +300,9 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
           ))}
         </select>
         <p className="text-xs text-muted-foreground">
-          Ao ligar uma campanha, o site abre o formulário oficial do SIGA, onde os dados são
-          enviados à escola. O encerramento da campanha também é respeitado pelo site.
+          «Candidatura» no site abre sempre o formulário oficial do SIGA, onde os dados são enviados
+          à escola. Em automático, usa a campanha aberta; com várias abertas, escolha uma aqui. Sem
+          campanha aberta, o site mostra «Candidaturas encerradas».
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">

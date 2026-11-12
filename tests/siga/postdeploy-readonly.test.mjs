@@ -8,7 +8,7 @@ import {
 } from "../../scripts/siga/postdeploy-readonly.mjs";
 
 test("destinos fixos são HTTPS e não levam sessão, pesquisa ou tokens", () => {
-  assert.equal(CHECKS.length, 11);
+  assert.equal(CHECKS.length, 13);
   for (const check of CHECKS) {
     const url = validateCheck(check);
     assert.equal(url.protocol, "https:");
@@ -30,6 +30,26 @@ test("não aceita destinos externos, credenciais, parâmetros ou métodos de esc
   }
   assert.throws(
     () => validateCheck({ url: "https://portal-siga.com/", method: "POST", expected: [200] }),
+    /não autorizado/,
+  );
+});
+
+test("caminhos de cobrança ISPAB fazem apenas sondagens públicas sem segredos", () => {
+  const checks = CHECKS.filter((check) => check.url.startsWith("https://ispab.portal-siga.com/"));
+  assert.deepEqual(
+    checks.map((check) => check.url),
+    [
+      "https://ispab.portal-siga.com/site/propinas/",
+      "https://ispab.portal-siga.com/site/propinas/confirmacao/",
+    ],
+  );
+  for (const check of checks) {
+    assert.equal(check.method, undefined);
+    assert.deepEqual(check.expected, [200]);
+    assert.equal(validateCheck(check).hostname, "ispab.portal-siga.com");
+  }
+  assert.throws(
+    () => validateCheck({ url: "https://outro.portal-siga.com/site/propinas/", expected: [200] }),
     /não autorizado/,
   );
 });

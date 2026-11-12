@@ -8,12 +8,13 @@ import {
   loadSgaAdminClient,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
+import { recordTeacherCheckin } from "@/features/pedagogica/teacher-presence-server";
 import {
   createTeacherLessonQrInputSchema,
   occurrenceIdInputSchema,
   redeemTeacherLessonQrInputSchema,
 } from "@/features/hr/schemas";
-import { schoolDayOffsetIso } from "@/lib/school-date";
+import { schoolDateInDays } from "@/lib/school-date";
 
 const HR_LESSON_ROLES = new Set(["Administrador", "Tesouraria"]);
 const TEACHER_QR_ISSUER_ROLES = new Set(["Administrador", "Secretaria", "Tesouraria"]);
@@ -161,15 +162,22 @@ async function ensureAttendanceSessionForOccurrence(
   }
 
   if (!sessionId) {
+    // Só uma sessão avulsa (sem tempo do horário) serve aqui: com dois tempos da
+    // mesma disciplina no dia, a sessão do outro tempo não é a desta aula. Antes
+    // lia-se com `maybeSingle()`, que falhava com duas e criava uma terceira.
     const { data: byClass } = await db
       .from("siga_attendance_sessions")
-      .select("id")
+      .select("id, timetable_slot_id")
       .eq("school_id", schoolId)
       .eq("class_group_id", classSubject.class_group_id)
       .eq("subject_id", classSubject.subject_id)
       .eq("lesson_date", lessonDate)
-      .maybeSingle();
-    if (byClass?.id) sessionId = String(byClass.id);
+      .order("created_at", { ascending: true });
+    const loose = (byClass ?? []).find(
+      (row: { id: string; timetable_slot_id: string | null }) =>
+        !occurrence.timetable_slot_id || !row.timetable_slot_id,
+    );
+    if (loose?.id) sessionId = String(loose.id);
   }
 
   if (!sessionId) {
@@ -463,7 +471,7 @@ export const listTeacherQrOccurrences = createServerFn({ method: "GET" })
       )
       .eq("school_id", membership.schoolId)
       .is("deleted_at", null)
-      .gte("lesson_date", schoolDayOffsetIso(-1))
+      .gte("lesson_date", schoolDateInDays(-1))
       .order("lesson_date", { ascending: true })
       .order("scheduled_starts_at", { ascending: true })
       .limit(120);
@@ -691,6 +699,21 @@ export const redeemTeacherLessonQr = createServerFn({ method: "POST" })
         String(row.occurrence_id),
         context.userId,
       );
+      // O QR também confirma a presença na aula (a mesma que a Direcção vê nas
+      // chamadas do dia). Se falhar, o check-in do RH já ficou feito.
+      if (classroom?.attendanceSessionId) {
+        try {
+          await recordTeacherCheckin(admin, {
+            schoolId: membership.schoolId,
+            sessionId: classroom.attendanceSessionId,
+            userId: context.userId,
+            method: "qr",
+            startsAt: classroom.startsAt || null,
+          });
+        } catch (presenceError) {
+          console.warn("[hr] presença na aula não registada após o QR:", presenceError);
+        }
+      }
     }
 
     return {

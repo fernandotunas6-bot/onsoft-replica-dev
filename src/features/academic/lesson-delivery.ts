@@ -94,6 +94,7 @@ export async function resolveClassAudience(
         ? await db
             .from("student_guardians")
             .select("student_id, guardian_person_id")
+            .is("valid_until", null)
             .eq("school_id", schoolId)
             .in("student_id", studentIds)
         : { data: [] };

@@ -2,6 +2,7 @@ import { normalizeDate, normalizeMoney, normalizeText, valueOf } from "../engine
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
 import {
+  importPaymentKey,
   loadExistingReceiptNumbers,
   loadOpenInvoiceRefs,
   mapPaymentMethod,
@@ -215,6 +216,13 @@ export const pagamentosImporter: RowImporter = {
         paidOn,
         receivedBy: ctx.userId,
         receiptNumberHint: receiptHint,
+        importKey: importPaymentKey({
+          receiptNumberHint: receiptHint,
+          invoiceId: invoice.id,
+          amount,
+          paidOn,
+          paymentMethod: method,
+        }),
       });
     } catch (err) {
       return {
@@ -222,6 +230,21 @@ export const pagamentosImporter: RowImporter = {
         warnings: analysis.warnings,
         errors: [err instanceof Error ? err.message : "Erro ao registar pagamento."],
         audits: [],
+      };
+    }
+
+    // A mesma linha já importada (mesmo nº de recibo, ou mesma fatura, valor, data e
+    // método): a base devolveu o recibo existente em vez de emitir outro.
+    if (result.alreadyImported) {
+      return {
+        status: "duplicate",
+        warnings: [
+          ...analysis.warnings,
+          `Este pagamento já foi importado (recibo ${result.receiptNumber}).`,
+        ],
+        errors: [],
+        audits: [],
+        target_record_id: result.receiptId,
       };
     }
 

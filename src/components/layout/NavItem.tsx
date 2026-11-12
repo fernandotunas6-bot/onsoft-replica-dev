@@ -18,13 +18,13 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 export type NavDepth = "root" | "sub";
 
 export const NAV_ROW_BASE =
-  "group relative flex w-full items-center gap-3 rounded-lg font-medium outline-none transition-[color,background-color,transform,box-shadow] duration-(--siga-motion-fast) ease-(--siga-ease) active:duration-75 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:active:scale-100 motion-reduce:transition-none";
+  "group relative flex w-full items-center gap-3 rounded-lg font-medium outline-none transition-[color,background-color] duration-(--siga-motion-fast) ease-(--siga-ease) focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none";
 
 export const NAV_ROW_IDLE =
   "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
 export const NAV_ROW_ACTIVE =
-  "bg-primary/10 font-semibold text-sidebar-active shadow-nav-active hover:bg-primary/15 hover:text-sidebar-active";
+  "bg-primary/10 font-semibold text-sidebar-active shadow-nav-active ring-1 ring-inset ring-primary/15 before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-r-full before:bg-primary before:content-[''] hover:bg-primary/15 hover:text-sidebar-active";
 
 export const NAV_DEPTH_CLASS: Record<NavDepth, string> = {
   root: "min-h-11 px-2.5 py-1.5 text-sm font-medium lg:min-h-9",
@@ -55,10 +55,8 @@ export function NavIcon({
       >
         <span
           className={cn(
-            "block size-1 rounded-full transition-[transform,background-color] duration-(--siga-motion-fast) ease-(--siga-ease) motion-reduce:transition-none",
-            active
-              ? "scale-150 bg-sidebar-active"
-              : "bg-sidebar-foreground/40 group-hover:scale-150 group-hover:bg-sidebar-active",
+            "block size-1 rounded-full transition-colors duration-(--siga-motion-fast) ease-(--siga-ease) motion-reduce:transition-none",
+            active ? "bg-sidebar-active" : "bg-sidebar-foreground/40 group-hover:bg-sidebar-active",
           )}
         />
       </span>

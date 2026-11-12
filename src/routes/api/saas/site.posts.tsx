@@ -7,6 +7,9 @@ import { corsPreflight } from "@/lib/ecosystem-cors";
 
 // style-check: route-exempt — artigos do blog do site, geridos no ADMIN.
 
+/** Artigo até 60 000 caracteres, com folga para acentos (2–3 bytes) e escapes do JSON. */
+const MAX_POST_JSON_BYTES = 512 * 1024;
+
 const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("save"), post: blogPostInputSchema }),
   z.object({ action: z.literal("delete"), id: z.string().guid() }),
@@ -22,7 +25,7 @@ export const Route = createFileRoute("/api/saas/site/posts")({
         })),
       POST: async ({ request }) =>
         withSiteAdmin(request, "Não foi possível guardar o artigo.", async (actor) => {
-          const body = await readBody(request, actionSchema);
+          const body = await readBody(request, actionSchema, MAX_POST_JSON_BYTES);
           if (body.action === "delete") {
             await deletePost(body.id);
             return { ok: true };

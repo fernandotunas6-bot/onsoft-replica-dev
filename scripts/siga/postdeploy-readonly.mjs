@@ -32,6 +32,16 @@ export const CHECKS = Object.freeze([
     expected: [200],
   },
   {
+    name: "ISPAB — propinas públicas",
+    url: "https://ispab.portal-siga.com/site/propinas/",
+    expected: [200],
+  },
+  {
+    name: "ISPAB — entrega da Kursinha",
+    url: "https://ispab.portal-siga.com/site/propinas/confirmacao/",
+    expected: [200],
+  },
+  {
     name: "SIGA — catálogo público de planos",
     url: "https://portal-siga.com/api/saas/plans",
     expected: [200],
@@ -64,6 +74,7 @@ const ALLOWED_HOSTS = new Set([
   "siga-admin.pages.dev",
   "siga-docs.pages.dev",
   "payflow.portal-siga.com",
+  "ispab.portal-siga.com",
 ]);
 
 export function validateCheck(check) {

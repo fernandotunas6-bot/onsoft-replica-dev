@@ -95,6 +95,7 @@ export async function executePayflowStudentSync(input: {
   const { data: guardians } = await db
     .from("student_guardians")
     .select("guardian_person_id, is_primary")
+    .is("valid_until", null)
     .eq("student_id", student.id)
     .eq("school_id", input.schoolId)
     .order("is_primary", { ascending: false })

@@ -30,13 +30,14 @@ describe("Content-Security-Policy", () => {
     expect(directive("report-uri")).toBe(CSP_REPORT_PATH);
   });
 
-  it("deixa o browser falar com Supabase (incl. Realtime), FCM e a verificação de palavras-passe", () => {
+  it("deixa o browser falar com Supabase (incl. Realtime), FCM, a verificação de palavras-passe e as versões da app", () => {
     const connect = directive("connect-src");
     for (const origin of [
       "https://*.supabase.co",
       "wss://*.supabase.co",
       "https://*.googleapis.com",
       "https://api.pwnedpasswords.com",
+      "https://api.github.com",
     ]) {
       expect(connect).toContain(origin);
     }
@@ -111,6 +112,22 @@ describe("Content-Security-Policy", () => {
       }),
     );
     expect(big.status).toBe(413);
+
+    // O limite vale para bytes UTF-8, não apenas caracteres JavaScript.
+    // Antes, 10 000 caracteres não ASCII passavam no teste de text.length,
+    // embora ocupassem mais de 16 KiB no corpo HTTP.
+    const unicode = await handleCspReport(
+      new Request(`https://app.portal-siga.com${CSP_REPORT_PATH}`, {
+        method: "POST",
+        body: JSON.stringify({
+          "csp-report": {
+            "effective-directive": "img-src",
+            "blocked-uri": "é".repeat(10_000),
+          },
+        }),
+      }),
+    );
+    expect(unicode.status).toBe(413);
 
     const broken = await handleCspReport(
       new Request(`https://app.portal-siga.com${CSP_REPORT_PATH}`, {

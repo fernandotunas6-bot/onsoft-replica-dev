@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   attendance: vi.fn(),
   grades: vi.fn(),
   timetable: vi.fn(),
+  finance: vi.fn(),
 }));
 vi.mock("@tanstack/react-start", () => ({
   createServerFn: () => {
@@ -30,6 +31,9 @@ vi.mock("@/features/dashboard/student-agenda", () => ({
   getMyStudentTimetable: mocks.timetable,
 }));
 vi.mock("@/features/academic/student-grades", () => ({ getMyStudentGrades: mocks.grades }));
+vi.mock("@/features/finance/student-portal-ledger", () => ({
+  loadMyStudentFinance: mocks.finance,
+}));
 vi.mock("@/features/pedagogica/attendance-server", () => ({
   getStudentAttendanceHistory: mocks.attendance,
 }));
@@ -61,6 +65,19 @@ describe("API privada do portal do website", () => {
     }
     expect(mocks.agenda).not.toHaveBeenCalled();
   });
+  it("o financeiro usa a mesma conta e a escola autenticada, sem confiar em IDs do browser", async () => {
+    const record = { billed: 10000, paid: 5000, outstanding: 5000, invoices: [], receipts: [] };
+    mocks.finance.mockResolvedValue(record);
+    const result = await getStudentWebsitePage({ data: { schoolId, section: "financeiro" } });
+    expect(mocks.finance).toHaveBeenCalledWith("verified-user", schoolId);
+    expect(result).toEqual({ finance: record });
+    mocks.membership.mockResolvedValue({ appRole: "Aluno", schoolId: "other-school" });
+    await expect(
+      getStudentWebsitePage({ data: { schoolId, section: "financeiro" } }),
+    ).rejects.toThrow(/não tem acesso/);
+    expect(mocks.finance).toHaveBeenCalledTimes(1);
+  });
+
   it("reutiliza o âmbito do próprio estudante e só devolve o resumo necessário", async () => {
     const result = await getStudentWebsitePage({ data: { schoolId, section: "" } });
     expect(mocks.membership).toHaveBeenCalledWith("verified-user");

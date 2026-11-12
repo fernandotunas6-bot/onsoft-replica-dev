@@ -1,69 +1,28 @@
-# Sistema de Temas
+# Aparência e marca
 
-Personalização de temas em tempo real com suporte integrado tweakcn.
+O SIGA Plus separa o que cada pessoa escolhe para si do que a escola define para todos.
 
-## Visão Geral Rápida
+## Escolhas de cada pessoa
 
-O template inclui um **sistema completo de personalização de temas** que permite:
+Em **Definições → Aparência** (guardado neste navegador):
 
-- **Edição de temas ao vivo** com pré-visualização instantânea
-- **Personalização de esquemas de cores** com seletor de cores HSL
-- **Configuração de layout** (posição da barra lateral, largura, cabeçalhos)
-- **Modo escuro/claro (Dark/light mode)** com deteção das preferências do sistema
-- **Exportação/importação** de configurações de temas
-- **Sistema de temas baseado em variáveis CSS**
+- **Modo de exibição:** claro, escuro ou igual ao do sistema.
+- **Densidade da interface:** compacta (mais linhas nas tabelas), confortável ou ampla
+  (mais espaço e toques maiores).
+- **Cor de destaque** e fundo da barra lateral, entre as opções disponíveis.
+- **Arredondamento dos cantos.**
 
-## Personalizador de Temas
+A barra lateral do computador abre expandida; o botão das três linhas recolhe-a ou
+expande-a, e a escolha fica guardada para essa pessoa e essa escola.
 
-Aceda através do **ícone de engrenagem** no cabeçalho para personalizar:
+## Identidade da escola
 
-### Cores
-- Cores primárias, secundárias e de destaque (accent)
-- Variantes de fundo (background) e primeiro plano (foreground)
-- Tons de borda e atenuados (muted)
-- Cores de ações destrutivas
+O logótipo e as cores da escola definem-se nas Definições da escola e aplicam-se a todos
+os utilizadores dessa escola no SIGA Plus e aos e-mails enviados em nome da escola (por
+exemplo, a recuperação de senha).
 
-### Layout
-- Posição da barra lateral (esquerda/direita)
-- Largura e comportamento da barra lateral
-- Estilos e posicionamento do cabeçalho
-- Espaçamento de conteúdo e tipografia
+## Marca SIGA Plus
 
-### Modos
-- Alternador de modo claro/escuro
-- Deteção das preferências do sistema
-- Alternância automática de temas
-
-## Implementação Técnica
-
-**Variáveis CSS**
-```css
-:root {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
-  --primary: 240 5.9% 10%;
-  /* ... */
-}
-```
-
-**Hook do React**
-```typescript
-const [config, setConfig] = useTheme()
-```
-
-**Componente do Personalizador**
-```tsx
-<ThemeCustomizer />
-```
-
-## Integração
-
-O sistema de temas funciona através de:
-- **Propriedades personalizadas CSS** para todas as cores e espaçamentos
-- **Classes Tailwind CSS** que referenciam variáveis CSS
-- **React Context** para gestão do estado do tema
-- **Armazenamento local (Local storage)** para persistência
-
----
-
-Para detalhes de implementação, consulte a documentação do [Personalizador de Temas](/theme-customizer/).
+A marca da plataforma é o letreiro **SIGA Plus**, com «Plus» em gradiente, e o ícone «S» da
+aplicação. É a mesma no portal comercial, na consola da plataforma, nesta documentação e
+nas aplicações para computador e telemóvel.

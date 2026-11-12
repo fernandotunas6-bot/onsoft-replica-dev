@@ -23,12 +23,13 @@ describe("mês a que a fatura respeita", () => {
 
   it("issueInvoice usa a regra e recusa uma segunda propina do mesmo mês", () => {
     const source = readFileSync("src/features/finance/server.ts", "utf8");
-    const start = source.indexOf("export const issueInvoice = createServerFn");
+    // A emissão vive em `issueInvoiceFor`, partilhada pela individual e pelo lote.
+    const start = source.indexOf("async function issueInvoiceFor(");
     const body = source.slice(start, source.indexOf("export const", start + 1));
     expect(body).toContain("invoiceCompetenceMonth({");
     expect(body).not.toContain("(data.issuedOn ?? schoolTodayIso()).slice(0, 7)");
     const guard = body.indexOf('.eq("competence_month", competenceMonth)');
     expect(guard).toBeGreaterThan(-1);
-    expect(guard).toBeLessThan(body.indexOf('.from("finance_invoices")\n        .insert'));
+    expect(guard).toBeLessThan(body.search(/\.from\("finance_invoices"\)\s*\.insert/));
   });
 });

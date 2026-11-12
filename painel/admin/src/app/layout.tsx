@@ -9,21 +9,18 @@ import { inter } from "@/lib/fonts";
 export const metadata: Metadata = {
   title: "SIGA Plus — Centro de controlo SaaS",
   description: "Centro de controlo SaaS da plataforma SIGA Plus.",
+  // Consola reservada à equipa da plataforma: fora dos motores de pesquisa
+  // (também em public/_headers, X-Robots-Tag).
+  robots: { index: false, follow: false },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt" className={`${inter.variable} antialiased`} suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <ThemeProvider defaultTheme="light" storageKey="nextjs-ui-theme">
           <LanguageProvider>
-            <SidebarConfigProvider>
-              {children}
-            </SidebarConfigProvider>
+            <SidebarConfigProvider>{children}</SidebarConfigProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

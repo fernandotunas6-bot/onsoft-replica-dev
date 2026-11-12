@@ -10,6 +10,7 @@ import {
   archiveAnnouncementInputSchema,
   SCHEDULED_CHANNEL_MESSAGE,
   createAnnouncementInputSchema,
+  getAnnouncementInputSchema,
   listAnnouncementsInputSchema,
   updateAnnouncementInputSchema,
   updateAnnouncementStatusInputSchema,
@@ -20,6 +21,40 @@ import { schoolTodayIso } from "@/lib/school-date";
 // Status values: 'draft' | 'scheduled' | 'sent'  (no 'archived' — use soft-delete deleted_at instead)
 
 const ANNOUNCEMENT_STAFF_ROLES = ["Administrador", "Secretaria", "Tesouraria", "Professor"];
+
+const ANNOUNCEMENT_COLUMNS =
+  "id, title, body, audience, channel, status, scheduled_for, published_at, created_at, updated_at";
+
+export type SchoolAnnouncementRow = {
+  id: string;
+  title: string;
+  body: string;
+  audience: string;
+  channel: string;
+  status: string;
+  scheduled_for: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string | null;
+};
+
+/** Um comunicado com a escola de onde foi lido (o foco do menu leva a escola). */
+export type SchoolAnnouncementDetail = SchoolAnnouncementRow & { schoolId: string };
+
+function mapAnnouncementRow(row: Record<string, unknown>): SchoolAnnouncementRow {
+  return {
+    id: String(row["id"] ?? ""),
+    title: String(row["title"] ?? ""),
+    body: String(row["body"] ?? ""),
+    audience: String(row["audience"] ?? "all_guardians"),
+    channel: String(row["channel"] ?? "portal"),
+    status: String(row["status"] ?? "draft"),
+    scheduled_for: row["scheduled_for"] ? String(row["scheduled_for"]) : null,
+    published_at: row["published_at"] ? String(row["published_at"]) : null,
+    created_at: String(row["created_at"] ?? ""),
+    updated_at: row["updated_at"] ? String(row["updated_at"]) : null,
+  };
+}
 
 /**
  * Públicos que um aluno, encarregado ou outro utilizador pode ler. O aviso aos
@@ -104,9 +139,7 @@ export const listSchoolAnnouncements = createServerFn({ method: "GET" })
 
     let query = db
       .from("school_announcements")
-      .select(
-        "id, title, body, audience, channel, status, scheduled_for, published_at, created_at, updated_at",
-      )
+      .select(ANNOUNCEMENT_COLUMNS)
       .eq("school_id", membership.schoolId)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
@@ -129,18 +162,44 @@ export const listSchoolAnnouncements = createServerFn({ method: "GET" })
     if (error) {
       throw publicDatabaseError(error, "Não foi possível carregar os comunicados.");
     }
-    return (announcements ?? []).map((row: Record<string, unknown>) => ({
-      id: String(row["id"] ?? ""),
-      title: String(row["title"] ?? ""),
-      body: String(row["body"] ?? ""),
-      audience: String(row["audience"] ?? "all_guardians"),
-      channel: String(row["channel"] ?? "portal"),
-      status: String(row["status"] ?? "draft"),
-      scheduled_for: row["scheduled_for"] ? String(row["scheduled_for"]) : null,
-      published_at: row["published_at"] ? String(row["published_at"]) : null,
-      created_at: String(row["created_at"] ?? ""),
-      updated_at: row["updated_at"] ? String(row["updated_at"]) : null,
-    }));
+    return (announcements ?? []).map((row: Record<string, unknown>) => mapAnnouncementRow(row));
+  });
+
+/**
+ * Um comunicado, para a sua página (`/comunicacoes/$announcementId`). As mesmas
+ * regras da lista: o pessoal lê qualquer comunicado da escola que não esteja
+ * arquivado; os outros só os enviados ao seu público. Um comunicado que a conta
+ * não pode ler devolve `null`, como um que não existe. Ao contrário da lista, não
+ * publica os agendados: uma leitura de um comunicado não muda nada.
+ */
+export const getSchoolAnnouncement = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => getAnnouncementInputSchema.parse(input))
+  .handler(async ({ data, context }): Promise<SchoolAnnouncementDetail | null> => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem membership activa nesta escola.");
+    const db = await loadSgaAdminClient();
+
+    const { data: row, error } = await db
+      .from("school_announcements")
+      .select(ANNOUNCEMENT_COLUMNS)
+      .eq("school_id", membership.schoolId)
+      .eq("id", data.id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (error) {
+      throw publicDatabaseError(error, "Não foi possível carregar o comunicado.");
+    }
+    if (!row) return null;
+    const announcement = mapAnnouncementRow(row as Record<string, unknown>);
+
+    const roles: string[] = membership.allAppRoles ?? [membership.appRole];
+    if (!ANNOUNCEMENT_STAFF_ROLES.some((role) => roles.includes(role))) {
+      if (announcement.status !== "sent") return null;
+      const audiences = await visibleAnnouncementAudiences(db, membership, context.userId);
+      if (!audiences.includes(announcement.audience)) return null;
+    }
+    return { ...announcement, schoolId: membership.schoolId };
   });
 
 export const createSchoolAnnouncement = createServerFn({ method: "POST" })

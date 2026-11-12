@@ -3,8 +3,9 @@ import { numberMatches } from "@/features/education-catalog/identifiers";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
-import { sendOrQueue } from "@/lib/offline/outbox";
+import { OUTBOX_UNCERTAIN_MESSAGE, sendOrQueue } from "@/lib/offline/outbox";
 import { currentUserId } from "@/lib/offline/outbox-session";
+import { readStoredActiveSchool } from "@/features/auth/active-school";
 import { toast } from "@/lib/toast";
 import {
   Check,
@@ -43,6 +44,11 @@ import {
   type AttendanceStatus,
 } from "@/features/pedagogica/attendance-server";
 import {
+  TeacherCheckinButton,
+  TeacherPresenceLine,
+  TeacherPresenceManualRegister,
+} from "@/features/pedagogica/components/TeacherLessonPresence";
+import {
   teacherClassFilesSearch,
   teacherGradesSearch,
   teacherLessonPlansSearch,
@@ -68,7 +74,7 @@ const STATUS_OPTIONS = [
     short: "Falta",
     plural: "Faltas",
     icon: X,
-    text: "text-destructive",
+    text: "text-destructive-strong",
     ring: "ring-destructive/60",
     row: "border-destructive/30 bg-destructive/5",
     selected: "border-destructive bg-destructive text-destructive-foreground shadow-sm",
@@ -179,13 +185,21 @@ export function AttendanceCallDialog({
       return sendOrQueue("attendance.submit", input.data, {
         label,
         userId: await currentUserId(),
+        schoolId: readStoredActiveSchool(),
       });
     },
     onSuccess: (outcome) => {
       if (outcome.queued) {
-        toast.info("Chamada guardada neste computador", {
-          description: "Sem ligação ao servidor. É enviada sozinha quando a Internet voltar.",
-        });
+        if (outcome.requiresVerification) {
+          toast.warning("Chamada sem confirmação do servidor", {
+            description: OUTBOX_UNCERTAIN_MESSAGE,
+            duration: Infinity,
+          });
+        } else {
+          toast.info("Chamada guardada neste computador", {
+            description: "Sem ligação ao servidor. É enviada sozinha quando a Internet voltar.",
+          });
+        }
         onOpenChange(false);
         return;
       }
@@ -377,6 +391,25 @@ export function AttendanceCallDialog({
                 </Badge>
               )}
             </div>
+
+            {/* PRESENÇA DO PROFESSOR NA SALA (quando a escola já tem a funcionalidade) */}
+            {data?.session.presence_enabled && data.session.presence_mode !== "off" ? (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-background px-3 py-2">
+                <TeacherPresenceLine
+                  session={data.session}
+                  self={data.session.viewer_is_session_teacher}
+                />
+                {data.session.viewer_is_session_teacher ? (
+                  <TeacherCheckinButton
+                    session={data.session}
+                    mode={data.session.presence_mode}
+                    className="h-8"
+                  />
+                ) : data.session.viewer_can_register_presence ? (
+                  <TeacherPresenceManualRegister session={data.session} />
+                ) : null}
+              </div>
+            ) : null}
 
             {/* PROGRESSO: quantos já estão marcados */}
             <div className="mt-3">

@@ -584,7 +584,7 @@ export function SchoolSettingsPanel() {
                 className={errors[f.id] ? "border-destructive" : undefined}
               />
               {errors[f.id] ? (
-                <p className="flex items-center gap-1 text-xs font-medium text-destructive">
+                <p className="flex items-center gap-1 text-xs font-medium text-destructive-strong">
                   <AlertCircle className="size-3.5" /> {errors[f.id]}
                 </p>
               ) : f.hint ? (

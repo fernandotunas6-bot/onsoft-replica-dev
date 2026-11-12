@@ -1,5 +1,7 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { finishRecordedPayment } from "@/features/finance/finish-recorded-payment";
+import { lazy, Suspense, useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { z } from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { realtimeInvalidator } from "@/lib/realtime-invalidate";
@@ -13,9 +15,9 @@ import {
   FileBadge,
   FileDown,
   FileText,
-  FileUp,
+  Hash,
   Plus,
-  QrCode,
+  Users,
   Wallet,
   X,
 } from "lucide-react";
@@ -24,9 +26,7 @@ import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
-import { DOC_PATHS, getPayflowPayerUrl } from "@/lib/ecosystem-urls";
-import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
-import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
+import { DOC_PATHS } from "@/lib/ecosystem-urls";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Button } from "@/components/ui/button";
@@ -67,12 +67,14 @@ import {
   getFinanceSchemaStatus,
   cancelInvoice,
   issueInvoice,
+  issueTuitionBatch,
   listFinanceStudents,
+  listTuitionBatchClasses,
   listInvoices,
   recordInvoicePayment,
 } from "@/features/finance/server";
 import { officialReceiptBody } from "@/features/finance/schemas";
-import { buildProformaInvoice } from "@/features/finance/proforma-receipts";
+import { buildProformaInvoice, proformaNumber } from "@/features/finance/proforma-receipts";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { whatsappHref } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -81,6 +83,8 @@ import { HIGHER_ED_FEES } from "@/features/higher-ed/fees";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapInvoicesToFinanceOverviewSnapshot } from "@/features/intelligence/finance/finance-overview-adapter";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
+import { usePaymentAttemptKey } from "@/features/finance/use-payment-attempt-key";
+import { invoiceState, type PaymentStateView } from "@/features/finance/payment-states";
 import { AppMark } from "@/features/integrations/app-marks";
 import { kwanza } from "@/lib/currency";
 import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
@@ -93,7 +97,19 @@ import { exportCsv } from "@/lib/export-csv";
 import { exportPdfTable } from "@/lib/export-pdf-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
-import { proformaNumber, schoolDateInDays, schoolTodayIso } from "@/lib/school-date";
+import { schoolDateInDays, schoolTodayIso } from "@/lib/school-date";
+
+const StudentLedgerPanel = lazy(() =>
+  import("@/features/finance/components/StudentLedgerPanel").then((module) => ({
+    default: module.StudentLedgerPanel,
+  })),
+);
+
+const ReceiptRegisterPanel = lazy(() =>
+  import("@/features/finance/components/ReceiptRegisterPanel").then((module) => ({
+    default: module.ReceiptRegisterPanel,
+  })),
+);
 
 const faturasFilterDefaults = {
   q: "",
@@ -113,9 +129,21 @@ type InvoiceExportRow = {
   valor: number;
   recebido: number;
   estado: "Paga" | "Pendente" | "Vencida";
+  /** O que aconteceu ao dinheiro: distingue «Paga em parte» de «Por pagar». */
+  situacao: PaymentStateView;
 };
 
+/**
+ * `?aluno=<id>`: as faturas de um aluno (todas, não só as 250 mais recentes da
+ * escola), abertas do menu da fatura (SIGA Context Engine). O servidor filtra pela
+ * escola activa; um id mal formado é ignorado.
+ */
+const faturasSearchSchema = z.object({
+  aluno: z.string().guid().optional().catch(undefined),
+});
+
 export const Route = createFileRoute("/faturas")({
+  validateSearch: (search: Record<string, unknown>) => faturasSearchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Faturas · SIGA" },
@@ -149,12 +177,15 @@ function receiveDescription(multa: { counter: number; electronic: number }) {
     return `Em atraso: registar hoje aplica a multa de ${kz(multa.counter)}, já somada ao valor.`;
   }
   if (multa.electronic > 0) {
-    return `Em atraso: Multicaixa Express e Unitel Money levam a multa de ${kz(multa.electronic)}; numerário e transferência não.`;
+    return `Em atraso: TPA, Multicaixa Express e Unitel Money levam a multa de ${kz(multa.electronic)}; numerário e transferência não.`;
   }
   return "Liquida esta fatura e lança o recibo no caixa.";
 }
 
 function FaturasPage() {
+  const [showStudentLedger, setShowStudentLedger] = useState(false);
+  const [showReceipts, setShowReceipts] = useState(false);
+  const paymentKey = usePaymentAttemptKey();
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const { school, selectedYearLabel } = useSchoolSettings();
@@ -166,6 +197,7 @@ function FaturasPage() {
   const [emisInvoice, setEmisInvoice] = useState<{ id: string; numero: string } | null>(null);
   const receiveMethods = [
     "Numerário",
+    "TPA (cartão)",
     "Transferência",
     ...(installed.isInstalled("multicaixa_express") ? ["Multicaixa Express"] : []),
     ...(installed.isInstalled("unitel_money") ? ["Unitel Money"] : []),
@@ -179,9 +211,13 @@ function FaturasPage() {
   const de = filters.de;
   const ate = filters.ate;
 
+  const { aluno } = Route.useSearch();
   const invoicesQuery = useQuery({
-    queryKey: ["finance", "invoices"],
-    queryFn: () => listInvoices({ data: { limit: 250 } }),
+    queryKey: aluno ? ["finance", "invoices", { studentId: aluno }] : ["finance", "invoices"],
+    queryFn: () =>
+      aluno
+        ? listInvoices({ data: { limit: 1000, studentId: aluno } })
+        : listInvoices({ data: { limit: 250, includeOpen: true } }),
   });
   const financeStudentsQuery = useQuery({
     queryKey: ["finance", "students"],
@@ -190,6 +226,11 @@ function FaturasPage() {
   const reportingQuery = useQuery({
     queryKey: ["finance", "reporting"],
     queryFn: () => getFinanceReporting(),
+  });
+  const batchClassesQuery = useQuery({
+    queryKey: ["finance", "tuition-batch-classes"],
+    queryFn: () => listTuitionBatchClasses(),
+    staleTime: 60_000,
   });
   const schemaQuery = useQuery({
     queryKey: ["finance", "schema-status"],
@@ -224,6 +265,15 @@ function FaturasPage() {
             : invoice.due_on < schoolTodayIso()
               ? ("Vencida" as const)
               : ("Pendente" as const),
+        situacao: invoiceState(
+          {
+            status: invoice.status,
+            total: Number(invoice.total_amount),
+            paid: Number(invoice.amount_paid),
+            dueOn: invoice.due_on,
+          },
+          schoolTodayIso(),
+        ),
       })),
     [invoicesQuery.data],
   );
@@ -272,6 +322,7 @@ function FaturasPage() {
     const created = () =>
       realtime.invalidate(
         ["finance", "invoices"],
+        ["finance", "student-ledger"],
         ["finance", "reporting"],
         ["dashboard", "overview"],
       );
@@ -290,7 +341,12 @@ function FaturasPage() {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "finance_invoices" },
-        () => realtime.invalidate(["finance", "invoices"], ["finance", "reporting"]),
+        () =>
+          realtime.invalidate(
+            ["finance", "invoices"],
+            ["finance", "student-ledger"],
+            ["finance", "reporting"],
+          ),
       )
       .subscribe();
 
@@ -328,7 +384,7 @@ function FaturasPage() {
             variant="ghost"
             onClick={() => setEmisInvoice({ id: f.id, numero: f.numero })}
           >
-            <QrCode className="size-3.5" /> Referência EMIS
+            <Hash className="size-3.5" /> Referência EMIS
           </Button>
         ) : null}
         {f.estado !== "Paga" ? (
@@ -375,6 +431,7 @@ function FaturasPage() {
               const amount = Number(values["valor"]);
               const methodMap = {
                 Numerário: "cash",
+                "TPA (cartão)": "tpa",
                 Transferência: "transfer",
                 "Multicaixa Express": "multicaixa_express",
                 "Unitel Money": "unitel_money",
@@ -382,6 +439,7 @@ function FaturasPage() {
               const method =
                 methodMap[(values["metodo"] as keyof typeof methodMap) ?? "Numerário"] ?? "cash";
               const reference = values["referencia"] || undefined;
+              const attempt = [f.id, amount, method, values["data"]].join("|");
               const paid = await recordInvoicePayment({
                 data: {
                   invoiceId: f.id,
@@ -392,20 +450,21 @@ function FaturasPage() {
                   paidAt: values["data"]
                     ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
                     : undefined,
+                  idempotencyKey: paymentKey.keyFor(attempt),
                 },
               });
-              await Promise.all([
-                queryClient.invalidateQueries({
-                  queryKey: ["finance", "invoices"],
-                }),
-                queryClient.invalidateQueries({
-                  queryKey: ["finance", "reporting"],
-                }),
-                queryClient.invalidateQueries({ queryKey: ["arquivos"] }),
-              ]);
-              // Número oficial vem do servidor (gerado atomicamente) — nunca do
-              // valor digitado, para o PDF impresso bater sempre com a base de dados.
-              await downloadReceipt(f, paid.receipt_number, amount);
+              paymentKey.settled(attempt);
+              await finishRecordedPayment({
+                receiptNumber: paid.receipt_number,
+                refresh: () =>
+                  Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["finance"] }),
+                    queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+                    queryClient.invalidateQueries({ queryKey: ["arquivos"] }),
+                  ]),
+                // O número oficial é o devolvido pelo servidor, mesmo que o PDF falhe.
+                print: () => downloadReceipt(f, paid.receipt_number, amount),
+              });
               if (paid?.library_document_code) {
                 toast.success(`Recibo arquivado · ${paid.library_document_code}`);
               }
@@ -417,14 +476,10 @@ function FaturasPage() {
             )}
           />
         ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              void downloadReceipt(f, `RC-${f.numero.replace(/^FT-?/i, "")}`, f.recebido || f.valor)
-            }
-          >
-            <FileDown className="size-3.5" /> Recibo
+          <Button size="sm" variant="outline" asChild>
+            <Link to="/faturas/$invoiceId" params={{ invoiceId: f.id }}>
+              <FileDown className="size-3.5" /> Ver recibos
+            </Link>
           </Button>
         )}
         {resendInvoices ? (
@@ -469,6 +524,7 @@ function FaturasPage() {
                 queryClient.invalidateQueries({
                   queryKey: ["finance", "invoices"],
                 }),
+                queryClient.invalidateQueries({ queryKey: ["finance", "student-ledger"] }),
                 queryClient.invalidateQueries({
                   queryKey: ["finance", "reporting"],
                 }),
@@ -478,7 +534,7 @@ function FaturasPage() {
               ]);
             }}
             trigger={(open) => (
-              <Button size="sm" variant="ghost" className="text-destructive" onClick={open}>
+              <Button size="sm" variant="ghost" className="text-destructive-strong" onClick={open}>
                 <X className="size-3.5" /> Anular
               </Button>
             )}
@@ -502,7 +558,7 @@ function FaturasPage() {
     { label: "Emissão", value: (row: InvoiceExportRow) => row.emitida },
     { label: "Vencimento", value: (row: InvoiceExportRow) => row.vencimento },
     { label: "Valor (Kz)", value: (row: InvoiceExportRow) => row.valor },
-    { label: "Estado", value: (row: InvoiceExportRow) => row.estado },
+    { label: "Estado", value: (row: InvoiceExportRow) => row.situacao.label },
   ];
   const exportRows: InvoiceExportRow[] = filtered.map((fatura) => ({
     ...fatura,
@@ -779,9 +835,9 @@ function FaturasPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Relatórios"
+          group="Financeiro"
           title="Faturas"
-          description="Documentos de cobrança emitidos, com vencimento, valor e estado de liquidação."
+          description="Documentos de cobrança emitidos, com vencimento, valor e estado de liquidação. Mostra as 250 mais recentes e todas as que estão por pagar."
           actions={
             <>
               <DocHelpButton title="Navegação — Faturas e tesouraria" />
@@ -821,7 +877,7 @@ function FaturasPage() {
                         className="text-xs cursor-pointer text-primary font-medium"
                         onClick={() => void handleValidateSaftAo(new Date().getFullYear())}
                       >
-                        Validar Estrutura AGT
+                        Verificar estrutura do XML
                       </DropdownMenuItem>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
@@ -843,31 +899,55 @@ function FaturasPage() {
                   >
                     <Download className="size-3.5" /> Ficheiro CSV
                   </DropdownMenuItem>
-                  <div className="my-1 border-t border-border" />
-                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
-                    <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
-                      <FileUp className="size-3.5 text-primary" /> Importar Pagamentos (Excel)
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
-                    <a
-                      href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <PayflowBrandIcon size={14} /> Portal PayFlow (Pagamentos)
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="gap-2 text-xs cursor-pointer p-0"
-                    onSelect={(event) => event.preventDefault()}
-                  >
-                    <PayflowAdminLaunchButton asMenuItem className="px-2 py-1.5">
-                      Conciliação PayFlow
-                    </PayflowAdminLaunchButton>
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {batchClassesQuery.data?.length ? (
+                <QuickFormModal
+                  eyebrow="Cobrança"
+                  title="Propinas da turma"
+                  description="Emite a propina do mês para todos os alunos activos da turma. Quem já a tem fica de fora; nada é emitido duas vezes."
+                  submitLabel="Emitir propinas"
+                  successDescription="Lote concluído."
+                  fields={[
+                    {
+                      name: "turma",
+                      label: "Turma",
+                      type: "select",
+                      full: true,
+                      options: batchClassesQuery.data.map((group) => ({
+                        value: group.id,
+                        label: `${group.label} · ${group.students} alunos`,
+                      })),
+                    },
+                    { name: "vencimento", label: "Vencimento", type: "date" },
+                  ]}
+                  onSubmit={async (values) => {
+                    const result = await issueTuitionBatch({
+                      data: {
+                        classGroupId: values["turma"] ?? "",
+                        dueOn: values["vencimento"] ?? "",
+                      },
+                    });
+                    await queryClient.invalidateQueries({ queryKey: ["finance"] });
+                    const summary = `${result.issued.length} emitidas · ${result.skipped.length} já tinham a propina · ${result.failed.length} com erro`;
+                    if (result.failed.length) {
+                      toast.warning(summary, { description: result.failed[0]?.reason });
+                    } else {
+                      toast.success(summary);
+                    }
+                  }}
+                  trigger={(open) => (
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={open}
+                      disabled={financeInvoiceBlocked}
+                    >
+                      <Users className="size-4" /> Propinas da turma
+                    </Button>
+                  )}
+                />
+              ) : null}
               <QuickFormModal
                 title="Emitir Fatura Proforma"
                 eyebrow="Orçamento"
@@ -1002,15 +1082,16 @@ function FaturasPage() {
           <div className="flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3">
             <AppMark id="agt" className="size-9 shrink-0" />
             <div className="min-w-0">
-              <p className="text-sm font-semibold">AGT · faturação electrónica</p>
+              <p className="text-sm font-semibold">AGT · documentos internos</p>
               <p className="text-xs text-muted-foreground">
                 {school?.nif
-                  ? `NIF da escola ${school.nif}. Instale a AGT no lançador para activar faturação electrónica neste módulo.`
-                  : "Defina o NIF da escola nas definições e instale a AGT para alinhar as faturas."}
+                  ? `NIF da escola ${school.nif}. `
+                  : "Defina o NIF da escola nas definições. "}
+                O SIGA não é software de facturação certificado pela AGT: estas faturas servem para
+                cobrança e conferência, e o documento fiscal emite-se no software certificado.
               </p>
             </div>
           </div>
-          <InstalledModuleTools module="financeiro" />
           <InstalledModuleTools module="faturas" />
         </div>
 
@@ -1050,6 +1131,24 @@ function FaturasPage() {
               </Button>
             </AlertDescription>
           </Alert>
+        ) : null}
+
+        {aluno ? (
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm shadow-soft"
+          >
+            <span className="min-w-0 [overflow-wrap:anywhere]">
+              {invoicesQuery.isLoading
+                ? "A abrir as faturas do aluno…"
+                : faturas[0]
+                  ? `Faturas de ${faturas[0].aluno} · processo ${faturas[0].processo}`
+                  : "Este aluno não tem faturas nesta escola."}
+            </span>
+            <Link to="/faturas" className="text-xs font-semibold text-primary hover:underline">
+              Ver todas as faturas
+            </Link>
+          </div>
         ) : null}
 
         <StatGrid
@@ -1097,6 +1196,40 @@ function FaturasPage() {
             },
           ]}
         />
+
+        <div>
+          <Button
+            variant="outline"
+            aria-expanded={showStudentLedger}
+            onClick={() => setShowStudentLedger((open) => !open)}
+          >
+            <Users className="size-4" />{" "}
+            {showStudentLedger
+              ? "Fechar lista financeira dos alunos"
+              : "Lista financeira dos alunos"}
+          </Button>
+        </div>
+        {showStudentLedger ? (
+          <Suspense fallback={<EntityListSkeleton rows={4} />}>
+            <StudentLedgerPanel blocked={financeInvoiceBlocked} />
+          </Suspense>
+        ) : null}
+
+        <div>
+          <Button
+            variant="outline"
+            aria-expanded={showReceipts}
+            onClick={() => setShowReceipts((open) => !open)}
+          >
+            <FileDown className="size-4" />
+            {showReceipts ? "Fechar pesquisa de recibos" : "Pesquisar recibos"}
+          </Button>
+        </div>
+        {showReceipts ? (
+          <Suspense fallback={<EntityListSkeleton rows={4} />}>
+            <ReceiptRegisterPanel />
+          </Suspense>
+        ) : null}
 
         <Panel
           title="Documentos emitidos"
@@ -1165,18 +1298,19 @@ function FaturasPage() {
                               {f.aluno}
                             </p>
                             <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                              <span className="tnum">{f.numero}</span> · {f.descricao}
+                              <Link
+                                to="/faturas/$invoiceId"
+                                params={{ invoiceId: f.id }}
+                                className="tnum font-medium text-primary hover:underline"
+                              >
+                                {f.numero}
+                              </Link>{" "}
+                              · {f.descricao}
                             </p>
                           </div>
                           <StatusBadge
-                            status={
-                              f.estado === "Paga"
-                                ? "paid"
-                                : f.estado === "Vencida"
-                                  ? "overdue"
-                                  : "pending"
-                            }
-                            label={f.estado}
+                            status={f.situacao.status}
+                            label={f.situacao.label}
                             size="sm"
                           />
                         </div>
@@ -1217,10 +1351,15 @@ function FaturasPage() {
                     {pagedFaturas.map((f) => (
                       <TableRow key={f.id}>
                         <TableCell className="font-mono text-xs">
-                          <span className="flex items-center gap-2">
+                          {/* O número abre a página da fatura, com o aluno e os recibos. */}
+                          <Link
+                            to="/faturas/$invoiceId"
+                            params={{ invoiceId: f.id }}
+                            className="flex items-center gap-2 hover:text-primary hover:underline"
+                          >
                             <FileText className="size-4 text-primary" />
                             {f.numero}
-                          </span>
+                          </Link>
                         </TableCell>
                         <TableCell className="font-semibold">{f.aluno}</TableCell>
                         <TableCell className="font-mono text-xs text-muted-foreground">
@@ -1233,16 +1372,7 @@ function FaturasPage() {
                         <TableCell>{new Date(f.vencimento).toLocaleDateString("pt-PT")}</TableCell>
                         <TableCell className="text-right font-bold">{kwanza(f.valor)}</TableCell>
                         <TableCell className="text-right">
-                          <StatusBadge
-                            status={
-                              f.estado === "Paga"
-                                ? "paid"
-                                : f.estado === "Vencida"
-                                  ? "overdue"
-                                  : "pending"
-                            }
-                            label={f.estado}
-                          />
+                          <StatusBadge status={f.situacao.status} label={f.situacao.label} />
                         </TableCell>
                         <TableCell className="text-right">
                           <FaturaActions f={f} />
@@ -1253,7 +1383,7 @@ function FaturasPage() {
                       <TableRow>
                         <TableCell
                           colSpan={9}
-                          className="py-8 text-center text-sm text-destructive"
+                          className="py-8 text-center text-sm text-destructive-strong"
                         >
                           Não foi possível carregar as faturas.
                         </TableCell>

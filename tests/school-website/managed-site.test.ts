@@ -27,7 +27,7 @@ const publication = {
   templateVersion: websiteTemplate.version,
   values: {},
   unavailablePrograms: [],
-  admissions: null,
+  admissions: { isOpen: false, path: null },
 };
 describe("website no endereço de cada escola", () => {
   it("o subdomínio e um domínio próprio seleccionam a página pública; o portal permanece operacional", () => {

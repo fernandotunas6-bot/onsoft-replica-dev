@@ -376,7 +376,7 @@ export function WindowsDesktopSettingsModal({
               <p className="text-[11px] font-mono text-muted-foreground">{discoverMeta}</p>
             ) : null}
             {discoverError ? (
-              <p className="text-[11px] text-destructive rounded-lg bg-destructive/10 px-2.5 py-2">
+              <p className="text-[11px] text-destructive-strong rounded-lg bg-destructive/10 px-2.5 py-2">
                 {discoverError}
               </p>
             ) : null}

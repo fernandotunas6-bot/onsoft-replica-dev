@@ -1,4 +1,5 @@
-import { useFollowSelectedTerm, useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useFollowSelectedTerm } from "@/features/auth/use-follow-selected-term";
 import { useState } from "react";
 import { AlertTriangle, BookOpen, ChevronRight, Layers, Trophy } from "lucide-react";
 import { IconChip } from "@/components/ui/icon-chip";
@@ -153,7 +154,7 @@ export function DisciplinePerformanceHeatmap({
                       "bg-success/15 text-success-strong font-extrabold border-success/30";
                     if (isFail) {
                       cellClass =
-                        "bg-destructive/20 text-destructive font-black border-destructive/40";
+                        "bg-destructive/20 text-destructive-strong font-black border-destructive/40";
                     } else if (isWarning) {
                       cellClass = "bg-warning/20 text-warning-strong font-bold border-warning/40";
                     } else if (isGood) {

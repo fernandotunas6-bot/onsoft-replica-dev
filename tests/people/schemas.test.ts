@@ -6,6 +6,8 @@ import {
   personCoreFieldsSchema,
   personDocumentInputSchema,
   searchPeopleInputSchema,
+  searchPeoplePageInputSchema,
+  listTeachersPageInputSchema,
   setPersonInstitutionRolesInputSchema,
   setPersonPhotoUrlInputSchema,
   updatePersonInputSchema,
@@ -147,6 +149,27 @@ describe("updatePersonInputSchema", () => {
     expect(parsed.fullName).toBe("Ana Domingos");
   });
 
+  it("aceita uma versão de edição optimista sem obrigar consumidores antigos a enviá-la", () => {
+    const personId = "11111111-1111-4111-8111-111111111111";
+    expect(
+      updatePersonInputSchema.parse({
+        personId,
+        fullName: "Ana Domingos",
+        expectedUpdatedAt: "2026-10-28T07:00:00.000Z",
+      }).expectedUpdatedAt,
+    ).toBe("2026-10-28T07:00:00.000Z");
+    expect(
+      updatePersonInputSchema.parse({ personId, fullName: "Ana Domingos" }).expectedUpdatedAt,
+    ).toBeUndefined();
+    expect(
+      updatePersonInputSchema.safeParse({
+        personId,
+        fullName: "Ana Domingos",
+        expectedUpdatedAt: "",
+      }).success,
+    ).toBe(false);
+  });
+
   it("valida NIF/BI quando fornecido", () => {
     expect(
       updatePersonInputSchema.safeParse({
@@ -242,5 +265,30 @@ describe("setPersonPhotoUrlInputSchema", () => {
         photoUrl: "siga-file://not-a-file",
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("directory pagination schemas", () => {
+  it("applies a bounded first page and preserves the legacy list schema", () => {
+    expect(searchPeopleInputSchema.parse({}).limit).toBe(20);
+    expect(searchPeoplePageInputSchema.parse({})).toMatchObject({
+      page: 1,
+      pageSize: 25,
+      status: "todos",
+      query: "",
+    });
+    expect(listTeachersPageInputSchema.parse({})).toMatchObject({
+      page: 1,
+      pageSize: 25,
+      status: "all",
+    });
+  });
+
+  it("rejects oversized pages, negative page, and invalid status", () => {
+    expect(searchPeoplePageInputSchema.safeParse({ page: 0 }).success).toBe(false);
+    expect(searchPeoplePageInputSchema.safeParse({ page: 1.5 }).success).toBe(false);
+    expect(searchPeoplePageInputSchema.safeParse({ pageSize: 101 }).success).toBe(false);
+    expect(searchPeoplePageInputSchema.safeParse({ status: "deleted" }).success).toBe(false);
+    expect(listTeachersPageInputSchema.safeParse({ pageSize: 101 }).success).toBe(false);
   });
 });

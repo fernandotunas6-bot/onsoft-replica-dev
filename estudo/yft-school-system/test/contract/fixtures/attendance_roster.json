@@ -1,0 +1,11 @@
+{
+  "data": [
+    {
+      "student_id": "q-st",
+      "name": "Ana Silva",
+      "photo_url": null,
+      "present": false
+    }
+  ],
+  "marked": true
+}

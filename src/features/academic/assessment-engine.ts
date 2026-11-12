@@ -103,10 +103,12 @@ export function decidePromotionStatus(
   const passes = overallAvg >= passing && withinFailures;
 
   if (rule.requiresPap) {
-    if (papGrade !== undefined && papGrade !== null && papGrade < passing) {
-      return "NÃO APTO (PAP)";
-    }
-    if (passes) return "APTO (PAP)";
+    const hasPap = papGrade !== undefined && papGrade !== null;
+    if (hasPap && papGrade < passing) return "NÃO APTO (PAP)";
+    // Sem a nota da PAP não há aptidão: a média positiva só diz que falta a prova.
+    // Antes saía «APTO (PAP)» para toda a turma técnica, porque nenhum consumidor
+    // (pauta, exportação, histórico) passa a nota da PAP.
+    if (passes) return hasPap ? "APTO (PAP)" : "PENDENTE";
   } else if (passes) {
     return "TRANSITA";
   }

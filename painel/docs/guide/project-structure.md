@@ -77,8 +77,8 @@ Referência técnica no repositório: `docs/agents/PAYFLOW_INTEGRATION.md`.
 
 ## DOC (`painel/docs`)
 
-VitePress. Manuais reais sob `/siga/`, `/admin/`, `/web/`, `/arquitetura/`, `/integracoes/`.  
-Secções `/vite/`, `/nextjs/`, `/components/` ainda reflectem o template de UI — usar como referência de componentes, não como mapa do produto.
+VitePress. Manuais sob `/siga/`, `/admin/`, `/web/`, `/arquitetura/`, `/integracoes/`, `/financeiro/` e `/guide/`.
+As secções herdadas do modelo de UI (`/vite/`, `/nextjs/`, `/components/`, `/theme-customizer/`) saíram a 10/11/2026; `public/_redirects` leva os endereços antigos às páginas vivas.
 
 ---
 

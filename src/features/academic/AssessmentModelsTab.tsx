@@ -527,7 +527,7 @@ function RuleEditorDialog({
                 })}
               </div>
               {issueFor("promotionRules") ? (
-                <p className="text-xs text-destructive/80">{issueFor("promotionRules")}</p>
+                <p className="text-xs text-destructive-strong">{issueFor("promotionRules")}</p>
               ) : null}
             </div>
 
@@ -599,7 +599,7 @@ function Field({
         <span className="block text-xs text-muted-foreground">{label}</span>
         {children}
       </label>
-      {error ? <p className="text-xs text-destructive/80">{error}</p> : null}
+      {error ? <p className="text-xs text-destructive-strong">{error}</p> : null}
     </div>
   );
 }

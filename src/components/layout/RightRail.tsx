@@ -69,8 +69,12 @@ export function RightRail() {
   const nonceRef = useRef(0);
 
   // Sem entidade em foco não há "Relacionado" para mostrar — o chat passa a ser
-  // o único separador e fica seleccionado.
-  const hasRelated = Boolean(focusedEntity);
+  // o único separador e fica seleccionado. O mesmo quando a entidade não tem
+  // relações nem acções (a fatura, por exemplo): o separador abria vazio, e o
+  // menu da entidade na sidebar já leva às páginas ligadas.
+  const hasRelated =
+    Boolean(focusedEntity) &&
+    (relations.some((relation) => relation.route) || suggestions.length > 0);
   const activeTab: RailTab = hasRelated ? tab : "mensagens";
 
   /* O sino de notificações e a fila de avatares do drawer pedem a conversa por

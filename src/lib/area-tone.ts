@@ -21,6 +21,7 @@ const RULES: Array<[prefix: string, tone: AreaTone]> = [
   ["/professores", "pedagogica"],
   ["/planos-aula", "pedagogica"],
   ["/calendario", "pedagogica"],
+  ["/aulas-virtuais", "pedagogica"],
   ["/alunos", "secretaria"],
   ["/pessoas", "secretaria"],
   ["/matricula", "secretaria"],
@@ -46,3 +47,24 @@ export function areaToneForPath(pathname: string): AreaTone {
   }
   return "marca";
 }
+
+/**
+ * Nome da área no breadcrumb (`PageHeader group`).
+ *
+ * Mesma fonte que o tom, para o rótulo não poder contradizer a cor: Facturas
+ * pintava-se de financeiro e escrevia «Relatórios», e as cinco páginas de
+ * `/financeiro/rh` anunciavam três áreas diferentes entre irmãs.
+ *
+ * O nome é o do grupo na barra lateral, não o da área: quem clica em
+ * «Académico» espera voltar a lê-lo no caminho, e `pedagogica` é só como a
+ * área se chama no código.
+ */
+export const AREA_LABEL: Record<AreaTone, string> = {
+  marca: "SIGA",
+  pedagogica: "Académico",
+  financeiro: "Financeiro",
+  secretaria: "Secretaria",
+  rh: "Finanças · RH",
+  comunicacao: "Gestão e Comunicação",
+  sistema: "Sistema",
+};

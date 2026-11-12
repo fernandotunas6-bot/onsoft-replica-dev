@@ -1,18 +1,18 @@
 /**
  * 2FA na sessão, não só nas tabelas do dinheiro.
  *
- * O Supabase emite um token aal1 logo depois da senha certa, antes do desafio
- * 2FA; o ecrã pede o código, mas o token já existe. Sem esta verificação, quem
- * tivesse só a senha de uma conta com 2FA activo chamava directamente todas as
- * server functions que não exigem `aal2` (acessos, senhas, integrações, alunos).
+ * O Supabase emite um token aal1 depois da senha, mesmo com factores inscritos.
+ * Para quem optar pela confirmação no login, o ecrã e este guard têm de impor
+ * aal2; sem a opção, o token aal1 abre as páginas comuns.
  *
- * Regra: conta com factor verificado só entra com aal2. Conta sem factor
- * continua a entrar com aal1 — activar 2FA é escolha dela (o dinheiro exige-o à
- * parte, com `requireAal2`).
+ * Regra: só a conta que activou expressamente a verificação no login precisa
+ * de aal2 para navegar. Factores existentes continuam úteis para step-up;
+ * operações críticas mantêm os seus guardas aal2 independentes.
  */
+import { isLoginMfaEnabled } from "@/features/auth/login-mfa-policy";
 
 export const SESSION_MFA_REQUIRED =
-  "Unauthorized: esta conta tem 2FA activo. Entre de novo e confirme o código.";
+  "Unauthorized: activou a confirmação no login. Entre de novo e confirme o código.";
 
 /** `aal` do payload de um token JÁ validado pelo Supabase (aqui só se descodifica). */
 export function accessTokenAal(token: string): string | null {
@@ -40,13 +40,16 @@ export function clearSessionMfaCache() {
 
 const lookupWithAdminApi: VerifiedFactorLookup = async (userId) => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (userError || !userData.user) throw userError ?? new Error("Conta indisponível.");
+  if (!isLoginMfaEnabled(userData.user.app_metadata)) return false;
   const { data, error } = await supabaseAdmin.auth.admin.mfa.listFactors({ userId });
   if (error) throw error;
   return (data?.factors ?? []).some((factor) => factor.status === "verified");
 };
 
 /**
- * Lança `SESSION_MFA_REQUIRED` quando a conta tem 2FA e o token é aal1.
+ * Lança `SESSION_MFA_REQUIRED` só com confirmação no login activada e token aal1.
  * Falha fechada: sem conseguir saber se a conta tem 2FA, um token aal1 não passa.
  * O resultado fica 60 s em memória por utilizador (só para tokens aal1).
  */

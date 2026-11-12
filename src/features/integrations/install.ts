@@ -211,13 +211,13 @@ export const integrationInstallPackages: Record<CatalogIntegrationId, Integratio
     provider: "agt",
     installUrl: "https://portaldocontribuinte.minfin.gov.ao/",
     docsUrl: "https://agt.minfin.gov.ao/PortalAGT/",
-    summary: "Instala NIF e faturação electrónica da AGT nas faturas da escola.",
+    summary: "Usa o NIF da escola nas faturas e liga ao Portal do Contribuinte da AGT.",
     capabilities: [
       cap("agt.nif", "NIF da escola", "Usar o NIF institucional nas faturas e recibos.", "faturas"),
       cap(
         "agt.einvoice",
-        "Faturação electrónica",
-        "Preparar a fatura para o Portal do Contribuinte / software certificado.",
+        "Portal do Contribuinte",
+        "Abrir o portal da AGT; a fatura fiscal emite-se no software certificado.",
         "faturas",
       ),
     ],

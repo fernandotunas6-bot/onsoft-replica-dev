@@ -54,6 +54,8 @@ aluno, e duas nem chegavam a correr na base SGA (função e colunas inexistentes
    de outra que o exige anula o 2FA (somam-se por OR); o teste `staff-only-sensitive-tables`
    recusa-a. `students` e `enrollments` não aceitam INSERT directo: só pelo servidor.
 
+6c-a. **Excepção de matrícula autorizada em 28/10/2026:** cadastro de aluno, matrícula, mudança/renovação de turma e candidatura aceitam AAL1. As RPCs continuam a exigir autenticação, vínculo activo, Administrador/Secretaria, permissão da acção e concessão de escrita. O ramo de `create_person_bundle` sem MFA aceita apenas o papel `aluno`; restantes papéis conservam MFA. Não alterar `private.is_aal2`, políticas de tabelas ou regras financeiras para implementar esta excepção.
+
 6d. **Papel pela escola da linha.** Numa política, usar `private.sga_app_role(school_id)`
    (devolve «Administrador», «Tesouraria»…) **sempre** com `is_school_member(school_id)`:
    para quem não é membro, `sga_app_role` cai no cargo global do perfil. Não usar

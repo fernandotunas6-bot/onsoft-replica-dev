@@ -264,14 +264,21 @@ export async function loadExistingReceiptNumbers(
     readAllPages((from, to) =>
       db
         .from("finance_receipts")
-        .select("id, receipt_number")
+        .select("id, receipt_number, external_id")
         .eq("school_id", schoolId)
         .order("id", { ascending: true })
         .range(from, to),
     ),
     "Não foi possível carregar recibos existentes",
   );
-  return new Set(data.map((row) => normalizeText(row.receipt_number)).filter(Boolean));
+  // O nº da folha de uma importação anterior está no external_id (ver registerReceiptDirect).
+  const fromSheet = data
+    .map((row) => (row as { external_id?: string | null }).external_id ?? "")
+    .filter((id) => id.startsWith(IMPORT_RECEIPT_PREFIX))
+    .map((id) => id.slice(IMPORT_RECEIPT_PREFIX.length));
+  return new Set(
+    [...data.map((row) => normalizeText(row.receipt_number)), ...fromSheet].filter(Boolean),
+  );
 }
 
 export type OpenInvoiceRef = {
@@ -447,12 +454,43 @@ export function mapPaymentMethod(value: unknown): "cash" | "bank_transfer" | "ca
 }
 
 /**
- * Regista um pagamento directamente em `finance_receipts`, sem passar pela RPC
- * `register_payment` — essa exige sessão interactiva com AAL2 (`private.is_aal2()`), o que uma
- * importação em lote, corrida com o cliente administrativo, nunca tem. Mesmo fallback que
- * `settleGatewayPayment` usa para pagamentos server-to-server (`gateway-webhook-handler.ts`):
- * soma os recibos já emitidos, valida o saldo, grava o recibo e recalcula o estado da fatura.
- * Sem o `FOR UPDATE` da função SQL — aceitável porque a importação processa uma linha de cada vez.
+ * Prefixo do `external_id` dos recibos importados. Liga o recibo à linha da folha que o
+ * originou, para que importar a mesma folha outra vez devolva o recibo existente.
+ */
+const IMPORT_EXTERNAL_PREFIX = "import:";
+const IMPORT_RECEIPT_PREFIX = `${IMPORT_EXTERNAL_PREFIX}recibo:`;
+
+/** Chave da linha importada: o nº do recibo da folha, ou fatura, valor, data e método. */
+export function importPaymentKey(params: {
+  receiptNumberHint?: string | null;
+  invoiceId: string;
+  amount: number;
+  paidOn: string;
+  paymentMethod: string;
+}) {
+  const hint = normalizeText(params.receiptNumberHint);
+  if (hint) return `recibo:${hint}`;
+  return `${params.invoiceId}:${params.amount.toFixed(2)}:${params.paidOn}:${params.paymentMethod}`;
+}
+
+function isMissingFunction(error: { code?: string; message?: string }) {
+  return (
+    error.code === "PGRST202" ||
+    error.code === "42883" ||
+    /could not find the function/i.test(error.message ?? "")
+  );
+}
+
+/**
+ * Regista um pagamento importado. `register_payment` exige sessão interactiva com AAL2,
+ * que uma importação em lote, corrida com o cliente administrativo, nunca tem; por isso
+ * usa a mesma função atómica dos webhooks (`settle_gateway_payment_service`, aplicada a
+ * 2026-10-02): fatura trancada `FOR UPDATE`, saldo com a multa, recibo e estado numa só
+ * transacção, e o mesmo `external_id` devolve o recibo existente. Sem o trancamento, uma
+ * importação ao mesmo tempo que um pagamento na tesouraria pagava a fatura a mais.
+ *
+ * O recibo leva o número da série da escola; o nº da folha fica no `external_id`.
+ * Só sem a função na base (ambiente local) segue o caminho em passos, abaixo.
  */
 export async function registerReceiptDirect(
   db: SupabaseClient,
@@ -465,8 +503,48 @@ export async function registerReceiptDirect(
     paidOn: string;
     receivedBy: string;
     receiptNumberHint?: string | null;
+    /** Ver `importPaymentKey`. */
+    importKey: string;
   },
-): Promise<{ receiptId: string; receiptNumber: string; invoiceStatus: string }> {
+): Promise<{
+  receiptId: string;
+  receiptNumber: string;
+  invoiceStatus: string;
+  alreadyImported?: boolean;
+}> {
+  const { data: settled, error: settleError } = await db.rpc(
+    "settle_gateway_payment_service" as never,
+    {
+      school_id: params.schoolId,
+      invoice_id: params.invoiceId,
+      amount: params.amount,
+      payment_method: params.paymentMethod,
+      received_by: params.receivedBy,
+      external_id: `${IMPORT_EXTERNAL_PREFIX}${params.importKey}`,
+      paid_on: params.paidOn,
+    } as never,
+  );
+  if (!settleError) {
+    const result = settled as unknown as {
+      alreadyPaid: boolean;
+      receiptId?: string;
+      receiptNumber?: string;
+      invoiceStatus?: string;
+    };
+    if (result.alreadyPaid && !result.receiptId) {
+      throw new Error("A fatura já está paga; linha ignorada.");
+    }
+    return {
+      receiptId: String(result.receiptId),
+      receiptNumber: String(result.receiptNumber),
+      invoiceStatus: String(result.invoiceStatus),
+      alreadyImported: result.alreadyPaid,
+    };
+  }
+  if (!isMissingFunction(settleError)) {
+    throw new Error(settleError.message || "Não foi possível registar o pagamento.");
+  }
+
   const { data: receipts, error: receiptsError } = await db
     .from("finance_receipts")
     .select("amount")

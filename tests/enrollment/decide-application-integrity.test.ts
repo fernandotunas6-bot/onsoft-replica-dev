@@ -10,9 +10,9 @@ const at = (needle: string) => {
 };
 
 describe("aceitar candidatura: sem alunos duplicados nem pessoas órfãs", () => {
-  it("exige 2FA antes de qualquer escrita", () => {
-    expect(at("requireAal2(context.claims")).toBeLessThan(at('.from("enrollment_applications")'));
-    expect(at("requireAal2(context.claims")).toBeLessThan(at('.from("people")'));
+  it("valida escrita por perfil e escola antes de qualquer operação", () => {
+    expect(at("requireSgaWriterForWrite(")).toBeLessThan(at('.from("enrollment_applications")'));
+    expect(decide).not.toContain("requireAal2(context.claims");
   });
 
   it("reserva a candidatura (pendente e sem reserva activa) antes de criar a pessoa", () => {

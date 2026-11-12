@@ -3,6 +3,7 @@ import '../models/arrears_student.dart';
 import '../models/fee_receipt.dart';
 import '../models/transaction.dart';
 import '../network/api_endpoints.dart';
+import '../sga/sga_config.dart';
 
 class FinanceRepository {
   final Dio _dio;
@@ -18,7 +19,9 @@ class FinanceRepository {
   }
 
   Future<List<FeeReceipt>> getReceipts() async {
-    final response = await _dio.get(ApiEndpoints.financeReceipts);
+    final response = await _dio.get(
+      sgaMode ? ApiEndpoints.sgaReceipts : ApiEndpoints.financeReceipts,
+    );
     final data = response.data['data'] as List;
     return data
         .map((e) => FeeReceipt.fromJson(e as Map<String, dynamic>))
