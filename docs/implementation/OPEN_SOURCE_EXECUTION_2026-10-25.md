@@ -16,7 +16,7 @@ Leituras: `AGENTS.md`, `package.json`, `docs/auditoria/17-analise-critica-sistem
 2. Configurar GitHub Environment `staging` com approval rules e estes cinco secrets: `STAGING_SUPABASE_PROJECT_ID`, `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_PUBLISHABLE_KEY`, `STAGING_SUPABASE_SECRET_KEY`, `STAGING_SUPABASE_ACCESS_TOKEN`; nunca colocar chave de serviço ou token de gestão em `VITE_*`. O token de gestão só entra no preflight e na etapa E2E @live, para a limpeza do tenant sintético via catálogo SQL, e requer permissões efectivas no projecto de staging.
 3. Reproduzir apenas as migrações canónicas `supabase/migrations/` depois de comparar versões com a base de destino. **Não** aplicar `supabase/migrations-lovable-nao-aplicar/`, nem executar migrações experimentais contra o SGA.
 4. Testar no staging duas escolas A/B com administrador, secretaria, professor, aluno, encarregado e tesouraria; MFA AAL1/AAL2, contas sem vínculo, mudança de escola, revogação e sessão expirada. Testar acesso directo à API, não apenas menus.
-5. Playwright @live: começar pelos testes já implementados de criação/matrícula/gateway e **isolamento RLS com dois administradores, duas escolas e duas sessões reais** (`tenant-isolation-live.spec.ts`). Completar separadamente as jornadas autenticadas de pautas/notas, chamadas, documentos, perfis, MFA AAL2 e permissões nas *server functions*; o teste de RLS **não substitui** essas provas. Executar `responsive-auth.spec.ts` nas larguras 767/768/1023/1024, zoom e teclado. Pagamento apenas simulado, sem liquidação real.
+5. Playwright @live: começar pelos testes já implementados de criação/matrícula/gateway e **isolamento RLS com dois administradores, duas escolas e duas sessões reais** (`tenant-isolation-live.spec.ts`). Completar separadamente as jornadas autenticadas de pautas/notas, chamadas, documentos, perfis, MFA AAL2 e permissões nas _server functions_; o teste de RLS **não substitui** essas provas. Executar `responsive-auth.spec.ts` nas larguras 767/768/1023/1024, zoom e teclado. Pagamento apenas simulado, sem liquidação real.
 6. Ensaiar restauro de backup **em staging** e verificar auditoria e semântica das permissões. Rever avisos individuais de `SECURITY DEFINER`, protecção de passwords comprometidas e rotação da credencial Google OAuth exposta historicamente (pelo fornecedor, sem publicar valor).
 
 **Saída:** E2E autenticado executado (sem skip), CI último SHA aprovado, provas de bloqueio cross-tenant, plano de rollback e relatório de staging. O workflow não valida por si só que as credenciais remotas estão activas: só os testes e o inventário confirmam.
@@ -27,25 +27,24 @@ Leituras: `AGENTS.md`, `package.json`, `docs/auditoria/17-analise-critica-sistem
 
 **Bloqueio de reconciliação detectado em 25/10:** as tabelas, RPCs e gatilhos de caixa da #283 já aparecem no projecto de produção, mas a versão `20261024110000` falta no histórico. As alterações de idempotência e estorno da #276 ainda não estão reflectidas. Consultar [FINANCE_MIGRATION_DRIFT_2026-10-25.md](FINANCE_MIGRATION_DRIFT_2026-10-25.md) e usar apenas o verificador **read-only** `scripts/siga/check-finance-schema-drift.mjs`; não reaplicar nem reparar o histórico automaticamente. O CI de #276 e #283 passou no último SHA revisto, mas falta staging e compatibilidade real.
 
-
-| Sequência | PR | Gate de integração |
-| --- | --- | --- |
-| 1 | [#287 — senhas](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/287) | Cliente/servidor alinhados; recuperação/MFA e CI do último SHA |
-| 2 | [#275 — segurança do website](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/275) | AAL2, domínio/tenant activos, URLs seguras, teste anónimo e escolas A/B |
-| 3 | [#277 — Puck Studio](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/277) | Empilhada em **#275**; rebase correcto, CSP, acessibilidade, editor em lazy chunk, publicação canário |
-| 4 | [#276 — financeiro por finalidade](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/276) | Fluxos factura/tesouraria/conciliação, RBAC, sem prometer emissão fiscal certificada |
-| 5 | [#283 — sessões de caixa](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/283) | Empilhada em **#276**; ordem SQL, corridas de fecho/estorno, separação de operador/aprovador |
-| 6 | [#288 — desktop](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/288) — **integrada na main a 25/10, 06:26 UTC** | Verificar rollout e validar em dispositivos reais; outbox, isolamento e updater são incrementais, não offline integral |
+| Sequência | PR                                                                                                                             | Gate de integração                                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| 1         | [#287 — senhas](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/287)                                             | Cliente/servidor alinhados; recuperação/MFA e CI do último SHA                                                         |
+| 2         | [#275 — segurança do website](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/275)                               | AAL2, domínio/tenant activos, URLs seguras, teste anónimo e escolas A/B                                                |
+| 3         | [#277 — Puck Studio](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/277)                                        | Empilhada em **#275**; rebase correcto, CSP, acessibilidade, editor em lazy chunk, publicação canário                  |
+| 4         | [#276 — financeiro por finalidade](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/276)                          | Fluxos factura/tesouraria/conciliação, RBAC, sem prometer emissão fiscal certificada                                   |
+| 5         | [#283 — sessões de caixa](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/283)                                   | Empilhada em **#276**; ordem SQL, corridas de fecho/estorno, separação de operador/aprovador                           |
+| 6         | [#288 — desktop](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/288) — **integrada na main a 25/10, 06:26 UTC** | Verificar rollout e validar em dispositivos reais; outbox, isolamento e updater são incrementais, não offline integral |
 
 **Estados revistos a 25/10, 06:26 UTC:** #275, #276, #277, #283 e #287 abertas; #275 e #277 em draft. #288 foi integrada durante esta auditoria. Não integrar #277 nem #283 sem as respectivas bases; não reimplementar backend alternativo da #200. Antes de integrar verificar checks/commits actuais, contratos de schema e impacto do merge que pode publicar. Não alterar branches dos outros agentes neste plano.
 
 ## Fase 3 — pilotos independentes, não migração geral
 
-| Upstream | Piloto mínimo | Proibições e métricas |
-| --- | --- | --- |
-| [pdfme](https://github.com/pdfme/pdfme) | Uma declaração escolar com modelo visual no módulo Documentos | Não alterar IDs/QR, numeração, assinaturas nem autorização; comparar PDF exacto e fontes PT; medir bundle e layout |
-| [Uppy](https://github.com/transloadit/uppy) | Um fluxo de upload do módulo Arquivos, preferencialmente headless | Reutilizar `FilePickerModal`, quotas, `siga_files`, metadata e Storage autorizados; sem bucket público nem sistema paralelo |
-| [TanStack Table](https://github.com/TanStack/table) + [Virtual](https://github.com/TanStack/virtual) | Uma tabela de alunos com dados fictícios volumosos | Preservar visual/teclado/leitor de ecrã, filtros e paginação server-side; medir scroll e tempo de interacção |
+| Upstream                                                                                             | Piloto mínimo                                                     | Proibições e métricas                                                                                                       |
+| ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| [pdfme](https://github.com/pdfme/pdfme)                                                              | Uma declaração escolar com modelo visual no módulo Documentos     | Não alterar IDs/QR, numeração, assinaturas nem autorização; comparar PDF exacto e fontes PT; medir bundle e layout          |
+| [Uppy](https://github.com/transloadit/uppy)                                                          | Um fluxo de upload do módulo Arquivos, preferencialmente headless | Reutilizar `FilePickerModal`, quotas, `siga_files`, metadata e Storage autorizados; sem bucket público nem sistema paralelo |
+| [TanStack Table](https://github.com/TanStack/table) + [Virtual](https://github.com/TanStack/virtual) | Uma tabela de alunos com dados fictícios volumosos                | Preservar visual/teclado/leitor de ecrã, filtros e paginação server-side; medir scroll e tempo de interacção                |
 
 **Gate por biblioteca:** confirmar licença e upstream da versão exacta (incluindo plugins/fontes), dependency pin + lockfile + SCA, necessidade medida, flag por escola, import dinâmico, teste de bundle e memória, teste cross-tenant, regressão visual em dispositivos de entrada, rollback. Não instalar três motores juntos. O projecto já tem jsPDF/ExcelJS e upload com recuperação; provar melhoria antes de acrescentar dependências.
 
@@ -81,12 +80,12 @@ Cada piloto tem PR própria, custo de infraestrutura documentado e evidência de
 
 ## Matriz de execução desta entrega
 
-| Fase | Estado | Evidência | Próximo gate |
-| --- | --- | --- | --- |
-| 1 | **parcial** | Guard de staging no workflow + testes de regressão | Provisionar staging e executar E2E remoto |
-| 2 | **mapeada** | Dependências das seis PRs documentadas | CI do último SHA, revisão e staging |
-| 3 | **planeada** | Contratos para três pilotos | Versão/licença e medição inicial |
-| 4 | **planeada** | Upstreams/limites mapeados | Pilotos da fase 3 |
-| 5 | **planeada** | Definição de critérios offline | Política de dados e sincronização |
+| Fase | Estado       | Evidência                                          | Próximo gate                              |
+| ---- | ------------ | -------------------------------------------------- | ----------------------------------------- |
+| 1    | **parcial**  | Guard de staging no workflow + testes de regressão | Provisionar staging e executar E2E remoto |
+| 2    | **mapeada**  | Dependências das seis PRs documentadas             | CI do último SHA, revisão e staging       |
+| 3    | **planeada** | Contratos para três pilotos                        | Versão/licença e medição inicial          |
+| 4    | **planeada** | Upstreams/limites mapeados                         | Pilotos da fase 3                         |
+| 5    | **planeada** | Definição de critérios offline                     | Política de dados e sincronização         |
 
 **Não instalado:** pdfme, Uppy, TanStack Table, FullCalendar, ZXing, Drift ou plugin SQL nesta entrega. **Não executado nesta entrega:** E2E autenticado remoto (incluindo a nova prova com duas escolas), migração, deploy, alteração Supabase/Cloudflare ou release. Testes unitários e CI de PR não provam RLS efectiva em staging. Não declarar fases completas sem a prova correspondente.

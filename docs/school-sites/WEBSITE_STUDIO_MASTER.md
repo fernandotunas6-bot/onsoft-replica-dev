@@ -33,14 +33,14 @@ escola as publica pelo fluxo autorizado.
 Referências oficiais consultadas em 24/10/2026; inspiram padrões, não autorizam
 copiar código, marcas ou interfaces integralmente.
 
-| Referência | Padrão a aproveitar | Fonte |
-| --- | --- | --- |
-| Framer | Edição contextual a partir da página renderizada | [On-Page Editing](https://www.framer.com/academy/lessons/on-page-editing) |
-| Framer | Verificação da página e do breakpoint em pré-visualização | [Previewing your site](https://www.framer.com/help/articles/how-to-preview-your-site/) |
-| Webflow | Canvas central e navegação por elementos | [Canvas overview](https://help.webflow.com/hc/en-us/articles/33961319255059-Webflow-canvas-overview) |
-| Webflow | Selecção de dispositivos e compreensão dos breakpoints | [Breakpoints overview](https://help.webflow.com/hc/en-us/articles/33961300305811-Breakpoints-overview) |
-| Wix Studio | Inspector de propriedades do elemento, secção ou página | [Inspector panel](https://support.wix.com/en/article/studio-editor-using-the-inspector-panel) |
-| Wix Studio | Organização responsiva por página e secção | [Managing breakpoints](https://support.wix.com/en/article/studio-editor-managing-breakpoints) |
+| Referência | Padrão a aproveitar                                       | Fonte                                                                                                  |
+| ---------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Framer     | Edição contextual a partir da página renderizada          | [On-Page Editing](https://www.framer.com/academy/lessons/on-page-editing)                              |
+| Framer     | Verificação da página e do breakpoint em pré-visualização | [Previewing your site](https://www.framer.com/help/articles/how-to-preview-your-site/)                 |
+| Webflow    | Canvas central e navegação por elementos                  | [Canvas overview](https://help.webflow.com/hc/en-us/articles/33961319255059-Webflow-canvas-overview)   |
+| Webflow    | Selecção de dispositivos e compreensão dos breakpoints    | [Breakpoints overview](https://help.webflow.com/hc/en-us/articles/33961300305811-Breakpoints-overview) |
+| Wix Studio | Inspector de propriedades do elemento, secção ou página   | [Inspector panel](https://support.wix.com/en/article/studio-editor-using-the-inspector-panel)          |
+| Wix Studio | Organização responsiva por página e secção                | [Managing breakpoints](https://support.wix.com/en/article/studio-editor-managing-breakpoints)          |
 
 Decisão para o SIGA: lista de páginas à esquerda, pré-visualização no centro e
 inspector contextual à direita, com barra superior compacta. Esta composição é
@@ -186,58 +186,58 @@ pixel-perfect, sessão real, isolamento remoto ou Worker validado com base em mo
 
 ## 4. Inventário técnico e responsabilidades
 
-| Capacidade | Evidência no repositório | Estado para o estúdio |
-| --- | --- | --- |
-| Editor de conteúdo | `WebsiteSettingsPanel.tsx` | Existente; ainda dentro das Definições |
-| Editor de blog | `BlogSettingsPanel.tsx` | Existente; preservar acesso e rascunhos |
-| Gravação/publicação | `content-server.ts`, `content-model.ts` | Existentes; reutilizar sem segundo escritor |
-| Tema e opções por página | `WebsiteThemePanel.tsx`, `page-appearance.ts` | Existentes; expor só capacidades persistidas |
-| Catálogo de campos | `template.json` | Existente; não inventar chaves |
-| Catálogo de páginas | `site-pages.generated.json`, `editableWebsitePages` | Existente; filtrar páginas realmente suportadas |
-| Pré-visualização privada | `website-preview.ts` | Existente, isolada e não interactiva |
-| Aviso de saída | `use-draft-unload-warning.ts` | Existente; estender para navegação do estúdio |
-| Admin exacto/AAL2/URLs/domínios | PR #275 e `RECONCILIATION_200.md` | Correcções no ramo; não declarar integração em main |
-| Rota e layout dedicados | `/website/editor` | Implementado; rota privada e carregamento só no cliente |
-| Lista de páginas + canvas + inspector | Primeiro incremento Puck | Implementado e ensaiado localmente |
-| Selecção visual ligada aos campos | Ponte opcional com CSP por nonce, origem opaca e validação de mensagens | Implementada; testes locais de clique, origem, documento e campos |
-| Dispositivos, largura e zoom do canvas | Primeiro incremento Puck | Implementado e ensaiado localmente |
-| Criação livre de páginas/drag-and-drop | Sem contrato auditado neste incremento | Fora da primeira entrega |
-| MFA real, duas escolas e canário | Roteiro em `RECONCILIATION_200.md` | Pendente de ambiente de testes |
+| Capacidade                             | Evidência no repositório                                                | Estado para o estúdio                                             |
+| -------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Editor de conteúdo                     | `WebsiteSettingsPanel.tsx`                                              | Existente; ainda dentro das Definições                            |
+| Editor de blog                         | `BlogSettingsPanel.tsx`                                                 | Existente; preservar acesso e rascunhos                           |
+| Gravação/publicação                    | `content-server.ts`, `content-model.ts`                                 | Existentes; reutilizar sem segundo escritor                       |
+| Tema e opções por página               | `WebsiteThemePanel.tsx`, `page-appearance.ts`                           | Existentes; expor só capacidades persistidas                      |
+| Catálogo de campos                     | `template.json`                                                         | Existente; não inventar chaves                                    |
+| Catálogo de páginas                    | `site-pages.generated.json`, `editableWebsitePages`                     | Existente; filtrar páginas realmente suportadas                   |
+| Pré-visualização privada               | `website-preview.ts`                                                    | Existente, isolada e não interactiva                              |
+| Aviso de saída                         | `use-draft-unload-warning.ts`                                           | Existente; estender para navegação do estúdio                     |
+| Admin exacto/AAL2/URLs/domínios        | PR #275 e `RECONCILIATION_200.md`                                       | Correcções no ramo; não declarar integração em main               |
+| Rota e layout dedicados                | `/website/editor`                                                       | Implementado; rota privada e carregamento só no cliente           |
+| Lista de páginas + canvas + inspector  | Primeiro incremento Puck                                                | Implementado e ensaiado localmente                                |
+| Selecção visual ligada aos campos      | Ponte opcional com CSP por nonce, origem opaca e validação de mensagens | Implementada; testes locais de clique, origem, documento e campos |
+| Dispositivos, largura e zoom do canvas | Primeiro incremento Puck                                                | Implementado e ensaiado localmente                                |
+| Criação livre de páginas/drag-and-drop | Sem contrato auditado neste incremento                                  | Fora da primeira entrega                                          |
+| MFA real, duas escolas e canário       | Roteiro em `RECONCILIATION_200.md`                                      | Pendente de ambiente de testes                                    |
 
 Caminhos relativos ao módulo `src/features/school-website`, salvo indicação diferente.
 
 ## 5. Fases e critérios de saída
 
-| Fase | Entrega | Prova mínima |
-| --- | --- | --- |
-| 0 | Recapturar base, contratos, permissões e estado das PRs | Inventário actualizado e ausência de trabalho sobrescrito |
-| 1 | Rota protegida e layout dedicado, atalhos antigos compatíveis | Entrada directa, reload, voltar, perfil recusado e zero chrome académico |
-| 2 | Navegação por páginas e preview responsivo privado | Página exacta, estado recuperável e seis larguras sem overflow |
-| 3 | Inspector contextual de conteúdo e aparência suportada | Selecção determinística, campos válidos e nenhuma opção sem persistência |
-| 4 | Fluxo editorial integrado e protecção de rascunhos | Guardar/publicar/retirar/restaurar, conflito, falha e mudança de escola |
-| 5 | Acessibilidade, desempenho e validação visual | Capturas, teclado, zoom, movimento reduzido e medições comparáveis |
-| 6 | Ensaio real e decisão de integração/rollout | CI verde, Admin+AAL2, A/B, catálogo efectivo e domínio canário |
+| Fase | Entrega                                                       | Prova mínima                                                             |
+| ---- | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 0    | Recapturar base, contratos, permissões e estado das PRs       | Inventário actualizado e ausência de trabalho sobrescrito                |
+| 1    | Rota protegida e layout dedicado, atalhos antigos compatíveis | Entrada directa, reload, voltar, perfil recusado e zero chrome académico |
+| 2    | Navegação por páginas e preview responsivo privado            | Página exacta, estado recuperável e seis larguras sem overflow           |
+| 3    | Inspector contextual de conteúdo e aparência suportada        | Selecção determinística, campos válidos e nenhuma opção sem persistência |
+| 4    | Fluxo editorial integrado e protecção de rascunhos            | Guardar/publicar/retirar/restaurar, conflito, falha e mudança de escola  |
+| 5    | Acessibilidade, desempenho e validação visual                 | Capturas, teclado, zoom, movimento reduzido e medições comparáveis       |
+| 6    | Ensaio real e decisão de integração/rollout                   | CI verde, Admin+AAL2, A/B, catálogo efectivo e domínio canário           |
 
 ## 6. Matriz de aceitação funcional
 
-| Cenário | Resultado esperado |
-| --- | --- |
-| Entrar por Definições ou URL directa | Mesmo estúdio protegido e mesma escola autorizada |
-| Seleccionar Cursos | Preview e inspector correspondem à página real de Cursos |
-| Seleccionar outro elemento | Só aparecem propriedades do âmbito seleccionado |
-| Recarregar uma rota com página inválida | Estado seguro e opção válida; nenhuma chave arbitrária aplicada |
-| Mudar dispositivo ou zoom | Só muda a visualização; rascunho e publicação conservados |
-| Guardar com rede lenta ou falha | Feedback imediato; sucesso só com confirmação; dados locais conservados |
-| Guardar um rascunho | Visitante continua a receber a publicação anterior |
-| Publicar | Snapshot autorizado da escola, sem rascunhos ou dados privados |
-| Editar uma revisão antiga | Conflito visível; sem sobrescrita nem perda silenciosa |
-| Sair com alterações | Conservar ou confirmar descarte antes de abandonar |
-| Trocar escola/conta durante pedido | Nenhum dado ou resposta atrasada de A aparece em B |
-| Utilizador sem cargo ou AAL2 exigido | Operação recusada no servidor, mesmo por chamada directa |
-| Página privada/portal no preview | Não executar operações privadas nem carregar dados de alunos |
-| Imagem privada ou assinatura temporária | Recurso recusado; não o tornar público automaticamente |
-| Teclado/200%/Android estreito | Foco e campos acessíveis, sem botões tapados pelo teclado |
-| Retirar publicação | Estado verdadeiro da API, sem prometer desligar DNS/hospedagem |
+| Cenário                                 | Resultado esperado                                                      |
+| --------------------------------------- | ----------------------------------------------------------------------- |
+| Entrar por Definições ou URL directa    | Mesmo estúdio protegido e mesma escola autorizada                       |
+| Seleccionar Cursos                      | Preview e inspector correspondem à página real de Cursos                |
+| Seleccionar outro elemento              | Só aparecem propriedades do âmbito seleccionado                         |
+| Recarregar uma rota com página inválida | Estado seguro e opção válida; nenhuma chave arbitrária aplicada         |
+| Mudar dispositivo ou zoom               | Só muda a visualização; rascunho e publicação conservados               |
+| Guardar com rede lenta ou falha         | Feedback imediato; sucesso só com confirmação; dados locais conservados |
+| Guardar um rascunho                     | Visitante continua a receber a publicação anterior                      |
+| Publicar                                | Snapshot autorizado da escola, sem rascunhos ou dados privados          |
+| Editar uma revisão antiga               | Conflito visível; sem sobrescrita nem perda silenciosa                  |
+| Sair com alterações                     | Conservar ou confirmar descarte antes de abandonar                      |
+| Trocar escola/conta durante pedido      | Nenhum dado ou resposta atrasada de A aparece em B                      |
+| Utilizador sem cargo ou AAL2 exigido    | Operação recusada no servidor, mesmo por chamada directa                |
+| Página privada/portal no preview        | Não executar operações privadas nem carregar dados de alunos            |
+| Imagem privada ou assinatura temporária | Recurso recusado; não o tornar público automaticamente                  |
+| Teclado/200%/Android estreito           | Foco e campos acessíveis, sem botões tapados pelo teclado               |
+| Retirar publicação                      | Estado verdadeiro da API, sem prometer desligar DNS/hospedagem          |
 
 ## 7. Documentos relacionados e limites desta entrega
 

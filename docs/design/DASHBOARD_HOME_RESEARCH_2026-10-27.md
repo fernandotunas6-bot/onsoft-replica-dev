@@ -8,15 +8,16 @@ A PR #372 (já integrada) introduziu `AdminHomeFocus` com contagens existentes e
 
 ## Referências internacionais verificadas
 
-| Plataforma | Padrão comprovado | Tradução para o SIGA Plus |
-| --- | --- | --- |
-| Canvas LMS | Vistas por cartões, lista de tarefas e actividade recente; barra lateral de tarefas | Acesso rápido às operações escolares e prioridades accionáveis por perfil |
-| Moodle | Timeline, calendário e recentemente acedidos; blocos com informação de progresso e prazos | Continuar a usar os cartões existentes de «Hoje na escola», calendário e ano lectivo |
-| Linear (redesign 12/03/2026) | Conteúdo central com mais destaque que navegação; separadores compactos, ícones e bordas discretas | Evitar cartões a saltar/escala e efeito decorativo que distraia |
-| Notion Home | Eventos próximos, itens recentes, favoritos e tarefas personalizáveis | Evolução futura condicionada a dados reais e privilégios, sem simular actividade |
-| Stripe Dashboard | Resumo operacional de informação essencial e entrada nas tarefas financeiras | Indicadores relevantes com destino claro para acção, sem promessas financeiras falsas |
+| Plataforma                   | Padrão comprovado                                                                                  | Tradução para o SIGA Plus                                                             |
+| ---------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Canvas LMS                   | Vistas por cartões, lista de tarefas e actividade recente; barra lateral de tarefas                | Acesso rápido às operações escolares e prioridades accionáveis por perfil             |
+| Moodle                       | Timeline, calendário e recentemente acedidos; blocos com informação de progresso e prazos          | Continuar a usar os cartões existentes de «Hoje na escola», calendário e ano lectivo  |
+| Linear (redesign 12/03/2026) | Conteúdo central com mais destaque que navegação; separadores compactos, ícones e bordas discretas | Evitar cartões a saltar/escala e efeito decorativo que distraia                       |
+| Notion Home                  | Eventos próximos, itens recentes, favoritos e tarefas personalizáveis                              | Evolução futura condicionada a dados reais e privilégios, sem simular actividade      |
+| Stripe Dashboard             | Resumo operacional de informação essencial e entrada nas tarefas financeiras                       | Indicadores relevantes com destino claro para acção, sem promessas financeiras falsas |
 
 Fontes oficiais:
+
 - Canvas: https://community.instructure.com/en/kb/articles/664620-how-do-i-use-the-dashboard
 - Moodle: https://docs.moodle.org/405/en/dashboard
 - Linear: https://linear.app/now/behind-the-latest-design-refresh

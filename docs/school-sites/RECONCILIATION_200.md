@@ -54,19 +54,19 @@ editorial, o histórico existente e os lockfiles não são alterados.
 
 ## Matriz de aceitação
 
-| Critério | Evidência disponível | Decisão / próximo passo |
-| --- | --- | --- |
-| Um único motor e contrato | Alterações feitas sobre `school-website`; nenhuma importação do motor antigo | Preservar na integração; não fundir a #200 integralmente |
-| Cargo e AAL2 | Testes de handlers com grants extraordinários, cargos recusados e AAL1/claims ausentes | Código coberto; ensaiar sessão real Admin+AAL2 antes de rollout |
-| Escola activa e origens | Testes das duas rotas HTTP com duas escolas, estado inválido, origem de B em A e domínio não verificado/desconhecido | Cobertura local; falta encaminhamento real |
-| Rascunho/publicação/concorrência | Suite existente de estados, editor, DTO e controlo de revisão | Repetir ciclo completo em staging com duas sessões |
-| RLS | Ensaio local da migração actual, duas aplicações, policy permissiva paralela, anon/authenticated e serviço | Comprova política local; não comprova catálogo instalado nem JWT real |
-| Imagens/URLs/HTML | Novos casos adversariais; testes existentes de escape e renderização | Falta consentimento, MIME, redireccionamentos e origens reais dos recursos |
-| Contactos públicos | Motor actual não lê contactos administrativos para os injectar nas páginas | Validar o conteúdo editorial autorizado da escola canário |
-| Fidelidade visual | Nenhum ficheiro visual ou template alterado neste incremento | Não herdar certificação pixel-perfect dos testes antigos da #200 |
-| CI actual | Checks locais registados abaixo; CI remoto associado ao commit da PR correctiva | Só considerar integração após CI obrigatório verde |
-| Dependências desktop | `npm audit --prefix desktop --audit-level=high --json`: 4 pacotes high, 3 moderate, 0 critical na base actual | Bloqueio ainda aberto: Zod e Undici; não herdar o antigo parecer de Vite 8.3.3 como auditoria actual completa |
-| Domínio canário e rollback | Procedimento abaixo, ainda não executado | Manter rollout pendente |
+| Critério                         | Evidência disponível                                                                                                 | Decisão / próximo passo                                                                                       |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Um único motor e contrato        | Alterações feitas sobre `school-website`; nenhuma importação do motor antigo                                         | Preservar na integração; não fundir a #200 integralmente                                                      |
+| Cargo e AAL2                     | Testes de handlers com grants extraordinários, cargos recusados e AAL1/claims ausentes                               | Código coberto; ensaiar sessão real Admin+AAL2 antes de rollout                                               |
+| Escola activa e origens          | Testes das duas rotas HTTP com duas escolas, estado inválido, origem de B em A e domínio não verificado/desconhecido | Cobertura local; falta encaminhamento real                                                                    |
+| Rascunho/publicação/concorrência | Suite existente de estados, editor, DTO e controlo de revisão                                                        | Repetir ciclo completo em staging com duas sessões                                                            |
+| RLS                              | Ensaio local da migração actual, duas aplicações, policy permissiva paralela, anon/authenticated e serviço           | Comprova política local; não comprova catálogo instalado nem JWT real                                         |
+| Imagens/URLs/HTML                | Novos casos adversariais; testes existentes de escape e renderização                                                 | Falta consentimento, MIME, redireccionamentos e origens reais dos recursos                                    |
+| Contactos públicos               | Motor actual não lê contactos administrativos para os injectar nas páginas                                           | Validar o conteúdo editorial autorizado da escola canário                                                     |
+| Fidelidade visual                | Nenhum ficheiro visual ou template alterado neste incremento                                                         | Não herdar certificação pixel-perfect dos testes antigos da #200                                              |
+| CI actual                        | Checks locais registados abaixo; CI remoto associado ao commit da PR correctiva                                      | Só considerar integração após CI obrigatório verde                                                            |
+| Dependências desktop             | `npm audit --prefix desktop --audit-level=high --json`: 4 pacotes high, 3 moderate, 0 critical na base actual        | Bloqueio ainda aberto: Zod e Undici; não herdar o antigo parecer de Vite 8.3.3 como auditoria actual completa |
+| Domínio canário e rollback       | Procedimento abaixo, ainda não executado                                                                             | Manter rollout pendente                                                                                       |
 
 ## Ensaio real antes do rollout
 

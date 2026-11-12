@@ -9,20 +9,20 @@ triagem segura, sem tocar na `main` (excepto a #441). Ramo de integração:
 - **#441 fundida na `main`** (squash `95483017`), com o CI verde e autorização expressa.
 - **Integradas no ramo**, com os conflitos resolvidos:
 
-| PR | Como | Notas |
-| --- | --- | --- |
-| #405 | merge | Formulários fiáveis e suspensões em lote; sem conflitos |
-| #403 | merge | E2E de duas escolas só em staging; sem conflitos |
-| #404 | merge | Cache por escola, WhatsApp e gravação académica transaccional |
-| #408 | merge | Pessoas e Ficha da Turma; fica o `text-destructive-strong` da #423 |
-| #375 | merge | Início operacional por separadores, com os ajustes de hover e cartões da `main` |
-| #291 | merge | Fica o portão de staging da `main`; entram a auditoria de resíduos e a documentação |
-| #275 | merge | Guardas de publicação do website; base falsa dos testes com `.is()` e `.limit()` |
-| #277 | merge | Website Studio (Puck); `happy-dom` 21.0.4 e `re2js` 2.9.1 nos overrides |
-| #345 (+#338) | merge | Horários da #338; gravação académica fica a da #404 |
-| #128 | merge | Só o que a `main` não refez (boletim, importação, comunicações agendadas, RH) |
-| #118 | squash | Correcções da auditoria 14, **sem** os ciclos de matrícula (ver abaixo) |
-| #211 | squash | Nº de aluno nas listas e impressões; numeração já estava na `main` (#148) |
+| PR           | Como   | Notas                                                                               |
+| ------------ | ------ | ----------------------------------------------------------------------------------- |
+| #405         | merge  | Formulários fiáveis e suspensões em lote; sem conflitos                             |
+| #403         | merge  | E2E de duas escolas só em staging; sem conflitos                                    |
+| #404         | merge  | Cache por escola, WhatsApp e gravação académica transaccional                       |
+| #408         | merge  | Pessoas e Ficha da Turma; fica o `text-destructive-strong` da #423                  |
+| #375         | merge  | Início operacional por separadores, com os ajustes de hover e cartões da `main`     |
+| #291         | merge  | Fica o portão de staging da `main`; entram a auditoria de resíduos e a documentação |
+| #275         | merge  | Guardas de publicação do website; base falsa dos testes com `.is()` e `.limit()`    |
+| #277         | merge  | Website Studio (Puck); `happy-dom` 21.0.4 e `re2js` 2.9.1 nos overrides             |
+| #345 (+#338) | merge  | Horários da #338; gravação académica fica a da #404                                 |
+| #128         | merge  | Só o que a `main` não refez (boletim, importação, comunicações agendadas, RH)       |
+| #118         | squash | Correcções da auditoria 14, **sem** os ciclos de matrícula (ver abaixo)             |
+| #211         | squash | Nº de aluno nas listas e impressões; numeração já estava na `main` (#148)           |
 
 Regra seguida nos conflitos: quando a `main` refez a mesma correcção mais tarde
 (leituras paginadas, SAF-T, Superior, matrícula idempotente, excepção AAL1 de 28/10), fica

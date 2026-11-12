@@ -169,6 +169,7 @@ estado por área, plano por ordem (1. funcionar sem rede, 2. faltas por discipli
   `ensureAttendanceSessionForOccurrence` (QR).
 - **Sincronizar 14 dias (QR):** a Secretaria passava a verificação do servidor e a RPC recusava
   («Insufficient HR permission»); agora só Administração/Tesouraria, com mensagem clara.
+
 ## Correcções pedagógicas consolidadas — 26/10/2026
 
 Ler [o candidato acumulado, os testes e os bloqueios reais](HANDOFF_PEDAGOGY_CONSOLIDATED_2026-10-26.md).
@@ -176,7 +177,6 @@ Preserva o trabalho da #338, acrescenta integridade transaccional e turnos
 configurados. 4.983 testes aprovados no candidato acumulado; refinamentos posteriores
 têm validação específica descrita no handoff. Envio remoto autorizado e publicado no
 PR #345. Não aplicar SQL nem anunciar produção actualizada com base neste handoff.
-
 
 ## Backend: portais na agenda publicada e presenças repetíveis — 2026-10-25
 
@@ -277,6 +277,7 @@ alteraram ecrãs ou dependências para encobrir essas falhas. TypeScript e ESLin
 aprovados; a verificação final de 130 testes em 15 ficheiros e os
 carimbos reais das nove migrações estão na
 [evidência deste ciclo](../architecture/academic-agenda-evidence-2026-10-25.json).
+
 ## Reconciliação da PR #200 — 2026-10-24
 
 Continuar no motor `src/features/school-website`. A proposta antiga `school-site`

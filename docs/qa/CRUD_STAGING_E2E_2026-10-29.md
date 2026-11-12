@@ -12,15 +12,15 @@
 
 Criar em **Settings → Environments → staging** as seguintes configurações, com valores correspondentes exclusivamente ao projecto de staging.
 
-| Tipo | Nome | Utilização |
-| --- | --- | --- |
-| Variável | `STAGING_SUPABASE_URL` | URL pública exacta `https://<staging-ref>.supabase.co` |
-| Variável | `SIGA_CRUD_E2E_TENANT_A_MARKER` | Nome fictício único pesquisável na Escola A |
-| Variável | `SIGA_CRUD_E2E_TENANT_B_MARKER` | Nome fictício único pesquisável na Escola B |
-| Segredo | `STAGING_SUPABASE_PUBLISHABLE_KEY` | Chave publicável de staging |
-| Segredo | `STAGING_SUPABASE_SERVICE_ROLE_KEY` | Chave administrativa **apenas de staging** |
-| Segredo | `SIGA_CRUD_E2E_TENANT_A_STATE_B64` | Conteúdo base64 do `storageState` da Escola A |
-| Segredo | `SIGA_CRUD_E2E_TENANT_B_STATE_B64` | Conteúdo base64 do `storageState` da Escola B |
+| Tipo     | Nome                                | Utilização                                             |
+| -------- | ----------------------------------- | ------------------------------------------------------ |
+| Variável | `STAGING_SUPABASE_URL`              | URL pública exacta `https://<staging-ref>.supabase.co` |
+| Variável | `SIGA_CRUD_E2E_TENANT_A_MARKER`     | Nome fictício único pesquisável na Escola A            |
+| Variável | `SIGA_CRUD_E2E_TENANT_B_MARKER`     | Nome fictício único pesquisável na Escola B            |
+| Segredo  | `STAGING_SUPABASE_PUBLISHABLE_KEY`  | Chave publicável de staging                            |
+| Segredo  | `STAGING_SUPABASE_SERVICE_ROLE_KEY` | Chave administrativa **apenas de staging**             |
+| Segredo  | `SIGA_CRUD_E2E_TENANT_A_STATE_B64`  | Conteúdo base64 do `storageState` da Escola A          |
+| Segredo  | `SIGA_CRUD_E2E_TENANT_B_STATE_B64`  | Conteúdo base64 do `storageState` da Escola B          |
 
 Os ficheiros `storageState` devem ter sido criados com Playwright em contas distintas do staging, com vínculo activo às respectivas escolas. Codificar o JSON com `base64` antes de guardar como segredo; **não incluir o conteúdo ou os tokens em comentários, logs, mensagens ou commits**.
 
@@ -28,9 +28,9 @@ Os ficheiros `storageState` devem ter sido criados com Playwright em contas dist
 
 A condição `if: github.ref == 'refs/heads/main'` do workflow **não protege os segredos sozinha**: está no próprio ficheiro, e um ramo que o altere pode retirá-la e lançar o workflow com o ambiente `staging`. Antes de guardar qualquer segredo, configurar em **Settings → Environments → staging**:
 
-1. **Deployment branches and tags** → *Selected branches and tags* → apenas `main`. O GitHub recusa então entregar os segredos a execuções de qualquer outro ramo, mesmo com o workflow alterado.
+1. **Deployment branches and tags** → _Selected branches and tags_ → apenas `main`. O GitHub recusa então entregar os segredos a execuções de qualquer outro ramo, mesmo com o workflow alterado.
 2. **Required reviewers** → pelo menos um responsável, que aprova cada execução.
-3. Opcional: *Prevent self-review*, para quem lança não poder aprovar a própria execução.
+3. Opcional: _Prevent self-review_, para quem lança não poder aprovar a própria execução.
 
 Sem os pontos 1 e 2, não guardar `STAGING_SUPABASE_SERVICE_ROLE_KEY` nem as sessões.
 

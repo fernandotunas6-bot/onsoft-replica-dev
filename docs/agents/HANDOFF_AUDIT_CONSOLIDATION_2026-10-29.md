@@ -5,14 +5,14 @@ Ramo: `fix/audit-consolidation-integrity-20261029`.
 
 ## Matriz de entrega
 
-| Área | Estado no ramo | Evidência | Próximo passo |
-| --- | --- | --- | --- |
-| Acessos | Implementado | Cinco consultas com chave por conta/escola/cargo, sem dados provisórios de outro contexto; teste de troca de escola | QA autenticado A/B |
-| WhatsApp | Implementado | Atalho recuperado no menu, condicionado à integração e capacidade administrativa; reutiliza endpoint com guardas existentes, prepara mensagem e oferece ligação explícita para abrir o WhatsApp | Browser/dispositivo real; não foi enviada mensagem |
-| Notas | Implementado; publicação bloqueada pela migração | RPC única, auditoria transaccional, validações preservadas, comparação da versão observada e recusa explícita sem RPC | Staging PostgreSQL, concorrência com duas conexões e instalação controlada antes do código |
-| Devolução de trabalhos | Implementado; publicação bloqueada pela migração | Nota + devolução + auditoria na mesma transacção; repetição idempotente | Staging e falha de rede após commit |
-| Documentos docentes | Parcial | Escola e turmas atribuídas revalidadas, grant de escrita pedagógica; chamadas académicas e boletim da ficha transportam contexto | Sessões reais; dados canónicos e âmbito disciplinar fino |
-| Verificação pública | Implementado | Confirma registo da emissão, sem anunciar validação integral do conteúdo | Registo definitivo ligado à fonte institucional |
+| Área                   | Estado no ramo                                   | Evidência                                                                                                                                                                                       | Próximo passo                                                                              |
+| ---------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Acessos                | Implementado                                     | Cinco consultas com chave por conta/escola/cargo, sem dados provisórios de outro contexto; teste de troca de escola                                                                             | QA autenticado A/B                                                                         |
+| WhatsApp               | Implementado                                     | Atalho recuperado no menu, condicionado à integração e capacidade administrativa; reutiliza endpoint com guardas existentes, prepara mensagem e oferece ligação explícita para abrir o WhatsApp | Browser/dispositivo real; não foi enviada mensagem                                         |
+| Notas                  | Implementado; publicação bloqueada pela migração | RPC única, auditoria transaccional, validações preservadas, comparação da versão observada e recusa explícita sem RPC                                                                           | Staging PostgreSQL, concorrência com duas conexões e instalação controlada antes do código |
+| Devolução de trabalhos | Implementado; publicação bloqueada pela migração | Nota + devolução + auditoria na mesma transacção; repetição idempotente                                                                                                                         | Staging e falha de rede após commit                                                        |
+| Documentos docentes    | Parcial                                          | Escola e turmas atribuídas revalidadas, grant de escrita pedagógica; chamadas académicas e boletim da ficha transportam contexto                                                                | Sessões reais; dados canónicos e âmbito disciplinar fino                                   |
+| Verificação pública    | Implementado                                     | Confirma registo da emissão, sem anunciar validação integral do conteúdo                                                                                                                        | Registo definitivo ligado à fonte institucional                                            |
 
 ## Migração e contribuições preservadas
 
@@ -67,7 +67,6 @@ corrigida, nem fechar a #392 como integralmente absorvida antes da integração.
 
 Produção, migrações remotas, envio de mensagens e merge não executados.
 
-
 ## Refinamento seguinte — partilha e limite de emissão
 
 - A preparação do WhatsApp não chama `window.open` depois de um pedido remoto:
@@ -85,7 +84,6 @@ Produção, migrações remotas, envio de mensagens e merge não executados.
   de interacção com o menu/diálogo e negações de permissão/integração.
 - Git HTTPS local não tinha credenciais; a publicação usa o conector GitHub
   autorizado pelo proprietário em 29/10, preservando conteúdo e histórico remoto.
-
 
 ## Estado de consolidação
 

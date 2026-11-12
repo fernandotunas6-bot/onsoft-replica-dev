@@ -4,20 +4,20 @@
 
 ## Factos confirmados no projecto de produção
 
-| Verificação | Observado | Consequência |
-| --- | --- | --- |
-| `public.finance_cash_points` | Existe; RLS activo | Caixa já tem parte do esquema em produção |
-| `public.finance_cash_sessions` | Existe; RLS activo | Não tentar recriar cegamente a tabela |
-| Gatilhos de recibos/despesas do caixa | Existem | O comportamento de escrita já pode ser afectado por triggers |
-| EXECUTE anónimo nas RPC de caixa | Não concedido | Protecção observada; não comprova autorização end-to-end |
-| SELECT directo de anon/authenticated no caixa | Não concedido | Leitura apenas pelo servidor com guardas de escola |
-| Quatro triggers de caixa (movimento e estorno) | Presentes | Confirma nomes, não equivale a uma comparação de corpos SQL |
-| RPC públicas de caixa exigidas | Conjunto presente | As assinaturas e a lógica de autorização devem ser ensaiadas em staging |
-| Histórico `20261024110000` | Ausente em `supabase_migrations.schema_migrations` | **Drift**: objectos presentes e versão não registada |
-| `finance_receipts.idempotency_key` | Ausente | Migração #276 de idempotência não reflectida |
-| Índice `finance_receipts_school_idempotency_key` | Ausente | Necessário antes de adoptar o novo contrato de pagamentos |
-| RPC `public.register_payment` de 6 parâmetros | Ausente | Interface nova da #276 não pode ser presumida em produção |
-| Cálculo de estorno com `penalty_amount` | Ausente no corpo actualmente instalado | Possível estado incorrecto após estorno de factura com multa |
+| Verificação                                      | Observado                                          | Consequência                                                            |
+| ------------------------------------------------ | -------------------------------------------------- | ----------------------------------------------------------------------- |
+| `public.finance_cash_points`                     | Existe; RLS activo                                 | Caixa já tem parte do esquema em produção                               |
+| `public.finance_cash_sessions`                   | Existe; RLS activo                                 | Não tentar recriar cegamente a tabela                                   |
+| Gatilhos de recibos/despesas do caixa            | Existem                                            | O comportamento de escrita já pode ser afectado por triggers            |
+| EXECUTE anónimo nas RPC de caixa                 | Não concedido                                      | Protecção observada; não comprova autorização end-to-end                |
+| SELECT directo de anon/authenticated no caixa    | Não concedido                                      | Leitura apenas pelo servidor com guardas de escola                      |
+| Quatro triggers de caixa (movimento e estorno)   | Presentes                                          | Confirma nomes, não equivale a uma comparação de corpos SQL             |
+| RPC públicas de caixa exigidas                   | Conjunto presente                                  | As assinaturas e a lógica de autorização devem ser ensaiadas em staging |
+| Histórico `20261024110000`                       | Ausente em `supabase_migrations.schema_migrations` | **Drift**: objectos presentes e versão não registada                    |
+| `finance_receipts.idempotency_key`               | Ausente                                            | Migração #276 de idempotência não reflectida                            |
+| Índice `finance_receipts_school_idempotency_key` | Ausente                                            | Necessário antes de adoptar o novo contrato de pagamentos               |
+| RPC `public.register_payment` de 6 parâmetros    | Ausente                                            | Interface nova da #276 não pode ser presumida em produção               |
+| Cálculo de estorno com `penalty_amount`          | Ausente no corpo actualmente instalado             | Possível estado incorrecto após estorno de factura com multa            |
 
 A verificação não consulta notas, alunos, credenciais, facturas individuais ou saldos reais. A observação sobre o estorno decorre da definição da função (não de uma transacção financeira testada). A presença de nomes de funções não prova identidade integral com os ficheiros SQL da PR.
 
@@ -37,13 +37,13 @@ Uma saída sem divergência **não** prova que o sistema está pronto: o teste c
 
 Comparei os **nomes declarados** por `supabase/migrations/20261024110000_finance_cash_sessions.sql` (#283) com `information_schema` e `pg_catalog` da produção, sem consultar linhas financeiras nem executar SQL de escrita:
 
-| Grupo | Encontrados / esperados | Abrangência |
-| --- | --- | --- |
-| Colunas | **12/12** | Estrutura-base de postos e sessões; vínculos dos recibos e despesas às sessões |
-| Índices | **7/7** | Posto activo único, sessão aberta única, ordenação e movimentos de caixa |
-| Restrições nomeadas | **3/3** | Fecho completo, justificação de diferença e separação entre fecho/aprovação |
-| Funções | **13/13** | Nove funções `private` e quatro `public` da migração |
-| Gatilhos | **4/4** | Ligação e estorno dos recibos e das despesas de caixa |
+| Grupo               | Encontrados / esperados | Abrangência                                                                    |
+| ------------------- | ----------------------- | ------------------------------------------------------------------------------ |
+| Colunas             | **12/12**               | Estrutura-base de postos e sessões; vínculos dos recibos e despesas às sessões |
+| Índices             | **7/7**                 | Posto activo único, sessão aberta única, ordenação e movimentos de caixa       |
+| Restrições nomeadas | **3/3**                 | Fecho completo, justificação de diferença e separação entre fecho/aprovação    |
+| Funções             | **13/13**               | Nove funções `private` e quatro `public` da migração                           |
+| Gatilhos            | **4/4**                 | Ligação e estorno dos recibos e das despesas de caixa                          |
 
 **Limite da evidência:** foi verificada a **existência dos nomes**, não a igualdade de corpos das funções, definições dos índices, políticas, permissões, defaults, tipos precisos das colunas ou histórico de execução. Objectos podem ter sido criados manualmente ou alterados posteriormente. O problema da versão `20261024110000` ausente mantém-se, e **não autoriza** `migration repair` nem reaplicação automática. O próximo passo é comparar DDL completo e ensaiar regressões de caixa em staging.
 

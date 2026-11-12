@@ -5,15 +5,15 @@ DNS, deployment ou escrita numa escola real foi executado neste incremento.
 
 ## Funcionalidades completas neste incremento
 
-| Capacidade | Implementação | Limite da prova |
-| --- | --- | --- |
-| Selecção na página | Clique ou Tab/Enter sobre elementos ligados ao manifesto; inspector mostra os campos desse elemento; opção para voltar à secção inteira | Chromium com fixture e testes do protocolo |
-| Desfazer/refazer | 20 estados imutáveis em memória; digitação agrupada em 800 ms por página/secção/painel; guardar conserva histórico; restaurar publicação reinicia histórico | Testes do hook, Puck real e browser |
-| Atalhos | Ctrl/Cmd+S guarda rascunho; Ctrl/Cmd+Z e Shift+Z fora dos inputs; conserva o undo nativo dos campos | Contrato cliente; nunca publica por atalho |
-| Publicação em leitura | Alterna a prévia e o inspector para o snapshot publicado; não substitui o rascunho nem activa edições | Browser com fixture; nomes académicos continuam do catálogo actual |
-| Revisão de publicação | Diálogo simples com escola, âmbito, revisão e diferenças de campos; validação local; confirmação explícita; foco regressa ao botão | O servidor continua a validar acesso/revisão/AAL2; não é prova de sessão real |
-| Acessibilidade | Nome explícito no checkbox de adopção; foco no campo após selecção e regresso ao fechar revisão | Checker estático e browser; aparelhos físicos pendentes |
-| Dependências | Overrides body-parser 2.4.0 e Undici 7.30.1 | Auditoria da raiz passou de três para um alerta alto; Zod continua bloqueante |
+| Capacidade            | Implementação                                                                                                                                               | Limite da prova                                                               |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Selecção na página    | Clique ou Tab/Enter sobre elementos ligados ao manifesto; inspector mostra os campos desse elemento; opção para voltar à secção inteira                     | Chromium com fixture e testes do protocolo                                    |
+| Desfazer/refazer      | 20 estados imutáveis em memória; digitação agrupada em 800 ms por página/secção/painel; guardar conserva histórico; restaurar publicação reinicia histórico | Testes do hook, Puck real e browser                                           |
+| Atalhos               | Ctrl/Cmd+S guarda rascunho; Ctrl/Cmd+Z e Shift+Z fora dos inputs; conserva o undo nativo dos campos                                                         | Contrato cliente; nunca publica por atalho                                    |
+| Publicação em leitura | Alterna a prévia e o inspector para o snapshot publicado; não substitui o rascunho nem activa edições                                                       | Browser com fixture; nomes académicos continuam do catálogo actual            |
+| Revisão de publicação | Diálogo simples com escola, âmbito, revisão e diferenças de campos; validação local; confirmação explícita; foco regressa ao botão                          | O servidor continua a validar acesso/revisão/AAL2; não é prova de sessão real |
+| Acessibilidade        | Nome explícito no checkbox de adopção; foco no campo após selecção e regresso ao fechar revisão                                                             | Checker estático e browser; aparelhos físicos pendentes                       |
+| Dependências          | Overrides body-parser 2.4.0 e Undici 7.30.1                                                                                                                 | Auditoria da raiz passou de três para um alerta alto; Zod continua bloqueante |
 
 Não foi acrescentado outro formato de persistência. Histórico e selecção desaparecem
 ao desmontar o contexto da escola; não se guardam conteúdos em localStorage.

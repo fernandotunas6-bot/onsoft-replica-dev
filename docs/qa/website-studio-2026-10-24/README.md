@@ -54,17 +54,17 @@ Puck é carregado pelo módulo dedicado. Não foram alterados `painel/escolas/**
 
 ## Ensaios
 
-| Verificação | Evidência / limite |
-| --- | --- |
-| Testes do módulo, acesso, configuração e orçamento inicial | 44 ficheiros e 349 testes passaram; inclui Puck real, não apenas um mock de inspector |
-| Tipos e build | Typecheck passou; build de produção Node passou; instalação com lockfile congelado passou |
-| Lint e estilo | ESLint do escopo afectado: 0 erros/avisos; checklist incremental de estilo passou sobre a base reconciliada |
-| Cancelamento A/B | Leitura de A abortada; resposta atrasada de A não aparece em B; fixture React Query |
-| Browser com biblioteca real | [browser-results.json](browser-results.json): editar/guardar/publicar, falha que conserva rascunho, saída cancelada, página, zoom e aparência |
-| Responsividade | Seis larguras sem overflow horizontal e sem erros JavaScript no ensaio |
-| Backend real | Não ensaiado: os comandos do browser usam fixtures locais |
-| Desempenho | [performance.json](performance.json): pré-carga da raiz e separação do módulo; não é medição de rede real ou p75 |
-| Produção / Cloudflare / MFA real | Não executados; dependem do staging/canário autorizado |
+| Verificação                                                | Evidência / limite                                                                                                                            |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Testes do módulo, acesso, configuração e orçamento inicial | 44 ficheiros e 349 testes passaram; inclui Puck real, não apenas um mock de inspector                                                         |
+| Tipos e build                                              | Typecheck passou; build de produção Node passou; instalação com lockfile congelado passou                                                     |
+| Lint e estilo                                              | ESLint do escopo afectado: 0 erros/avisos; checklist incremental de estilo passou sobre a base reconciliada                                   |
+| Cancelamento A/B                                           | Leitura de A abortada; resposta atrasada de A não aparece em B; fixture React Query                                                           |
+| Browser com biblioteca real                                | [browser-results.json](browser-results.json): editar/guardar/publicar, falha que conserva rascunho, saída cancelada, página, zoom e aparência |
+| Responsividade                                             | Seis larguras sem overflow horizontal e sem erros JavaScript no ensaio                                                                        |
+| Backend real                                               | Não ensaiado: os comandos do browser usam fixtures locais                                                                                     |
+| Desempenho                                                 | [performance.json](performance.json): pré-carga da raiz e separação do módulo; não é medição de rede real ou p75                              |
+| Produção / Cloudflare / MFA real                           | Não executados; dependem do staging/canário autorizado                                                                                        |
 
 A amostra inicial de feedback no browser inclui a automação e a espera pelo estado
 visual; não é INP p75. Não atribuir melhoria percentual de latência à diferença de
