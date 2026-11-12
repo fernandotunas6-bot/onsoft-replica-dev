@@ -175,21 +175,46 @@ export async function getMyAbsencesBySubject(
       .range(from, to),
   );
   if (records.error) throw new Error("Não foi possível ler as faltas.");
-  const sessions = await readInChunks<{ id: string; subject_id: string | null }>(
-    records.data.map((r) => String(r.session_id)),
-    (chunk) =>
+  // Sem filtro pelo ano na leitura: a chamada por disciplina, a do QR da escola e a
+  // da presença do professor gravam as sessões sem `academic_year_id`. Uma aula sem
+  // ano conta se a turma dela for deste ano (a turma é de um único ano).
+  const [sessions, yearGroups] = await Promise.all([
+    readInChunks<{
+      id: string;
+      subject_id: string | null;
+      academic_year_id: string | null;
+      class_group_id: string | null;
+    }>(
+      records.data.map((r) => String(r.session_id)),
+      (chunk) =>
+        db
+          .from("siga_attendance_sessions")
+          .select("id, subject_id, academic_year_id, class_group_id")
+          .eq("school_id", schoolId)
+          .neq("status", "cancelled")
+          .in("id", chunk),
+      ID_CHUNK_SIZE,
+    ),
+    readAllPages<{ id: string }>((from, to) =>
       db
-        .from("siga_attendance_sessions")
-        .select("id, subject_id")
+        .from("class_groups")
+        .select("id")
         .eq("school_id", schoolId)
         .eq("academic_year_id", yearId)
-        .neq("status", "cancelled")
-        .in("id", chunk),
-    ID_CHUNK_SIZE,
-  );
-  if (sessions.error) throw new Error("Não foi possível ler as faltas.");
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+  ]);
+  if (sessions.error || yearGroups.error) throw new Error("Não foi possível ler as faltas.");
+  const groupsOfYear = new Set(yearGroups.data.map((g) => String(g.id)));
   const subjectOf = new Map(
-    sessions.data.map((s) => [String(s.id), s.subject_id ? String(s.subject_id) : ""]),
+    sessions.data
+      .filter((s) =>
+        s.academic_year_id
+          ? String(s.academic_year_id) === yearId
+          : Boolean(s.class_group_id) && groupsOfYear.has(String(s.class_group_id)),
+      )
+      .map((s) => [String(s.id), s.subject_id ? String(s.subject_id) : ""]),
   );
   const rows = records.data
     .filter((r) => subjectOf.has(String(r.session_id)))
