@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
@@ -20,9 +21,12 @@ const LEVEL_DOT = { alto: "bg-destructive/60", médio: "bg-warning/80" } as cons
 export function EarlyWarningsPanel({
   classGroupId,
   students,
+  studentNumbers,
 }: {
   classGroupId: string;
   students: Array<Omit<WarningStudent, "absencePercentage">>;
+  /** Nº de aluno por matrícula, só para mostrar (não entra no cálculo). */
+  studentNumbers?: ReadonlyMap<string, string | null>;
 }) {
   const rule = useActiveAssessmentRule();
   const query = useQuery({
@@ -115,6 +119,12 @@ export function EarlyWarningsPanel({
                   <span className="inline-flex items-center gap-2 text-sm">
                     <span className={cn("size-1.5 rounded-full", LEVEL_DOT[w.level])} aria-hidden />
                     {w.name}
+                    <IdentifierValue
+                      value={studentNumbers?.get(w.enrollmentId)}
+                      variant="plain"
+                      emptyLabel=""
+                      className="text-muted-foreground"
+                    />
                   </span>
                   <span className="text-xs text-muted-foreground">
                     Risco {w.level}

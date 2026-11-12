@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, FileSpreadsheet, Lock, X } from "lucide-react";
@@ -429,7 +430,13 @@ function GradeSheetDialog({
                       {sheet.rows.map((row) => (
                         <tr key={row.enrollmentId}>
                           <td className="py-2 pr-3">
-                            {row.studentName}
+                            {row.studentName}{" "}
+                            <IdentifierValue
+                              value={row.studentNumber}
+                              variant="plain"
+                              emptyLabel=""
+                              className="text-xs text-muted-foreground"
+                            />
                             {isGradeSheetLocked(sheet.status) && row.subjects.length ? (
                               <button
                                 type="button"

@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useDeferredValue, useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1119,7 +1120,15 @@ function PeoplePage() {
                   items={people.map<EntityListItem>((row) => ({
                     id: row.id,
                     title: row.full_name,
-                    subtitle: row.email ?? row.phone_primary ?? "Sem contacto",
+                    subtitle: row.student_number ? (
+                      <>
+                        <IdentifierValue value={row.student_number} variant="plain" />
+                        {" · "}
+                        {row.email ?? row.phone_primary ?? "Sem contacto"}
+                      </>
+                    ) : (
+                      (row.email ?? row.phone_primary ?? "Sem contacto")
+                    ),
                     status: (
                       <StatusBadge
                         status={row.status === "active" ? "active" : "inactive"}
@@ -1218,7 +1227,15 @@ function PeoplePage() {
                                 fallback={row.full_name.slice(0, 2).toUpperCase()}
                                 className="size-9 rounded-xl object-cover shadow-2xs"
                               />
-                              <p className="font-semibold text-foreground">{row.full_name}</p>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-foreground">{row.full_name}</p>
+                                <IdentifierValue
+                                  value={row.student_number}
+                                  variant="plain"
+                                  emptyLabel=""
+                                  className="text-muted-foreground"
+                                />
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">

@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { History } from "lucide-react";
@@ -59,7 +60,13 @@ function RequestRow({ item }: { item: GradeChangeRequest }) {
     <li className="space-y-2 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm">
-          {item.studentName}
+          {item.studentName}{" "}
+          <IdentifierValue
+            value={item.studentNumber}
+            variant="plain"
+            emptyLabel=""
+            className="text-xs text-muted-foreground"
+          />
           <span className="text-muted-foreground">
             {" "}
             · {item.className} · {item.subjectName} · {item.component}

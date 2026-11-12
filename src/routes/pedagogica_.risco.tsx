@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
@@ -103,6 +104,14 @@ function RiskPage() {
     }
     return [...map.values()].slice(0, 80);
   }, [workspace?.termGrades, effectiveClass]);
+  // Nº de aluno por matrícula — só para o ecrã; a análise por IA não o recebe.
+  const studentNumbers = useMemo(
+    () =>
+      new Map(
+        (workspace?.termGrades ?? []).map((g) => [g.enrollment_id, g.registration_number ?? null]),
+      ),
+    [workspace?.termGrades],
+  );
   // Todas as notas da turma (sem o corte de 80 que a análise por IA usa).
   const warningStudents = useMemo(() => {
     const map = new Map<
@@ -234,7 +243,11 @@ function RiskPage() {
           </div>
         </Panel>
 
-        <EarlyWarningsPanel classGroupId={effectiveClass} students={warningStudents} />
+        <EarlyWarningsPanel
+          classGroupId={effectiveClass}
+          students={warningStudents}
+          studentNumbers={studentNumbers}
+        />
 
         {mutation.data ? (
           <Panel title="Resultado" description={mutation.data.overview}>
@@ -251,7 +264,15 @@ function RiskPage() {
                     className="rounded-xl border border-border bg-card p-4"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <p className="font-medium text-foreground">{s.name}</p>
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground">{s.name}</p>
+                        <IdentifierValue
+                          value={studentNumbers.get(s.enrollment_id)}
+                          variant="plain"
+                          emptyLabel=""
+                          className="text-muted-foreground"
+                        />
+                      </div>
                       <span
                         className={cn(
                           "rounded-full border px-2 py-0.5 text-xs font-medium",
