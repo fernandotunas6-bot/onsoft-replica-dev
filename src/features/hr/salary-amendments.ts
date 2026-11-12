@@ -9,7 +9,7 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 
-const inputSchema = z.object({ requestId: z.string().uuid() });
+const inputSchema = z.object({ requestId: z.string().guid() });
 
 /** Apply an approved request to an effective-dated ledger; never mutate past payroll. */
 export const applyApprovedHrSalaryChange = createServerFn({ method: "POST" })

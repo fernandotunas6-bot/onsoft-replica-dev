@@ -1,5 +1,6 @@
+import { canPrefetchResources } from "@/lib/preload";
+import { mergeFilterSources, parseFilterBag, readStoredListFilters } from "@/lib/list-filters";
 import type { QueryClient } from "@tanstack/react-query";
-import { listStaffModuleGrants } from "@/features/access/grants";
 import { listSystemAccounts } from "@/features/access/server";
 import { listPedagogicalWorkspace } from "@/features/academic/server";
 import { listCalendarEvents } from "@/features/calendar/server";
@@ -13,7 +14,7 @@ import {
   listPaymentPlans,
 } from "@/features/finance/server";
 import { listStaffDirectory, listTeachers, searchPeople } from "@/features/people/server";
-import { listSchoolFiles } from "@/features/arquivos/server";
+import type { SearchPeopleInput } from "@/features/people/schemas";
 import { searchStudents } from "@/features/students/server";
 import {
   warmDashboardCharts,
@@ -22,192 +23,167 @@ import {
   warmReportCharts,
 } from "@/lib/warm-charts";
 
-const prefetched = new Set<string>();
+export type RoutePrefetchScope = {
+  schoolId: string | null;
+  academicYearId: string | null;
+  search?: Record<string, string | undefined>;
+};
 
-function once(key: string, fn: () => void) {
-  if (prefetched.has(key)) return;
-  prefetched.add(key);
-  fn();
-}
+/** Usa a cache real: também volta a aquecer depois de expirar, falhar ou mudar de escola. */
+export function prefetchRouteData(
+  queryClient: QueryClient,
+  pathname: string,
+  scope: RoutePrefetchScope,
+) {
+  // Uma intenção atrasada não pode preencher chaves com o contexto da escola anterior.
+  const school = queryClient.getQueryData<{ id: string }>(["school", "settings"]);
+  if (!scope.schoolId || school?.id !== scope.schoolId || !canPrefetchResources()) return;
+  const path = pathname.split("?")[0]?.replace(/\/$/, "") || "/";
+  const yearId = scope.academicYearId ?? undefined;
+  // Não disputar a rede com as leituras do ecrã actual, nem lançar rajadas ao passar no menu.
+  const prefetch: QueryClient["prefetchQuery"] = (options) => {
+    if (queryClient.isFetching() >= 2) return Promise.resolve();
+    return queryClient.prefetchQuery(options);
+  };
+  const academicWorkspace = () =>
+    prefetch({
+      queryKey: ["academic", "pedagogical-workspace", yearId ?? null],
+      queryFn: ({ signal }) =>
+        listPedagogicalWorkspace({
+          data: yearId ? { academicYearId: yearId } : {},
+          signal,
+        }),
+    });
 
-function yearIdFromCache(queryClient: QueryClient) {
-  const years = queryClient.getQueryData<Array<{ id: string; is_active?: boolean }>>([
-    "school",
-    "academic-years",
-  ]);
-  const active = years?.find((row) => row.is_active);
-  return active?.id ?? years?.[0]?.id;
-}
-
-/** Pré-aquece dados do módulo quando o utilizador aponta para um link — resposta ao toque. */
-export function prefetchRouteData(queryClient: QueryClient, pathname: string) {
-  const path = pathname.split("?")[0] ?? pathname;
-  if (!path || path === "/configuracoes") return;
-
-  if (path === "/" || path === "") {
-    once("data:/", () => {
+  switch (path) {
+    case "/":
       warmDashboardCharts();
-      void queryClient.prefetchQuery({
+      void prefetch({
         queryKey: ["dashboard", "overview"],
-        queryFn: () => getDashboardOverview(),
+        queryFn: ({ signal }) => getDashboardOverview({ signal }),
       });
-    });
-    return;
-  }
-
-  if (path === "/alunos") {
-    once("data:/alunos", () => {
-      const yearId = yearIdFromCache(queryClient);
-      void queryClient.prefetchQuery({
+      break;
+    case "/alunos":
+      void prefetch({
         queryKey: ["students", "search"],
-        queryFn: () => searchStudents({ data: { limit: 1000, offset: 0 } }),
+        queryFn: ({ signal }) => searchStudents({ data: { limit: 1000, offset: 0 }, signal }),
       });
-      void queryClient.prefetchQuery({
-        queryKey: ["academic", "pedagogical-workspace", yearId],
-        queryFn: () =>
-          listPedagogicalWorkspace({
-            data: yearId ? { academicYearId: yearId } : {},
-          }),
-      });
-    });
-    return;
-  }
-
-  if (path === "/pedagogica") {
-    once("data:/pedagogica", () => {
+      void academicWorkspace();
+      break;
+    case "/pedagogica":
       warmPedagogicaCharts();
-      const yearId = yearIdFromCache(queryClient);
-      void queryClient.prefetchQuery({
-        queryKey: ["academic", "pedagogical-workspace", yearId],
-        queryFn: () =>
-          listPedagogicalWorkspace({
-            data: yearId ? { academicYearId: yearId } : {},
+      void academicWorkspace();
+      break;
+    case "/pessoas": {
+      const filters = mergeFilterSources(
+        { q: "", province: "", municipality: "", role: "", teacherStatus: "all" },
+        readStoredListFilters("pessoas"),
+        scope.search?.lf ? parseFilterBag(scope.search.lf) : null,
+      );
+      void prefetch({
+        queryKey: [
+          "people",
+          "search",
+          filters.q.trim(),
+          filters.province,
+          filters.municipality,
+          filters.role,
+        ],
+        queryFn: ({ signal }) =>
+          searchPeople({
+            data: {
+              query: filters.q.trim(),
+              province: filters.province || undefined,
+              municipality: filters.municipality || undefined,
+              // O tipo vem do esquema, não da assinatura do server fn: o primeiro
+              // parâmetro dele é opcional e não se deixa indexar por ["data"].
+              role: (filters.role || undefined) as SearchPeopleInput["role"],
+              limit: 50,
+            },
+            signal,
           }),
       });
-    });
-    return;
-  }
-
-  if (path === "/pessoas") {
-    once("data:/pessoas", () => {
-      void queryClient.prefetchQuery({
-        queryKey: ["people", "search", ""],
-        queryFn: () => searchPeople({ data: { query: "", limit: 50 } }),
+      void prefetch({
+        queryKey: ["people", "teachers", filters.q, filters.teacherStatus],
+        queryFn: ({ signal }) =>
+          listTeachers({
+            data: {
+              query: filters.q || undefined,
+              status: filters.teacherStatus as "all" | "active" | "inactive",
+              limit: 100,
+            },
+            signal,
+          }),
       });
-      void queryClient.prefetchQuery({
-        queryKey: ["people", "teachers", "", "all"],
-        queryFn: () => listTeachers({ data: { status: "all", limit: 100 } }),
-      });
-    });
-    return;
-  }
-
-  if (path === "/financeiro") {
-    once("data:/financeiro", () => {
+      break;
+    }
+    case "/financeiro":
       warmFinanceCharts();
-      void queryClient.prefetchQuery({
+      void prefetch({
         queryKey: ["finance", "cash-entries"],
-        queryFn: () => listCashEntries({ data: { limit: 250 } }),
+        queryFn: ({ signal }) => listCashEntries({ data: { limit: 250 }, signal }),
       });
-      void queryClient.prefetchQuery({
+      void prefetch({
         queryKey: ["finance", "payment-plans"],
-        queryFn: () => listPaymentPlans(),
+        queryFn: ({ signal }) => listPaymentPlans({ signal }),
       });
-    });
-    return;
-  }
-
-  if (path === "/faturas") {
-    once("data:/faturas", () => {
-      void queryClient.prefetchQuery({
+      break;
+    case "/faturas":
+      void prefetch({
         queryKey: ["finance", "invoices"],
-        queryFn: () => listInvoices({ data: { limit: 250 } }),
+        queryFn: ({ signal }) => listInvoices({ data: { limit: 250 }, signal }),
       });
-    });
-    return;
-  }
-
-  if (path === "/documentos") {
-    once("data:/documentos", () => {
-      void queryClient.prefetchQuery({
+      break;
+    case "/documentos":
+      void prefetch({
         queryKey: ["documents", "workspace"],
-        queryFn: () => listDocumentWorkspace(),
+        queryFn: ({ signal }) => listDocumentWorkspace({ data: { limit: 250 }, signal }),
       });
-    });
-    return;
-  }
-
-  if (path === "/arquivos") {
-    once("data:/arquivos", () => {
-      void queryClient.prefetchQuery({
-        queryKey: ["arquivos", "list", undefined, ""],
-        queryFn: () => listSchoolFiles({ data: { limit: 48 } }),
-      });
-    });
-    return;
-  }
-
-  if (path === "/comunicacoes") {
-    once("data:/comunicacoes", () => {
-      void queryClient.prefetchQuery({
+      break;
+    // Arquivos tem área, pasta e filtros por papel: o Link aquece o código,
+    // mas só o FileBrowser conhece os parâmetros seguros para ler os ficheiros.
+    case "/comunicacoes":
+      void prefetch({
         queryKey: ["communications", "announcements"],
-        queryFn: () => listSchoolAnnouncements({ data: { limit: 50 } }),
+        queryFn: ({ signal }) => listSchoolAnnouncements({ data: { limit: 50 }, signal }),
       });
-    });
-    return;
-  }
-
-  if (path === "/calendario") {
-    once("data:/calendario", () => {
-      void queryClient.prefetchQuery({
-        queryKey: ["calendar", "events"],
-        queryFn: () => listCalendarEvents({ data: { limit: 50, includePast: true } }),
-      });
-    });
-    return;
-  }
-
-  if (path === "/acessos") {
-    once("data:/acessos", () => {
-      void queryClient.prefetchQuery({
-        queryKey: ["access", "accounts"],
-        queryFn: () => listSystemAccounts(),
-      });
-      void queryClient.prefetchQuery({
-        queryKey: ["people", "staff"],
-        queryFn: () => listStaffDirectory(),
-      });
-      void queryClient.prefetchQuery({
-        queryKey: ["access", "grants"],
-        queryFn: () => listStaffModuleGrants(),
-      });
-    });
-    return;
-  }
-
-  if (path.startsWith("/relatorios")) {
-    once(`data:${path}`, () => {
-      if (path.includes("financeiros")) {
-        warmFinanceCharts();
-        void queryClient.prefetchQuery({
-          queryKey: ["finance", "reporting"],
-          queryFn: () => getFinanceReporting(),
-        });
-        return;
-      }
-      warmReportCharts();
-      const yearId = yearIdFromCache(queryClient);
-      void queryClient.prefetchQuery({
-        queryKey: ["academic", "pedagogical-workspace", yearId],
-        queryFn: () =>
-          listPedagogicalWorkspace({
-            data: yearId ? { academicYearId: yearId } : {},
+      break;
+    case "/calendario": {
+      const calendarYearId = scope.search?.ano ?? scope.academicYearId;
+      void prefetch({
+        queryKey: ["calendar", "events", scope.schoolId, calendarYearId],
+        queryFn: ({ signal }) =>
+          listCalendarEvents({
+            data: {
+              limit: 50,
+              academicYearId: calendarYearId ?? undefined,
+              includePast: Boolean(calendarYearId),
+            },
+            signal,
           }),
       });
-    });
+      break;
+    }
+    case "/acessos":
+      void prefetch({
+        queryKey: ["access", "accounts"],
+        queryFn: ({ signal }) => listSystemAccounts({ signal }),
+      });
+      void prefetch({
+        queryKey: ["people", "staff"],
+        queryFn: ({ signal }) => listStaffDirectory({ signal }),
+      });
+      break;
+    case "/relatorios/financeiros":
+      warmFinanceCharts();
+      void prefetch({
+        queryKey: ["finance", "reporting"],
+        queryFn: ({ signal }) => getFinanceReporting({ signal }),
+      });
+      break;
+    case "/relatorios/academicos":
+      warmReportCharts();
+      void academicWorkspace();
+      break;
   }
-}
-
-export function resetRoutePrefetchCache() {
-  prefetched.clear();
 }

@@ -66,6 +66,7 @@ import type {
   Gender,
 } from "./types";
 import type { PromotionStatus } from "@/features/academic/assessment-engine";
+import { sexInitial } from "@/features/people/person-fields";
 
 /** PromotionStatus tem "PENDENTE" (sem notas ainda), que a Pauta impressa mostra como estado vazio. */
 function toStudentStatus(status: PromotionStatus): StudentStatus {
@@ -73,11 +74,7 @@ function toStudentStatus(status: PromotionStatus): StudentStatus {
 }
 
 /** people.sex guarda "male"/"female" em inglês; a Pauta usa a inicial em português (M/F). */
-function toGender(sex: string | null | undefined): Gender {
-  if (sex === "male") return "M";
-  if (sex === "female") return "F";
-  return "";
-}
+const toGender = (sex: string | null | undefined): Gender => sexInitial(sex);
 
 interface PautasWorkspaceModuleProps {
   workspace?: PedagogicalWorkspace | null | undefined;
@@ -327,7 +324,7 @@ export function PautasWorkspaceModule({
           const g3 = rawFor(3);
           return {
             id: summary.enrollmentId,
-            code: summary.registrationNumber ?? `EST-${index + 1}`,
+            code: summary.registrationNumber ?? String(index + 1),
             number: index + 1,
             name: summary.studentName,
             gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
@@ -440,7 +437,7 @@ export function PautasWorkspaceModule({
 
           return {
             id: summary.enrollmentId,
-            code: summary.registrationNumber ?? `EST-${index + 1}`,
+            code: summary.registrationNumber ?? String(index + 1),
             number: index + 1,
             name: summary.studentName,
             gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
@@ -494,7 +491,7 @@ export function PautasWorkspaceModule({
           const officialSummary = officialPautaSummaries.get(summary.enrollmentId);
           return {
             id: summary.enrollmentId,
-            code: summary.registrationNumber ?? `EST-${index + 1}`,
+            code: summary.registrationNumber ?? String(index + 1),
             number: index + 1,
             name: summary.studentName,
             gender: genderByEnrollmentId.get(summary.enrollmentId) ?? "",
@@ -782,7 +779,7 @@ export function PautasWorkspaceModule({
           </div>
           <div className="rounded-lg border border-border bg-card p-2.5">
             <p className="text-[11px] font-medium text-muted-foreground">Não Transitam / Retidos</p>
-            <p className="text-lg font-bold text-destructive">
+            <p className="text-lg font-bold text-destructive-strong">
               {currentStudents.length - passCount}
             </p>
           </div>
@@ -832,7 +829,7 @@ export function PautasWorkspaceModule({
                 type="button"
                 className={`px-2.5 py-1 rounded font-medium text-[11px] transition-all ${
                   statusFilter === "fail"
-                    ? "bg-background text-destructive font-bold shadow-xs"
+                    ? "bg-background text-destructive-strong font-bold shadow-xs"
                     : "text-muted-foreground"
                 }`}
                 onClick={() => setStatusFilter("fail")}
@@ -1056,7 +1053,7 @@ export function PautasWorkspaceModule({
               </div>
             ) : examAssessmentsQuery.isError || examAssessmentsQuery.data?.available === false ? (
               <div className="rounded-xl border border-destructive/30 bg-card shadow-xs p-10 text-center">
-                <p className="text-sm font-semibold text-destructive">
+                <p className="text-sm font-semibold text-destructive-strong">
                   Não foi possível carregar as avaliações de exame desta disciplina.
                 </p>
               </div>

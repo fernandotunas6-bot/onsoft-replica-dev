@@ -6,14 +6,14 @@ export const accessDirectionEnum = z.enum(["entry", "exit"]);
 export const accessStatusEnum = z.enum(["granted", "denied"]);
 
 export const issueAccessCardInputSchema = z.object({
-  personId: z.string().uuid(),
-  studentId: z.string().uuid().optional(),
+  personId: z.string().guid(),
+  studentId: z.string().guid().optional(),
   rfidTag: z.string().optional(),
 });
 
 export const validateGatePassTokenInputSchema = z.object({
   token: z.string().min(3, "Token ou código inválido."),
-  deviceId: z.string().uuid().optional(),
+  deviceId: z.string().guid().optional(),
   direction: accessDirectionEnum.default("entry"),
 });
 
@@ -27,9 +27,9 @@ export const registerTurnstileDeviceInputSchema = z.object({
 });
 
 export const listAccessLogsInputSchema = z.object({
-  personId: z.string().uuid().optional(),
-  studentId: z.string().uuid().optional(),
-  deviceId: z.string().uuid().optional(),
+  personId: z.string().guid().optional(),
+  studentId: z.string().guid().optional(),
+  deviceId: z.string().guid().optional(),
   status: accessStatusEnum.optional(),
   direction: accessDirectionEnum.optional(),
   date: z.string().optional(),
@@ -37,12 +37,12 @@ export const listAccessLogsInputSchema = z.object({
 });
 
 export const setAccessCardStatusInputSchema = z.object({
-  cardId: z.string().uuid(),
+  cardId: z.string().guid(),
   status: accessCardStatusEnum,
 });
 
 export const updateTurnstileDeviceInputSchema = z.object({
-  deviceId: z.string().uuid(),
+  deviceId: z.string().guid(),
   status: z.enum(["online", "offline", "maintenance"]).optional(),
   ipAddress: z.string().max(64).optional().nullable(),
   name: z.string().min(3).max(120).optional(),
@@ -50,16 +50,16 @@ export const updateTurnstileDeviceInputSchema = z.object({
 });
 
 export const revealTurnstileDeviceApiKeyInputSchema = z.object({
-  deviceId: z.string().uuid(),
+  deviceId: z.string().guid(),
 });
 
 export const linkAccessCardRfidInputSchema = z.object({
-  cardId: z.string().uuid(),
+  cardId: z.string().guid(),
   rfidTag: z.string().max(64).nullable().optional(),
 });
 
 export const rotateAccessCardQrInputSchema = z.object({
-  cardId: z.string().uuid(),
+  cardId: z.string().guid(),
 });
 
 export const listAccessCardsInputSchema = z.object({

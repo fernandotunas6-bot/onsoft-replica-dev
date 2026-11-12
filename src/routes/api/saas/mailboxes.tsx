@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
+import { corsPreflight, jsonWithCors, readJsonWithCors } from "@/lib/ecosystem-cors";
 import { createMailbox, suspendMailbox } from "@/features/saas/mailbox-providers";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { requirePlatformAdminFromRequest } from "@/features/saas/platform-guard";
@@ -10,7 +10,7 @@ import { requirePlatformAdminFromRequest } from "@/features/saas/platform-guard"
 const APPS = ["web", "admin"] as const;
 
 const provisionSchema = z.object({
-  tenantId: z.string().uuid(),
+  tenantId: z.string().guid(),
   email: z.string().email(),
   displayName: z.string(),
 });
@@ -55,16 +55,11 @@ export const Route = createFileRoute("/api/saas/mailboxes")({
       },
 
       POST: async ({ request }) => {
-        let body: unknown;
-        try {
-          body = await request.json();
-        } catch {
-          return jsonWithCors(
-            request,
-            { error: "JSON inválido." },
-            { status: 400, apps: [...APPS] },
-          );
-        }
+        const read = await readJsonWithCors(request, [...APPS], {
+          invalidMessage: "JSON inválido.",
+        });
+        if (!read.ok) return read.response;
+        const body = read.value;
 
         const parsed = provisionSchema.safeParse(body);
         if (!parsed.success) {

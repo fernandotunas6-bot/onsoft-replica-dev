@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { validateAngolaNif } from "@/lib/angola-identity";
+import { normalizeStoredPhone } from "@/lib/angola-phone";
 import { personCoreFieldsObjectSchema } from "@/features/people/schemas";
 
 const optionalText = z
@@ -55,7 +56,7 @@ export const enrollmentFormAppearanceSchema = z.object({
 export type EnrollmentFormAppearance = z.infer<typeof enrollmentFormAppearanceSchema>;
 
 export const updateEnrollmentFormInputSchema = enrollmentFormAppearanceSchema.extend({
-  id: z.string().uuid(),
+  id: z.string().guid(),
 });
 export type UpdateEnrollmentFormInput = z.infer<typeof updateEnrollmentFormInputSchema>;
 
@@ -67,6 +68,14 @@ export const getPublicEnrollmentFormInputSchema = z.object({
     .max(80)
     .regex(/^[a-z0-9-]+$/, "Slug inválido."),
 });
+
+/**
+ * Os telefones validam-se no envio, com a regra que os grava (`normalizeStoredPhone`:
+ * Angola ou internacional). Antes passava qualquer texto, e um valor como
+ * «923000000 / 912000000» só era recusado pela base ao aceitar a candidatura — que ficava
+ * presa, sem a secretaria poder corrigir o número.
+ */
+const PHONE_MESSAGE = "Telefone inválido. Use +244 9XX XXX XXX ou um número internacional (+…).";
 
 export const submitPublicEnrollmentInputSchema = z.object({
   slug: getPublicEnrollmentFormInputSchema.shape.slug,
@@ -85,6 +94,13 @@ export const submitPublicEnrollmentInputSchema = z.object({
       notes: true,
     })
     .superRefine((value, ctx) => {
+      if (value.phone_primary && !normalizeStoredPhone(value.phone_primary)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: PHONE_MESSAGE,
+          path: ["phone_primary"],
+        });
+      }
       if (!value.nif) return;
       const checked = validateAngolaNif(value.nif);
       if (!checked.ok) {
@@ -96,10 +112,12 @@ export const submitPublicEnrollmentInputSchema = z.object({
       }
     }),
   guardianName: optionalText,
-  guardianPhone: optionalText,
+  guardianPhone: optionalText.refine((value) => !value || Boolean(normalizeStoredPhone(value)), {
+    message: PHONE_MESSAGE,
+  }),
   guardianRelationship: optionalText,
   /** Curso pretendido (Ensino Superior): só cursos activos da própria escola. */
-  desiredProgramId: z.string().uuid().optional(),
+  desiredProgramId: z.string().guid().optional(),
 });
 export type SubmitPublicEnrollmentInput = z.infer<typeof submitPublicEnrollmentInputSchema>;
 
@@ -109,9 +127,9 @@ export const listEnrollmentApplicationsInputSchema = z.object({
 });
 
 export const decideEnrollmentApplicationInputSchema = z.object({
-  applicationId: z.string().uuid(),
+  applicationId: z.string().guid(),
   decision: z.enum(["accepted", "rejected"]),
-  classGroupId: z.string().uuid().optional(),
+  classGroupId: z.string().guid().optional(),
 });
 
 export function candidacyProcessNumber(applicationId: string, createdAt?: string) {

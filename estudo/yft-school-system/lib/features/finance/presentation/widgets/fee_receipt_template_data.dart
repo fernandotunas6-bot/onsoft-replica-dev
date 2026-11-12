@@ -1,6 +1,7 @@
 import 'package:yft_school_system/core/auth/auth_state.dart';
 import 'package:yft_school_system/core/models/fee_receipt.dart';
 import 'package:yft_school_system/core/utils/media_url.dart';
+import 'package:yft_school_system/core/utils/term_label.dart';
 
 /// Branding + transaction data for formal fee receipts (screen + PDF).
 class FeeReceiptTemplateData {
@@ -40,9 +41,9 @@ class FeeReceiptTemplateData {
   /// Fee term for display: persisted on receipt, else school calendar snapshot.
   String get displayFeeTerm {
     final stored = receipt.feeTerm?.trim();
-    if (stored != null && stored.isNotEmpty) return stored;
+    if (stored != null && stored.isNotEmpty) return termLabel(stored);
     final cal = calendarFeeTerm?.trim();
-    if (cal != null && cal.isNotEmpty) return cal;
+    if (cal != null && cal.isNotEmpty) return termLabel(cal);
     return '—';
   }
 
@@ -56,7 +57,7 @@ class FeeReceiptTemplateData {
   }) {
     final name = session?.schoolName?.trim().isNotEmpty == true
         ? session!.schoolName!.trim()
-        : 'School';
+        : 'Escola';
     return FeeReceiptTemplateData(
       schoolName: name,
       logoFullUrl: profilePhotoUrlFromKey(session?.schoolLogoUrl, apiBaseUrl),

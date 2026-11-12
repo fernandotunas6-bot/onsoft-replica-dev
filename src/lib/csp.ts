@@ -1,3 +1,5 @@
+import { readJsonBodyLimited } from "./read-json-body";
+
 /**
  * Content-Security-Policy do SIGA, por agora só em modo de relatório
  * (`Content-Security-Policy-Report-Only`): o browser não bloqueia nada, só
@@ -7,7 +9,12 @@
  * Ligações do browser para fora (levantadas no código):
  * - Supabase (REST, Auth, Storage e Realtime por WebSocket);
  * - Firebase Cloud Messaging (notificações push);
- * - api.pwnedpasswords.com (verificação de palavra-passe exposta, k-anonimato).
+ * - api.pwnedpasswords.com (verificação de palavra-passe exposta, k-anonimato);
+ * - api.github.com (versão e tamanhos da app de computador em /transferir).
+ * Scripts e janelas de fora: o botão Google (GSI) e o hCaptcha da entrada por senha
+ * (`AuthCaptcha`), que o Supabase exige — sem ele na política, a CSP obrigatória
+ * deixaria toda a gente sem entrar. O hCaptcha pede os seus domínios em script-src,
+ * style-src, frame-src e connect-src (documentação «Content Security Policy» dele).
  * A letra (Inter) é servida pelo próprio SIGA, em /fonts/inter.
  * As integrações (Zoom, Moodle, WhatsApp…) só abrem separadores, não precisam.
  *
@@ -16,10 +23,12 @@
  */
 export const CSP_REPORT_PATH = "/api/public/csp-report";
 
+const HCAPTCHA = "https://hcaptcha.com https://*.hcaptcha.com";
+
 const DIRECTIVES: ReadonlyArray<readonly [string, string]> = [
   ["default-src", "'self'"],
-  ["script-src", "'self' 'unsafe-inline'"],
-  ["style-src", "'self' 'unsafe-inline'"],
+  ["script-src", `'self' 'unsafe-inline' https://accounts.google.com/gsi/client ${HCAPTCHA}`],
+  ["style-src", `'self' 'unsafe-inline' https://accounts.google.com/gsi/style ${HCAPTCHA}`],
   ["font-src", "'self' data:"],
   ["img-src", "'self' data: blob: https:"],
   [
@@ -30,10 +39,13 @@ const DIRECTIVES: ReadonlyArray<readonly [string, string]> = [
       "wss://*.supabase.co",
       "https://*.portal-siga.com",
       "https://*.googleapis.com",
+      "https://accounts.google.com/gsi/",
       "https://api.pwnedpasswords.com",
+      "https://api.github.com",
+      HCAPTCHA,
     ].join(" "),
   ],
-  ["frame-src", "'self'"],
+  ["frame-src", `'self' https://accounts.google.com/gsi/ ${HCAPTCHA}`],
   ["worker-src", "'self' blob:"],
   ["manifest-src", "'self'"],
   ["media-src", "'self' blob: data:"],
@@ -44,9 +56,25 @@ const DIRECTIVES: ReadonlyArray<readonly [string, string]> = [
   ["report-uri", CSP_REPORT_PATH],
 ];
 
-export const CONTENT_SECURITY_POLICY = DIRECTIVES.map(([name, value]) => `${name} ${value}`).join(
-  "; ",
-);
+/** A política com fontes a mais em algumas directivas (as restantes ficam iguais). */
+function policyWith(extra: Readonly<Record<string, string>> = {}): string {
+  return DIRECTIVES.map(
+    ([name, value]) => `${name} ${extra[name] ? `${value} ${extra[name]}` : value}`,
+  ).join("; ");
+}
+
+export const CONTENT_SECURITY_POLICY = policyWith();
+
+/**
+ * Política das páginas do website escolar (`school-website/site-http.ts`): a do SIGA,
+ * mais o Google Fonts, de onde o modelo de `painel/escolas` carrega DM Sans e Manrope.
+ * Com a política do SIGA, cada página vista mandava 9 relatórios (a folha e 8 ficheiros
+ * de letra): 9 pedidos ao Worker por visita, e relatórios que nunca ficariam limpos.
+ */
+export const SCHOOL_WEBSITE_CONTENT_SECURITY_POLICY = policyWith({
+  "style-src": "https://fonts.googleapis.com",
+  "font-src": "https://fonts.gstatic.com",
+});
 
 /** Relatórios maiores do que isto são ignorados (o browser manda ~1 KB). */
 const MAX_REPORT_BYTES = 16 * 1024;
@@ -112,16 +140,14 @@ export async function handleCspReport(request: Request): Promise<Response> {
   if (request.method !== "POST") {
     return new Response(null, { status: 405, headers: { Allow: "POST" } });
   }
-  const declared = Number(request.headers.get("content-length") ?? "0");
-  if (declared > MAX_REPORT_BYTES) return new Response(null, { status: 413 });
-  try {
-    const text = await request.text();
-    if (text.length > MAX_REPORT_BYTES) return new Response(null, { status: 413 });
-    for (const violation of parseCspReports(JSON.parse(text))) {
-      console.warn(`[csp] ${JSON.stringify(violation)}`);
-    }
-  } catch {
-    // Relatório mal formado: nada a registar.
+  // Os relatórios chegam de browsers não autenticados. A medição de bytes
+  // durante a leitura cobre pedidos chunked e Content-Length subdeclarado.
+  const parsed = await readJsonBodyLimited(request, MAX_REPORT_BYTES);
+  if (!parsed.ok) {
+    return new Response(null, { status: parsed.reason === "too_large" ? 413 : 204 });
+  }
+  for (const violation of parseCspReports(parsed.value)) {
+    console.warn(`[csp] ${JSON.stringify(violation)}`);
   }
   return new Response(null, { status: 204 });
 }

@@ -53,4 +53,20 @@ describe("verificação de segredos antes de publicar", () => {
     expect(preflight?.run).not.toMatch(/echo[^\n]*\$\{!name\}/);
     expect(preflight?.run).not.toMatch(/set -x/);
   });
+
+  it("confirma o token na Cloudflare logo a seguir, sem nunca escrever o valor", () => {
+    const tokenCheck = steps.find((s) => s.name === "Confirmar o token da Cloudflare");
+    expect(tokenCheck).toBeDefined();
+    expect(steps.indexOf(tokenCheck!)).toBe(1);
+    const publish = steps.find((s) => s.run?.includes("deploy-all.mjs"));
+    for (const name of ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"]) {
+      expect(tokenCheck?.env?.[name], name).toBe(publish?.env?.[name]);
+    }
+    expect(tokenCheck?.run).toMatch(/tokens\/verify/);
+    // Só o tipo e o comprimento: nem o token, nem o corpo da resposta inteiro.
+    expect(tokenCheck?.run).not.toMatch(
+      /echo[^\n]*\$(token|CLOUDFLARE_API_TOKEN|\{token\}|body)\b/,
+    );
+    expect(tokenCheck?.run).not.toMatch(/set -x/);
+  });
 });

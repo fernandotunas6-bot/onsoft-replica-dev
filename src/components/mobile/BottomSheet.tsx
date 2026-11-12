@@ -89,7 +89,7 @@ export function BottomSheetHeader({
           type="button"
           onClick={onClose}
           aria-label="Fechar"
-          className="touch-target -mr-1.5 -mt-1.5 inline-flex items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="touch-target -mr-1.5 -mt-1.5 inline-flex items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <X className="size-5" />
         </button>

@@ -302,31 +302,40 @@ export function SchoolYearProvider({ children }: { children: ReactNode }) {
   return <SchoolYearContext.Provider value={value}>{children}</SchoolYearContext.Provider>;
 }
 
+/**
+ * Fora do provider o valor é sempre o mesmo, por isso vive aqui e não dentro do
+ * hook: construído a cada chamada, dava um objecto novo — com arrays e funções
+ * novas — em CADA render, e quem o passasse como dependência de
+ * `useMemo`/`useEffect` entrava em ciclo («Maximum update depth exceeded»,
+ * React #185). É a mesma razão do `NO_GRANTS` em `use-current-account`.
+ */
+const NO_SCHOOL_YEAR_CONTEXT = Object.freeze({
+  school: null,
+  isLoading: true,
+  academicYears: Object.freeze([]) as unknown as AcademicYearOption[],
+  activeYear: null,
+  selectedYear: null,
+  selectedYearId: null,
+  selectedYearLabel: fallbackSchoolYear,
+  yearOptions: Object.freeze([]) as unknown as AcademicYearOption[],
+  setSelectedYearId: (_yearId: string) => {
+    /* sem provider: a selecção só existe na área autenticada */
+  },
+  terms: Object.freeze([]) as unknown as AcademicTermOption[],
+  selectedTerm: null,
+  selectedTermId: null,
+  selectedTermLabel: "Período",
+  setSelectedTermId: (_termId: string) => {
+    /* sem provider */
+  },
+  activeYearLabel: fallbackSchoolYear,
+  data: null,
+});
+
 export function useSchoolSettings() {
   const context = useContext(SchoolYearContext);
   if (!context) {
-    return {
-      school: null,
-      isLoading: true,
-      academicYears: [] as AcademicYearOption[],
-      activeYear: null,
-      selectedYear: null,
-      selectedYearId: null,
-      selectedYearLabel: fallbackSchoolYear,
-      yearOptions: [] as AcademicYearOption[],
-      setSelectedYearId: (_yearId: string) => {
-        /* sem provider: a selecção só existe na área autenticada */
-      },
-      terms: [] as AcademicTermOption[],
-      selectedTerm: null,
-      selectedTermId: null,
-      selectedTermLabel: "Período",
-      setSelectedTermId: (_termId: string) => {
-        /* sem provider */
-      },
-      activeYearLabel: fallbackSchoolYear,
-      data: null,
-    };
+    return NO_SCHOOL_YEAR_CONTEXT;
   }
   return {
     ...context,

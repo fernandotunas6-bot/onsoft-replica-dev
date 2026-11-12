@@ -14,6 +14,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { recordAccessAudit } from "@/features/audit/record-audit";
+import { assertDiscountWithinRole } from "@/features/finance/scholarships";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -24,7 +25,7 @@ import {
 
 export const SCHOLARSHIP_ACTION = "finance.scholarship.set";
 
-const studentInput = z.object({ studentId: z.string().uuid() });
+const studentInput = z.object({ studentId: z.string().guid() });
 
 export const setScholarshipInputSchema = studentInput.extend({
   /** Percentagem do desconto (0 = sem bolsa), com cêntimos de ponto percentual. */
@@ -105,6 +106,8 @@ export const setStudentScholarship = createServerFn({ method: "POST" })
       throw new Error("O aluno não tem matrícula activa: atribua primeiro uma turma.");
     }
     const before = Number(contract?.discount_percentage ?? 0);
+    // Dar acima do limite, ou mudar uma bolsa que já está acima, é do Administrador.
+    assertDiscountWithinRole(membership.allAppRoles ?? [membership.appRole], data.percent, before);
 
     let contractId: string;
     if (contract?.id) {

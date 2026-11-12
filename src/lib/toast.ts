@@ -26,7 +26,17 @@ import {
 export type ErrorToastOptions = ExternalToast & {
   /** `false` mostra a mensagem tal como está, sem correcção nem botão. */
   guidance?: boolean;
+  /** Referência do pedido no servidor (`request-correlation.ts`), para o suporte. */
+  reference?: string;
 };
+
+/** Junta a referência do pedido ao fim da descrição de um erro. */
+function withReference(description: ExternalToast["description"], reference?: string) {
+  if (!reference) return description;
+  const line = `Referência: ${reference}`;
+  if (description == null || description === "") return line;
+  return typeof description === "string" ? `${description} ${line}` : description;
+}
 
 type Navigate = (action: Extract<GuidanceAction, { kind: "route" }>) => void;
 type CanOpen = (path: string) => boolean;
@@ -124,14 +134,15 @@ function guidedError(
   message: Parameters<typeof sonnerToast.error>[0],
   options?: ErrorToastOptions,
 ) {
-  const { guidance = true, ...rest } = options ?? {};
-  if (typeof message !== "string") return sonnerToast.error(message, rest);
-  if (!guidance || rest.action) {
-    return sonnerToast.error(readable(message), rest);
+  const { guidance = true, reference, ...rest } = options ?? {};
+  if (typeof message !== "string" || !guidance || rest.action) {
+    const plain = { ...rest, description: withReference(rest.description, reference) };
+    if (typeof message !== "string") return sonnerToast.error(message, plain);
+    return sonnerToast.error(readable(message), plain);
   }
   const guided = describeError(message);
   if (isTechnicalMessage(message)) console.warn("[SIGA] erro técnico:", message);
-  const description = rest.description ?? guided.description;
+  const description = withReference(rest.description ?? guided.description, reference);
   notifyDesktopInBackground(
     guided.title,
     typeof description === "string" ? description : undefined,

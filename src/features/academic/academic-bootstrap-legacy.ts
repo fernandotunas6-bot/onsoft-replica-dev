@@ -2,6 +2,7 @@ import type { TablesInsert } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { ensureDefaultTeacher } from "@/features/academic/sga-grades";
+import { isMissingTable } from "@/integrations/supabase/server-error";
 
 export type BootstrapAcademicOptions = {
   /** Propaga erros em vez de ignorar (ex.: botão em Pedagógica). */
@@ -19,15 +20,6 @@ export const DEFAULT_ACADEMIC_SUBJECTS = [
 export function defaultAcademicYearLabel(referenceDate = new Date()): string {
   const year = referenceDate.getFullYear();
   return `${year}/${year + 1}`;
-}
-
-function isMissingTable(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /schema cache|does not exist|relation .* does not exist/i.test(error.message ?? "")),
-  );
 }
 
 function handleBootstrapError(

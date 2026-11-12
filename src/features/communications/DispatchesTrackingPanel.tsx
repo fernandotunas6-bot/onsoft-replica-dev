@@ -152,11 +152,15 @@ export function DispatchesTrackingPanel() {
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
           <p className="text-xs font-medium text-muted-foreground">Bounces</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-destructive">{stats.bounced}</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-destructive-strong">
+            {stats.bounced}
+          </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
           <p className="text-xs font-medium text-muted-foreground">Falhas</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-destructive">{stats.failed}</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-destructive-strong">
+            {stats.failed}
+          </p>
         </div>
       </div>
 

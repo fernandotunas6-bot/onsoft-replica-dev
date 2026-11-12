@@ -31,7 +31,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Subject Manager',
+          'Gerir disciplinas',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -39,9 +39,10 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
         foregroundColor: AppColors.secondary,
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: 'Nova disciplina',
         onPressed: () => _showSubjectSheet(),
         backgroundColor: AppColors.primary,
-        child: const Icon(LucideIcons.plus, color: AppColors.secondary),
+        child: Icon(LucideIcons.plus, color: AppColors.onPrimary),
       ),
       body: Column(
         children: [
@@ -51,7 +52,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
               controller: _searchController,
               onChanged: (v) => setState(() => _searchQuery = v),
               decoration: InputDecoration(
-                hintText: 'Search subjects...',
+                hintText: 'Pesquisar disciplinas…',
                 prefixIcon: const Icon(LucideIcons.search, size: 20),
                 fillColor: AppColors.surface,
                 filled: true,
@@ -62,12 +63,12 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
               ),
             ),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Tap a subject to manage class assignments.',
+                'Toque numa disciplina para escolher as turmas.',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
               ),
             ),
@@ -85,11 +86,11 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                       color: AppColors.error,
                     ),
                     const SizedBox(height: 16),
-                    const Text('Failed to load subjects'),
+                    const Text('Não foi possível carregar as disciplinas'),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () => ref.invalidate(subjectsProvider(null)),
-                      child: const Text('Retry'),
+                      child: const Text('Tentar de novo'),
                     ),
                   ],
                 ),
@@ -126,8 +127,8 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                           color: AppColors.textSecondary.withValues(alpha: 0.3),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'No subjects found.',
+                        Text(
+                          'Nenhuma disciplina.',
                           style: TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 14,
@@ -177,7 +178,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   LucideIcons.book,
                                   color: AppColors.secondary,
                                 ),
@@ -190,16 +191,16 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                               ),
                               subtitle: Text(
                                 classNames.isNotEmpty
-                                    ? 'Assigned to: $classNames'
-                                    : 'Not assigned to any class',
-                                style: const TextStyle(
+                                    ? 'Turmas: $classNames'
+                                    : 'Sem turmas',
+                                style: TextStyle(
                                   color: AppColors.textSecondary,
                                   fontSize: 13,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              trailing: const Icon(
+                              trailing: Icon(
                                 LucideIcons.chevronRight,
                                 color: AppColors.textSecondary,
                               ),
@@ -264,8 +265,8 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                   SnackBar(
                     content: Text(
                       subject == null
-                          ? 'Failed to create subject: $e'
-                          : 'Failed to update subject: $e',
+                          ? 'Não foi possível criar a disciplina: $e'
+                          : 'Não foi possível guardar a disciplina: $e',
                     ),
                     backgroundColor: AppColors.error,
                   ),
@@ -275,7 +276,7 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
           }
 
           return Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
             ),
@@ -303,8 +304,8 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                   const SizedBox(height: 20),
                   Text(
                     subject == null
-                        ? 'Add New Subject'
-                        : 'Manage Subject Classes',
+                        ? 'Nova disciplina'
+                        : 'Turmas da disciplina',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -314,13 +315,13 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                   TextField(
                     controller: nameController,
                     decoration: const InputDecoration(
-                      hintText: 'Subject Name',
+                      hintText: 'Nome da disciplina',
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Assign to Classes',
+                    'Turmas',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
@@ -353,8 +354,8 @@ class _SubjectListScreenState extends ConsumerState<SubjectListScreen> {
                             )
                           : Text(
                               subject == null
-                                  ? 'Create Subject'
-                                  : 'Save Changes',
+                                  ? 'Criar disciplina'
+                                  : 'Guardar alterações',
                             ),
                     ),
                   ),

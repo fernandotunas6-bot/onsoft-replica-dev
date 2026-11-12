@@ -14,8 +14,8 @@ import {
 type Passkey = { id: string; name: string; createdAt: string };
 
 /**
- * Chaves de acesso da conta: a forma principal de confirmar a identidade
- * (um toque). O código da aplicação autenticadora fica como recurso.
+ * Chaves de acesso da conta: a forma principal de confirmar acções sensíveis.
+ * O login só as exige se a preferência própria estiver activada.
  */
 export function PasskeysPanel() {
   const [keys, setKeys] = useState<Passkey[] | null>(null);
@@ -45,7 +45,8 @@ export function PasskeysPanel() {
     setBusy(true);
     try {
       await registerPasskey();
-      toast.success("Chave de acesso criada. Da próxima vez basta um toque.");
+      window.dispatchEvent(new Event("siga:mfa-factors-changed"));
+      toast.success("Chave de acesso criada. Pode activar a confirmação no login nas Definições.");
       await load();
     } catch (error) {
       toast.error(passkeyErrorMessage(error));
@@ -59,6 +60,7 @@ export function PasskeysPanel() {
     try {
       const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
       if (error) throw error;
+      window.dispatchEvent(new Event("siga:mfa-factors-changed"));
       toast.success("Chave de acesso removida.");
       await load();
     } catch (error) {
@@ -79,7 +81,7 @@ export function PasskeysPanel() {
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
             Confirme que é você com a impressão digital, Face ID, Windows Hello ou o PIN do
-            dispositivo. Um toque, sem códigos.
+            dispositivo. Active separadamente a confirmação no login, se desejar.
           </p>
         </div>
         <Badge variant={keys?.length ? "default" : "outline"}>

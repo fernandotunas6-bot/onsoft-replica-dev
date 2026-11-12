@@ -24,7 +24,12 @@ describe("regras de transição por ciclo", () => {
     expect(decidePromotionStatus(9, 3, "ii_ciclo")).toBe("ADMITIDO A EXAME");
     expect(decidePromotionStatus(8.9, 0, "ii_ciclo")).toBe("NÃO TRANSITA");
     // Técnico: PAP.
-    expect(decidePromotionStatus(12, 2, "tecnico")).toBe("APTO (PAP)");
+    // Sem nota da PAP a decisão fica pendente; com ela, decide a PAP.
+    expect(decidePromotionStatus(12, 2, "tecnico")).toBe("PENDENTE");
+    expect(decidePromotionStatus(12, 2, "tecnico", null)).toBe("PENDENTE");
+    expect(decidePromotionStatus(12, 2, "tecnico", 14)).toBe("APTO (PAP)");
+    // Média negativa continua a reprovar, haja ou não PAP.
+    expect(decidePromotionStatus(8, 3, "tecnico")).toBe("NÃO TRANSITA");
     expect(decidePromotionStatus(12, 2, "tecnico", 8)).toBe("NÃO APTO (PAP)");
     expect(decidePromotionStatus(12, 3, "tecnico")).toBe("NÃO TRANSITA");
     // Adultos e superior seguem o I Ciclo.

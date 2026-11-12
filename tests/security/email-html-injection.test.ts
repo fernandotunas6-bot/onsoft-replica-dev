@@ -49,7 +49,11 @@ describe("envio de e-mail com a chave da plataforma", () => {
 
   it("limita envios, restringe destinatários à escola e força o remetente do sistema", () => {
     expect(body).toMatch(/platformQuotaOk\(`platform_email:/);
-    expect(body).toMatch(/\.eq\("school_id", membership\.schoolId\)\s*\.in\("email", recipients\)/);
+    // Contactos da escola (todas as fichas com e-mail, comparação sem maiúsculas).
+    expect(body).toMatch(
+      /\.eq\("school_id", membership\.schoolId\)\s*\.not\("email", "is", null\)/,
+    );
+    expect(body).toContain("allowed.has(email.toLowerCase())");
     expect(body).toMatch(/from = resolveSystemSender\(/);
   });
 });

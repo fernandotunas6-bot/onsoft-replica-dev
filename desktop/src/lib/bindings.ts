@@ -31,11 +31,33 @@ async openSigaPortal() : Promise<Result<null, string>> {
 }
 },
 /**
+ * Opens the bundled read-only school preview in a restricted native window.
+ */
+async openOfflineShell() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("open_offline_shell") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Reports update configuration without invoking an unconfigured updater plugin.
  */
 async desktopUpdateStatus() : Promise<Result<AppUpdate, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("desktop_update_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Reports offline readiness without returning school data or credentials.
+ */
+async desktopOfflineReadiness() : Promise<Result<DesktopOfflineReadiness, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("desktop_offline_readiness") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -196,6 +218,19 @@ language: string | null }
  * Estado das actualizações da app, para o aviso «Nova versão do SIGA».
  */
 export type AppUpdate = { configured: boolean; available: boolean; version: string | null; notes: string | null }
+/**
+ * Offline native capability report: no sensitive data and no access tokens.
+ */
+export type DesktopOfflineReadiness = {
+  appVersion: string;
+  bundledUiReady: boolean;
+  schemaVersion: number;
+  sqlcipherReady: boolean;
+  authorizedBootstrapReady: boolean;
+  bidirectionalSyncReady: boolean;
+  privateDataOfflineReady: boolean;
+  signedUpdaterConfigured: boolean;
+}
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 /**
  * Error types for recovery operations (typed for frontend matching)

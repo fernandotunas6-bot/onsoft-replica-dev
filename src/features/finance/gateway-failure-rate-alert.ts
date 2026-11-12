@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { GatewayWebhookWindowSummary } from "@/features/finance/gateway-webhook-metrics";
 import { resolveSystemSender, sendResendEmail } from "@/features/integrations/resend-client";
+import { isMissingTable } from "@/integrations/supabase/server-error";
 
 export type GatewayFailureRateAlertConfig = {
   slackUrl: string | null;
@@ -99,15 +100,6 @@ export function formatGatewayFailureRateAlertMessage(
     "Ver ADMIN → Webhooks gateway ou `npm run siga:gateway-events-recent -- --failures-only`.",
   ];
   return { title, text: lines.join("\n"), lines };
-}
-
-function isMissingTable(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /schema cache|does not exist|relation .* does not exist/i.test(error.message ?? "")),
-  );
 }
 
 async function wasAlertSentRecently(db: SupabaseClient, cooldownMs: number, nowMs: number) {

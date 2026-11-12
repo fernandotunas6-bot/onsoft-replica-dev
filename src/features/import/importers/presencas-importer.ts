@@ -1,4 +1,4 @@
-import { normalizeDate, normalizeText } from "../engine/normalize";
+import { normalizeDate, normalizeText, valueOf } from "../engine/normalize";
 import type { AuditEntry, ImportRefCache, RowImporter } from "../engine/types";
 import {
   loadClassGroupRefs,
@@ -29,14 +29,6 @@ const STATUS_VALUES = [
   "not_registered",
 ] as const;
 type AttendanceStatus = (typeof STATUS_VALUES)[number];
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 function parseStatus(value: unknown): AttendanceStatus | null {
   const text = normalizeText(value).toLowerCase();

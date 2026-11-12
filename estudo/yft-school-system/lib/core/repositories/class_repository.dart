@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../models/school_class.dart';
 import '../network/api_endpoints.dart';
+import '../sga/sga_config.dart';
 
 class ClassRepository {
   final Dio _dio;
@@ -8,7 +9,7 @@ class ClassRepository {
   ClassRepository(this._dio);
 
   Future<List<SchoolClass>> getClasses() async {
-    final response = await _dio.get(ApiEndpoints.classes);
+    final response = await _dio.get(sgaMode ? ApiEndpoints.sgaClasses : ApiEndpoints.classes);
     final data = response.data['data'] as List;
     return data
         .map((e) => SchoolClass.fromJson(e as Map<String, dynamic>))

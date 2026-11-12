@@ -1,0 +1,5034 @@
+{
+  "kind": "production-preload-and-source-inventory",
+  "note": "Bytes de artefactos/preloads, não latência nem Web Vitals. Hooks contados nos ficheiros canónicos; não equivalem a pedidos executados.",
+  "shell": {
+    "files": 42,
+    "bytes": 1435872,
+    "gzipBytes": 408642,
+    "assets": [
+      {
+        "href": "/assets/index-EJcEg0WJ.js",
+        "bytes": 239601,
+        "gzipBytes": 59936
+      },
+      {
+        "href": "/assets/rolldown-runtime-hePW80VL.js",
+        "bytes": 716,
+        "gzipBytes": 428
+      },
+      {
+        "href": "/assets/icons-lWzgGUYH.js",
+        "bytes": 59913,
+        "gzipBytes": 18433
+      },
+      {
+        "href": "/assets/framework-CIytk8im.js",
+        "bytes": 362497,
+        "gzipBytes": 113559
+      },
+      {
+        "href": "/assets/createServerFn-4XF9Z8ZE.js",
+        "bytes": 8872,
+        "gzipBytes": 3659
+      },
+      {
+        "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+        "bytes": 144136,
+        "gzipBytes": 30055
+      },
+      {
+        "href": "/assets/auth-middleware-JDjVgB0Q.js",
+        "bytes": 332,
+        "gzipBytes": 191
+      },
+      {
+        "href": "/assets/client-C3GAko7W.js",
+        "bytes": 215961,
+        "gzipBytes": 56040
+      },
+      {
+        "href": "/assets/core-C6vcUs2R.js",
+        "bytes": 1285,
+        "gzipBytes": 651
+      },
+      {
+        "href": "/assets/AppShell-ka5N_Pgw.js",
+        "bytes": 180704,
+        "gzipBytes": 51468
+      },
+      {
+        "href": "/assets/toast-B2ot9Cxg.js",
+        "bytes": 50009,
+        "gzipBytes": 15262
+      },
+      {
+        "href": "/assets/input-CaurjZlr.js",
+        "bytes": 1116,
+        "gzipBytes": 695
+      },
+      {
+        "href": "/assets/preload-helper-Czpn1I53.js",
+        "bytes": 1196,
+        "gzipBytes": 675
+      },
+      {
+        "href": "/assets/desktop-utils-By23UXWY.js",
+        "bytes": 1215,
+        "gzipBytes": 648
+      },
+      {
+        "href": "/assets/button-tUdhlAH7.js",
+        "bytes": 4057,
+        "gzipBytes": 2040
+      },
+      {
+        "href": "/assets/use-current-account-DAomYmPJ.js",
+        "bytes": 38591,
+        "gzipBytes": 13105
+      },
+      {
+        "href": "/assets/session-expiry-BHokeuIx.js",
+        "bytes": 837,
+        "gzipBytes": 509
+      },
+      {
+        "href": "/assets/label-YBrdZUNo.js",
+        "bytes": 790,
+        "gzipBytes": 498
+      },
+      {
+        "href": "/assets/step-up-DtsjR_Be.js",
+        "bytes": 431,
+        "gzipBytes": 289
+      },
+      {
+        "href": "/assets/siga-logo-nbdxCQA_.js",
+        "bytes": 733,
+        "gzipBytes": 414
+      },
+      {
+        "href": "/assets/access-policy-_JzA1I-0.js",
+        "bytes": 4837,
+        "gzipBytes": 1386
+      },
+      {
+        "href": "/assets/more-info-BO1HQcNM.js",
+        "bytes": 663,
+        "gzipBytes": 428
+      },
+      {
+        "href": "/assets/PageHeader-DsZ6A2xC.js",
+        "bytes": 6740,
+        "gzipBytes": 2381
+      },
+      {
+        "href": "/assets/icon-chip-ohk0-rWQ.js",
+        "bytes": 1019,
+        "gzipBytes": 559
+      },
+      {
+        "href": "/assets/inline-loading-XzFVvr2N.js",
+        "bytes": 410,
+        "gzipBytes": 300
+      },
+      {
+        "href": "/assets/textarea-BhBHKs2r.js",
+        "bytes": 630,
+        "gzipBytes": 416
+      },
+      {
+        "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+        "bytes": 1875,
+        "gzipBytes": 764
+      },
+      {
+        "href": "/assets/types-CgA06yQH.js",
+        "bytes": 56638,
+        "gzipBytes": 12920
+      },
+      {
+        "href": "/assets/use-school-settings-CDc6o3Xw.js",
+        "bytes": 3419,
+        "gzipBytes": 1450
+      },
+      {
+        "href": "/assets/entity-focus-context-CekCWg8B.js",
+        "bytes": 933,
+        "gzipBytes": 490
+      },
+      {
+        "href": "/assets/tenant-context-DFOMW2Uz.js",
+        "bytes": 5140,
+        "gzipBytes": 2380
+      },
+      {
+        "href": "/assets/status-badge-a5SZRkX6.js",
+        "bytes": 7017,
+        "gzipBytes": 3024
+      },
+      {
+        "href": "/assets/outbox-session-CJ261H6I.js",
+        "bytes": 140,
+        "gzipBytes": 143
+      },
+      {
+        "href": "/assets/badge-FrqlaDlp.js",
+        "bytes": 882,
+        "gzipBytes": 460
+      },
+      {
+        "href": "/assets/action-error-toast-BYl824yO.js",
+        "bytes": 431,
+        "gzipBytes": 289
+      },
+      {
+        "href": "/assets/doc-help-button-Cmy7ya7i.js",
+        "bytes": 739,
+        "gzipBytes": 451
+      },
+      {
+        "href": "/assets/select-badS47Lv.js",
+        "bytes": 22915,
+        "gzipBytes": 7719
+      },
+      {
+        "href": "/assets/export-csv-PAMEoBlb.js",
+        "bytes": 502,
+        "gzipBytes": 369
+      },
+      {
+        "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+        "bytes": 1463,
+        "gzipBytes": 851
+      },
+      {
+        "href": "/assets/error-message-C3YtGij_.js",
+        "bytes": 132,
+        "gzipBytes": 121
+      },
+      {
+        "href": "/assets/pedagogica-VrxjHyDH.js",
+        "bytes": 4891,
+        "gzipBytes": 2395
+      },
+      {
+        "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+        "bytes": 1464,
+        "gzipBytes": 791
+      }
+    ]
+  },
+  "modules": [
+    {
+      "id": "dashboard",
+      "label": "Dashboard",
+      "sourceFiles": 7,
+      "queryHooks": 2,
+      "realtimeHandlers": 4,
+      "dynamicImports": 3,
+      "route": "/",
+      "preloadBudget": {
+        "files": 71,
+        "bytes": 1792231,
+        "gzipBytes": 520262,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/routes-BPDQYVXN.js",
+            "bytes": 108004,
+            "gzipBytes": 26960
+          },
+          {
+            "href": "/assets/utils-BedqnZ7i.js",
+            "bytes": 93,
+            "gzipBytes": 103
+          },
+          {
+            "href": "/assets/dialog-BPWqb0Z-.js",
+            "bytes": 2355,
+            "gzipBytes": 965
+          },
+          {
+            "href": "/assets/sql-checklist-link-BzPPtdBL.js",
+            "bytes": 11440,
+            "gzipBytes": 4580
+          },
+          {
+            "href": "/assets/server-5MqDra3k.js",
+            "bytes": 1864,
+            "gzipBytes": 934
+          },
+          {
+            "href": "/assets/dates-DWX-JTzL.js",
+            "bytes": 1875,
+            "gzipBytes": 862
+          },
+          {
+            "href": "/assets/PickFileButton-DxW6c-Mt.js",
+            "bytes": 138586,
+            "gzipBytes": 41103
+          },
+          {
+            "href": "/assets/media-frame-DYTW7LOQ.js",
+            "bytes": 5112,
+            "gzipBytes": 2464
+          },
+          {
+            "href": "/assets/server-secure-legacy-DqkCJN6j.js",
+            "bytes": 954,
+            "gzipBytes": 499
+          },
+          {
+            "href": "/assets/ResponsiveEntityView-DR9rtdW0.js",
+            "bytes": 577,
+            "gzipBytes": 304
+          },
+          {
+            "href": "/assets/skeletons-BACXaPh7.js",
+            "bytes": 1147,
+            "gzipBytes": 500
+          },
+          {
+            "href": "/assets/browser-Cpc4qo6y.js",
+            "bytes": 23473,
+            "gzipBytes": 8805
+          },
+          {
+            "href": "/assets/currency-CSxrW-jG.js",
+            "bytes": 143,
+            "gzipBytes": 142
+          },
+          {
+            "href": "/assets/InstalledModuleTools-sIglvE-3.js",
+            "bytes": 3947,
+            "gzipBytes": 1776
+          },
+          {
+            "href": "/assets/PayflowBrandIcon-1O6VsHE7.js",
+            "bytes": 463,
+            "gzipBytes": 333
+          },
+          {
+            "href": "/assets/print-issue-loader-BDE6C10L.js",
+            "bytes": 903,
+            "gzipBytes": 479
+          },
+          {
+            "href": "/assets/checkbox-BtcK2DSO.js",
+            "bytes": 4623,
+            "gzipBytes": 1976
+          },
+          {
+            "href": "/assets/portal-format-BxTC4Lbj.js",
+            "bytes": 582,
+            "gzipBytes": 407
+          },
+          {
+            "href": "/assets/DashboardCharts-LrgU9U9h.js",
+            "bytes": 17563,
+            "gzipBytes": 5981
+          },
+          {
+            "href": "/assets/timetable-lessons-bz0sdNNy.js",
+            "bytes": 1647,
+            "gzipBytes": 878
+          },
+          {
+            "href": "/assets/attendance-server-RIXxL2VT.js",
+            "bytes": 2253,
+            "gzipBytes": 978
+          },
+          {
+            "href": "/assets/AttendanceCallDialog-CH-E3eVP.js",
+            "bytes": 14788,
+            "gzipBytes": 4842
+          },
+          {
+            "href": "/assets/AttendanceJustificationModal-DGjEiPhH.js",
+            "bytes": 5289,
+            "gzipBytes": 1855
+          },
+          {
+            "href": "/assets/aurora-CyvZglNG.js",
+            "bytes": 1625,
+            "gzipBytes": 709
+          },
+          {
+            "href": "/assets/server-ZDH6jcEs.js",
+            "bytes": 1922,
+            "gzipBytes": 848
+          },
+          {
+            "href": "/assets/realtime-invalidate-CLadhk8t.js",
+            "bytes": 283,
+            "gzipBytes": 217
+          },
+          {
+            "href": "/assets/engine-DK9G2NT3.js",
+            "bytes": 481,
+            "gzipBytes": 315
+          },
+          {
+            "href": "/assets/labels-2ylTvrWI.js",
+            "bytes": 332,
+            "gzipBytes": 206
+          },
+          {
+            "href": "/assets/server-Bm4SWC2-.js",
+            "bytes": 4035,
+            "gzipBytes": 1599
+          }
+        ]
+      }
+    },
+    {
+      "id": "alunos",
+      "label": "Alunos / matrículas internas",
+      "sourceFiles": 5,
+      "queryHooks": 11,
+      "realtimeHandlers": 5,
+      "dynamicImports": 0,
+      "route": "/alunos/$studentId",
+      "preloadBudget": {
+        "files": 63,
+        "bytes": 1687017,
+        "gzipBytes": 490830,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/_studentId-BVM7B9ed.js",
+            "bytes": 42639,
+            "gzipBytes": 12171
+          },
+          {
+            "href": "/assets/sql-checklist-link-BzPPtdBL.js",
+            "bytes": 11440,
+            "gzipBytes": 4580
+          },
+          {
+            "href": "/assets/angola-academic-BlcfEE5d.js",
+            "bytes": 5557,
+            "gzipBytes": 2188
+          },
+          {
+            "href": "/assets/print-overlays-CR4Kaw3U.js",
+            "bytes": 8931,
+            "gzipBytes": 3421
+          },
+          {
+            "href": "/assets/PickFileButton-DxW6c-Mt.js",
+            "bytes": 138586,
+            "gzipBytes": 41103
+          },
+          {
+            "href": "/assets/media-frame-DYTW7LOQ.js",
+            "bytes": 5112,
+            "gzipBytes": 2464
+          },
+          {
+            "href": "/assets/server-secure-legacy-DqkCJN6j.js",
+            "bytes": 954,
+            "gzipBytes": 499
+          },
+          {
+            "href": "/assets/server-CaiKKHeq.js",
+            "bytes": 1090,
+            "gzipBytes": 544
+          },
+          {
+            "href": "/assets/server-BCzW-kpT.js",
+            "bytes": 3597,
+            "gzipBytes": 1575
+          },
+          {
+            "href": "/assets/currency-CSxrW-jG.js",
+            "bytes": 143,
+            "gzipBytes": 142
+          },
+          {
+            "href": "/assets/use-passing-value-KH7IWvfy.js",
+            "bytes": 546,
+            "gzipBytes": 343
+          },
+          {
+            "href": "/assets/actions-C52cXm_e.js",
+            "bytes": 2502,
+            "gzipBytes": 1106
+          },
+          {
+            "href": "/assets/InstalledModuleTools-sIglvE-3.js",
+            "bytes": 3947,
+            "gzipBytes": 1776
+          },
+          {
+            "href": "/assets/schemas-COJQ_jC7.js",
+            "bytes": 3687,
+            "gzipBytes": 1354
+          },
+          {
+            "href": "/assets/print-issue-loader-BDE6C10L.js",
+            "bytes": 903,
+            "gzipBytes": 479
+          },
+          {
+            "href": "/assets/assessment-views-DkqG3hcL.js",
+            "bytes": 2452,
+            "gzipBytes": 1225
+          },
+          {
+            "href": "/assets/export-pdf-loader-B6jzK08r.js",
+            "bytes": 608,
+            "gzipBytes": 336
+          },
+          {
+            "href": "/assets/QuickFormModal-5H1bdagR.js",
+            "bytes": 3865,
+            "gzipBytes": 1775
+          },
+          {
+            "href": "/assets/PayflowStudentSyncButton-DmcR8bRA.js",
+            "bytes": 11466,
+            "gzipBytes": 3685
+          },
+          {
+            "href": "/assets/schemas-lryBP9jI.js",
+            "bytes": 1031,
+            "gzipBytes": 645
+          },
+          {
+            "href": "/assets/schemas-CfweewJe.js",
+            "bytes": 2089,
+            "gzipBytes": 777
+          }
+        ]
+      }
+    },
+    {
+      "id": "alumni",
+      "label": "Alumni / antigos alunos",
+      "sourceFiles": 29,
+      "queryHooks": 35,
+      "realtimeHandlers": 0,
+      "dynamicImports": 0,
+      "route": "/alumni",
+      "preloadBudget": {
+        "files": 46,
+        "bytes": 1458896,
+        "gzipBytes": 416950,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/alumni-DjTLtdf0.js",
+            "bytes": 14640,
+            "gzipBytes": 4493
+          },
+          {
+            "href": "/assets/media-frame-DYTW7LOQ.js",
+            "bytes": 5112,
+            "gzipBytes": 2464
+          },
+          {
+            "href": "/assets/card-L60atTn_.js",
+            "bytes": 1247,
+            "gzipBytes": 492
+          },
+          {
+            "href": "/assets/server-C-wbSaSD.js",
+            "bytes": 2025,
+            "gzipBytes": 859
+          }
+        ]
+      }
+    },
+    {
+      "id": "pessoas",
+      "label": "Pessoas e professores",
+      "sourceFiles": 4,
+      "queryHooks": 6,
+      "realtimeHandlers": 0,
+      "dynamicImports": 0,
+      "route": "/professores/$teacherId",
+      "preloadBudget": {
+        "files": 55,
+        "bytes": 1635794,
+        "gzipBytes": 475422,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/_teacherId-16SgRtRW.js",
+            "bytes": 8342,
+            "gzipBytes": 3231
+          },
+          {
+            "href": "/assets/sql-checklist-link-BzPPtdBL.js",
+            "bytes": 11440,
+            "gzipBytes": 4580
+          },
+          {
+            "href": "/assets/print-overlays-CR4Kaw3U.js",
+            "bytes": 8931,
+            "gzipBytes": 3421
+          },
+          {
+            "href": "/assets/PickFileButton-DxW6c-Mt.js",
+            "bytes": 138586,
+            "gzipBytes": 41103
+          },
+          {
+            "href": "/assets/media-frame-DYTW7LOQ.js",
+            "bytes": 5112,
+            "gzipBytes": 2464
+          },
+          {
+            "href": "/assets/server-Bs23fLvS.js",
+            "bytes": 4334,
+            "gzipBytes": 1864
+          },
+          {
+            "href": "/assets/server-secure-legacy-DqkCJN6j.js",
+            "bytes": 954,
+            "gzipBytes": 499
+          },
+          {
+            "href": "/assets/ics-Cbsgbrs_.js",
+            "bytes": 2245,
+            "gzipBytes": 1137
+          },
+          {
+            "href": "/assets/actions-C52cXm_e.js",
+            "bytes": 2502,
+            "gzipBytes": 1106
+          },
+          {
+            "href": "/assets/InstalledModuleTools-sIglvE-3.js",
+            "bytes": 3947,
+            "gzipBytes": 1776
+          },
+          {
+            "href": "/assets/print-issue-loader-BDE6C10L.js",
+            "bytes": 903,
+            "gzipBytes": 479
+          },
+          {
+            "href": "/assets/TeacherWorkspacePanel-DEt3ffkJ.js",
+            "bytes": 8761,
+            "gzipBytes": 3345
+          },
+          {
+            "href": "/assets/QuickFormModal-5H1bdagR.js",
+            "bytes": 3865,
+            "gzipBytes": 1775
+          }
+        ]
+      }
+    },
+    {
+      "id": "pedagogica",
+      "label": "Área pedagógica / turmas",
+      "sourceFiles": 6,
+      "queryHooks": 7,
+      "realtimeHandlers": 0,
+      "dynamicImports": 14,
+      "route": "/pedagogica",
+      "preloadBudget": {
+        "files": 76,
+        "bytes": 1858585,
+        "gzipBytes": 538391,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/pedagogica-BRF8Xy6G.js",
+            "bytes": 147790,
+            "gzipBytes": 37820
+          },
+          {
+            "href": "/assets/utils-BedqnZ7i.js",
+            "bytes": 93,
+            "gzipBytes": 103
+          },
+          {
+            "href": "/assets/dialog-BPWqb0Z-.js",
+            "bytes": 2355,
+            "gzipBytes": 965
+          },
+          {
+            "href": "/assets/sql-checklist-link-BzPPtdBL.js",
+            "bytes": 11440,
+            "gzipBytes": 4580
+          },
+          {
+            "href": "/assets/server-5MqDra3k.js",
+            "bytes": 1864,
+            "gzipBytes": 934
+          },
+          {
+            "href": "/assets/angola-academic-BlcfEE5d.js",
+            "bytes": 5557,
+            "gzipBytes": 2188
+          },
+          {
+            "href": "/assets/print-overlays-CR4Kaw3U.js",
+            "bytes": 8931,
+            "gzipBytes": 3421
+          },
+          {
+            "href": "/assets/angola-identity-DZmNlBNz.js",
+            "bytes": 1113,
+            "gzipBytes": 591
+          },
+          {
+            "href": "/assets/angola-phone-BTDt-8Vs.js",
+            "bytes": 504,
+            "gzipBytes": 312
+          },
+          {
+            "href": "/assets/PickFileButton-DxW6c-Mt.js",
+            "bytes": 138586,
+            "gzipBytes": 41103
+          },
+          {
+            "href": "/assets/confirm-close-BLnaONgY.js",
+            "bytes": 114,
+            "gzipBytes": 126
+          },
+          {
+            "href": "/assets/server-Bs23fLvS.js",
+            "bytes": 4334,
+            "gzipBytes": 1864
+          },
+          {
+            "href": "/assets/server-secure-legacy-DqkCJN6j.js",
+            "bytes": 954,
+            "gzipBytes": 499
+          },
+          {
+            "href": "/assets/calendar-status-56nGs-G4.js",
+            "bytes": 2020,
+            "gzipBytes": 1007
+          },
+          {
+            "href": "/assets/advanced-academic-server-CTx5OJdc.js",
+            "bytes": 2300,
+            "gzipBytes": 983
+          },
+          {
+            "href": "/assets/academic-nav-Sc52AeYj.js",
+            "bytes": 1417,
+            "gzipBytes": 691
+          },
+          {
+            "href": "/assets/ModalFooter-ywOYZPUN.js",
+            "bytes": 5795,
+            "gzipBytes": 1854
+          },
+          {
+            "href": "/assets/ModalSidebar-DeIdGkZV.js",
+            "bytes": 1136,
+            "gzipBytes": 597
+          },
+          {
+            "href": "/assets/SequentialSheetModal-CA_pNJ7T.js",
+            "bytes": 4581,
+            "gzipBytes": 1961
+          },
+          {
+            "href": "/assets/ResponsiveEntityView-DR9rtdW0.js",
+            "bytes": 577,
+            "gzipBytes": 304
+          },
+          {
+            "href": "/assets/use-suggestions-DrNGSCUS.js",
+            "bytes": 15213,
+            "gzipBytes": 3749
+          },
+          {
+            "href": "/assets/use-passing-value-KH7IWvfy.js",
+            "bytes": 546,
+            "gzipBytes": 343
+          },
+          {
+            "href": "/assets/actions-C52cXm_e.js",
+            "bytes": 2502,
+            "gzipBytes": 1106
+          },
+          {
+            "href": "/assets/InstalledModuleTools-sIglvE-3.js",
+            "bytes": 3947,
+            "gzipBytes": 1776
+          },
+          {
+            "href": "/assets/countries-D8w-VSsd.js",
+            "bytes": 21554,
+            "gzipBytes": 6478
+          },
+          {
+            "href": "/assets/subjects-DT6978hH.js",
+            "bytes": 11921,
+            "gzipBytes": 3493
+          },
+          {
+            "href": "/assets/print-issue-loader-BDE6C10L.js",
+            "bytes": 903,
+            "gzipBytes": 479
+          },
+          {
+            "href": "/assets/assessment-views-DkqG3hcL.js",
+            "bytes": 2452,
+            "gzipBytes": 1225
+          },
+          {
+            "href": "/assets/export-pdf-loader-B6jzK08r.js",
+            "bytes": 608,
+            "gzipBytes": 336
+          },
+          {
+            "href": "/assets/list-filters-CzX_aQpN.js",
+            "bytes": 5331,
+            "gzipBytes": 2041
+          },
+          {
+            "href": "/assets/checkbox-BtcK2DSO.js",
+            "bytes": 4623,
+            "gzipBytes": 1976
+          },
+          {
+            "href": "/assets/ClassMaterialsPanel-7cAWcPD3.js",
+            "bytes": 5786,
+            "gzipBytes": 2337
+          },
+          {
+            "href": "/assets/QuickFormModal-5H1bdagR.js",
+            "bytes": 3865,
+            "gzipBytes": 1775
+          },
+          {
+            "href": "/assets/table-DtYEvC6f.js",
+            "bytes": 2001,
+            "gzipBytes": 732
+          }
+        ]
+      }
+    },
+    {
+      "id": "financeiro",
+      "label": "Tesouraria e faturas",
+      "sourceFiles": 5,
+      "queryHooks": 10,
+      "realtimeHandlers": 3,
+      "dynamicImports": 16,
+      "route": "/faturas",
+      "preloadBudget": {
+        "files": 70,
+        "bytes": 1674808,
+        "gzipBytes": 489137,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/faturas-DBIuz1qs.js",
+            "bytes": 34338,
+            "gzipBytes": 10876
+          },
+          {
+            "href": "/assets/dialog-BPWqb0Z-.js",
+            "bytes": 2355,
+            "gzipBytes": 965
+          },
+          {
+            "href": "/assets/sql-checklist-link-BzPPtdBL.js",
+            "bytes": 11440,
+            "gzipBytes": 4580
+          },
+          {
+            "href": "/assets/print-overlays-CR4Kaw3U.js",
+            "bytes": 8931,
+            "gzipBytes": 3421
+          },
+          {
+            "href": "/assets/PickFileButton-DxW6c-Mt.js",
+            "bytes": 138586,
+            "gzipBytes": 41103
+          },
+          {
+            "href": "/assets/school-date-CQO6Iohc.js",
+            "bytes": 464,
+            "gzipBytes": 339
+          },
+          {
+            "href": "/assets/server-BCzW-kpT.js",
+            "bytes": 3597,
+            "gzipBytes": 1575
+          },
+          {
+            "href": "/assets/app-marks-ID0PG8Ft.js",
+            "bytes": 2876,
+            "gzipBytes": 1219
+          },
+          {
+            "href": "/assets/ResponsiveEntityView-DR9rtdW0.js",
+            "bytes": 577,
+            "gzipBytes": 304
+          },
+          {
+            "href": "/assets/states-Bcni1Ubb.js",
+            "bytes": 1777,
+            "gzipBytes": 771
+          },
+          {
+            "href": "/assets/skeletons-BACXaPh7.js",
+            "bytes": 1147,
+            "gzipBytes": 500
+          },
+          {
+            "href": "/assets/currency-CSxrW-jG.js",
+            "bytes": 143,
+            "gzipBytes": 142
+          },
+          {
+            "href": "/assets/actions-C52cXm_e.js",
+            "bytes": 2502,
+            "gzipBytes": 1106
+          },
+          {
+            "href": "/assets/InstalledModuleTools-sIglvE-3.js",
+            "bytes": 3947,
+            "gzipBytes": 1776
+          },
+          {
+            "href": "/assets/PayflowBrandIcon-1O6VsHE7.js",
+            "bytes": 463,
+            "gzipBytes": 333
+          },
+          {
+            "href": "/assets/print-issue-loader-BDE6C10L.js",
+            "bytes": 903,
+            "gzipBytes": 479
+          },
+          {
+            "href": "/assets/assessment-views-DkqG3hcL.js",
+            "bytes": 2452,
+            "gzipBytes": 1225
+          },
+          {
+            "href": "/assets/export-pdf-loader-B6jzK08r.js",
+            "bytes": 608,
+            "gzipBytes": 336
+          },
+          {
+            "href": "/assets/list-filters-CzX_aQpN.js",
+            "bytes": 5331,
+            "gzipBytes": 2041
+          },
+          {
+            "href": "/assets/QuickFormModal-5H1bdagR.js",
+            "bytes": 3865,
+            "gzipBytes": 1775
+          },
+          {
+            "href": "/assets/table-DtYEvC6f.js",
+            "bytes": 2001,
+            "gzipBytes": 732
+          },
+          {
+            "href": "/assets/empty-state-BSK3X7rh.js",
+            "bytes": 1342,
+            "gzipBytes": 653
+          },
+          {
+            "href": "/assets/schemas-CfweewJe.js",
+            "bytes": 2089,
+            "gzipBytes": 777
+          },
+          {
+            "href": "/assets/realtime-invalidate-CLadhk8t.js",
+            "bytes": 283,
+            "gzipBytes": 217
+          },
+          {
+            "href": "/assets/ListPaginationBar-BeRc7Eb_.js",
+            "bytes": 2427,
+            "gzipBytes": 910
+          },
+          {
+            "href": "/assets/money-value-BHcuBaXm.js",
+            "bytes": 829,
+            "gzipBytes": 501
+          },
+          {
+            "href": "/assets/alert-DqKloPb5.js",
+            "bytes": 1309,
+            "gzipBytes": 624
+          },
+          {
+            "href": "/assets/PayflowAdminLaunchButton-CQti9Vl5.js",
+            "bytes": 2354,
+            "gzipBytes": 1215
+          }
+        ]
+      }
+    },
+    {
+      "id": "rh",
+      "label": "RH, assiduidade e folha salarial",
+      "sourceFiles": 13,
+      "queryHooks": 12,
+      "realtimeHandlers": 0,
+      "dynamicImports": 0,
+      "route": "/financeiro/rh",
+      "preloadBudget": {
+        "files": 46,
+        "bytes": 1471175,
+        "gzipBytes": 421646,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/financeiro.rh-DYk8-z9z.js",
+            "bytes": 10630,
+            "gzipBytes": 3482
+          },
+          {
+            "href": "/assets/browser-Cpc4qo6y.js",
+            "bytes": 23473,
+            "gzipBytes": 8805
+          },
+          {
+            "href": "/assets/server-B9wC5u3m.js",
+            "bytes": 357,
+            "gzipBytes": 265
+          },
+          {
+            "href": "/assets/teacher-lessons-ZFi9EdOe.js",
+            "bytes": 843,
+            "gzipBytes": 452
+          }
+        ]
+      }
+    },
+    {
+      "id": "documentos",
+      "label": "Documentos",
+      "sourceFiles": 3,
+      "queryHooks": 2,
+      "realtimeHandlers": 1,
+      "dynamicImports": 0,
+      "route": "/documentos",
+      "preloadBudget": {
+        "files": 65,
+        "bytes": 1670899,
+        "gzipBytes": 486520,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/documentos-DQvBm2LW.js",
+            "bytes": 24798,
+            "gzipBytes": 7562
+          },
+          {
+            "href": "/assets/utils-BedqnZ7i.js",
+            "bytes": 93,
+            "gzipBytes": 103
+          },
+          {
+            "href": "/assets/sql-checklist-link-BzPPtdBL.js",
+            "bytes": 11440,
+            "gzipBytes": 4580
+          },
+          {
+            "href": "/assets/print-overlays-CR4Kaw3U.js",
+            "bytes": 8931,
+            "gzipBytes": 3421
+          },
+          {
+            "href": "/assets/PickFileButton-DxW6c-Mt.js",
+            "bytes": 138586,
+            "gzipBytes": 41103
+          },
+          {
+            "href": "/assets/confirm-close-BLnaONgY.js",
+            "bytes": 114,
+            "gzipBytes": 126
+          },
+          {
+            "href": "/assets/server-CaiKKHeq.js",
+            "bytes": 1090,
+            "gzipBytes": 544
+          },
+          {
+            "href": "/assets/ModalFooter-ywOYZPUN.js",
+            "bytes": 5795,
+            "gzipBytes": 1854
+          },
+          {
+            "href": "/assets/ResponsiveEntityView-DR9rtdW0.js",
+            "bytes": 577,
+            "gzipBytes": 304
+          },
+          {
+            "href": "/assets/states-Bcni1Ubb.js",
+            "bytes": 1777,
+            "gzipBytes": 771
+          },
+          {
+            "href": "/assets/skeletons-BACXaPh7.js",
+            "bytes": 1147,
+            "gzipBytes": 500
+          },
+          {
+            "href": "/assets/currency-CSxrW-jG.js",
+            "bytes": 143,
+            "gzipBytes": 142
+          },
+          {
+            "href": "/assets/actions-C52cXm_e.js",
+            "bytes": 2502,
+            "gzipBytes": 1106
+          },
+          {
+            "href": "/assets/InstalledModuleTools-sIglvE-3.js",
+            "bytes": 3947,
+            "gzipBytes": 1776
+          },
+          {
+            "href": "/assets/print-issue-loader-BDE6C10L.js",
+            "bytes": 903,
+            "gzipBytes": 479
+          },
+          {
+            "href": "/assets/assessment-views-DkqG3hcL.js",
+            "bytes": 2452,
+            "gzipBytes": 1225
+          },
+          {
+            "href": "/assets/export-pdf-loader-B6jzK08r.js",
+            "bytes": 608,
+            "gzipBytes": 336
+          },
+          {
+            "href": "/assets/list-filters-CzX_aQpN.js",
+            "bytes": 5331,
+            "gzipBytes": 2041
+          },
+          {
+            "href": "/assets/QuickFormModal-5H1bdagR.js",
+            "bytes": 3865,
+            "gzipBytes": 1775
+          },
+          {
+            "href": "/assets/table-DtYEvC6f.js",
+            "bytes": 2001,
+            "gzipBytes": 732
+          },
+          {
+            "href": "/assets/print-html-BDgSAAW8.js",
+            "bytes": 16554,
+            "gzipBytes": 6100
+          },
+          {
+            "href": "/assets/empty-state-BSK3X7rh.js",
+            "bytes": 1342,
+            "gzipBytes": 653
+          },
+          {
+            "href": "/assets/schemas-lryBP9jI.js",
+            "bytes": 1031,
+            "gzipBytes": 645
+          }
+        ]
+      }
+    },
+    {
+      "id": "calendario",
+      "label": "Calendário e ICS",
+      "sourceFiles": 6,
+      "queryHooks": 6,
+      "realtimeHandlers": 0,
+      "dynamicImports": 0,
+      "route": "/calendario",
+      "preloadBudget": {
+        "files": 61,
+        "bytes": 1523830,
+        "gzipBytes": 442275,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/calendario-CqY1XN2t.js",
+            "bytes": 33689,
+            "gzipBytes": 10341
+          },
+          {
+            "href": "/assets/utils-BedqnZ7i.js",
+            "bytes": 93,
+            "gzipBytes": 103
+          },
+          {
+            "href": "/assets/sql-checklist-link-BzPPtdBL.js",
+            "bytes": 11440,
+            "gzipBytes": 4580
+          },
+          {
+            "href": "/assets/print-overlays-CR4Kaw3U.js",
+            "bytes": 8931,
+            "gzipBytes": 3421
+          },
+          {
+            "href": "/assets/dates-DWX-JTzL.js",
+            "bytes": 1875,
+            "gzipBytes": 862
+          },
+          {
+            "href": "/assets/calendar-status-56nGs-G4.js",
+            "bytes": 2020,
+            "gzipBytes": 1007
+          },
+          {
+            "href": "/assets/ics-Cbsgbrs_.js",
+            "bytes": 2245,
+            "gzipBytes": 1137
+          },
+          {
+            "href": "/assets/EntityList-DzwP1OvX.js",
+            "bytes": 2828,
+            "gzipBytes": 1131
+          },
+          {
+            "href": "/assets/ResponsiveEntityView-DR9rtdW0.js",
+            "bytes": 577,
+            "gzipBytes": 304
+          },
+          {
+            "href": "/assets/actions-C52cXm_e.js",
+            "bytes": 2502,
+            "gzipBytes": 1106
+          },
+          {
+            "href": "/assets/InstalledModuleTools-sIglvE-3.js",
+            "bytes": 3947,
+            "gzipBytes": 1776
+          },
+          {
+            "href": "/assets/print-issue-loader-BDE6C10L.js",
+            "bytes": 903,
+            "gzipBytes": 479
+          },
+          {
+            "href": "/assets/assessment-views-DkqG3hcL.js",
+            "bytes": 2452,
+            "gzipBytes": 1225
+          },
+          {
+            "href": "/assets/export-pdf-loader-B6jzK08r.js",
+            "bytes": 608,
+            "gzipBytes": 336
+          },
+          {
+            "href": "/assets/list-filters-CzX_aQpN.js",
+            "bytes": 5331,
+            "gzipBytes": 2041
+          },
+          {
+            "href": "/assets/QuickFormModal-5H1bdagR.js",
+            "bytes": 3865,
+            "gzipBytes": 1775
+          },
+          {
+            "href": "/assets/table-DtYEvC6f.js",
+            "bytes": 2001,
+            "gzipBytes": 732
+          },
+          {
+            "href": "/assets/empty-state-BSK3X7rh.js",
+            "bytes": 1342,
+            "gzipBytes": 653
+          },
+          {
+            "href": "/assets/alert-DqKloPb5.js",
+            "bytes": 1309,
+            "gzipBytes": 624
+          }
+        ]
+      }
+    },
+    {
+      "id": "comunicacoes",
+      "label": "Comunicações",
+      "sourceFiles": 5,
+      "queryHooks": 1,
+      "realtimeHandlers": 1,
+      "dynamicImports": 1,
+      "route": "/comunicacoes",
+      "preloadBudget": {
+        "files": 54,
+        "bytes": 1661010,
+        "gzipBytes": 479887,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/comunicacoes-D2KhmSYL.js",
+            "bytes": 45378,
+            "gzipBytes": 12891
+          },
+          {
+            "href": "/assets/dialog-BPWqb0Z-.js",
+            "bytes": 2355,
+            "gzipBytes": 965
+          },
+          {
+            "href": "/assets/sql-checklist-link-BzPPtdBL.js",
+            "bytes": 11440,
+            "gzipBytes": 4580
+          },
+          {
+            "href": "/assets/print-overlays-CR4Kaw3U.js",
+            "bytes": 8931,
+            "gzipBytes": 3421
+          },
+          {
+            "href": "/assets/PickFileButton-DxW6c-Mt.js",
+            "bytes": 138586,
+            "gzipBytes": 41103
+          },
+          {
+            "href": "/assets/InstalledModuleTools-sIglvE-3.js",
+            "bytes": 3947,
+            "gzipBytes": 1776
+          },
+          {
+            "href": "/assets/print-issue-loader-BDE6C10L.js",
+            "bytes": 903,
+            "gzipBytes": 479
+          },
+          {
+            "href": "/assets/assessment-views-DkqG3hcL.js",
+            "bytes": 2452,
+            "gzipBytes": 1225
+          },
+          {
+            "href": "/assets/export-pdf-loader-B6jzK08r.js",
+            "bytes": 608,
+            "gzipBytes": 336
+          },
+          {
+            "href": "/assets/list-filters-CzX_aQpN.js",
+            "bytes": 5331,
+            "gzipBytes": 2041
+          },
+          {
+            "href": "/assets/QuickFormModal-5H1bdagR.js",
+            "bytes": 3865,
+            "gzipBytes": 1775
+          },
+          {
+            "href": "/assets/empty-state-BSK3X7rh.js",
+            "bytes": 1342,
+            "gzipBytes": 653
+          }
+        ]
+      }
+    },
+    {
+      "id": "acessos",
+      "label": "Acessos, grants e 2FA",
+      "sourceFiles": 7,
+      "queryHooks": 5,
+      "realtimeHandlers": 0,
+      "dynamicImports": 7,
+      "route": "/acessos",
+      "preloadBudget": {
+        "files": 59,
+        "bytes": 1663213,
+        "gzipBytes": 482834,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/acessos-V4tupZy_.js",
+            "bytes": 33294,
+            "gzipBytes": 9338
+          },
+          {
+            "href": "/assets/utils-BedqnZ7i.js",
+            "bytes": 93,
+            "gzipBytes": 103
+          },
+          {
+            "href": "/assets/sql-checklist-link-BzPPtdBL.js",
+            "bytes": 11440,
+            "gzipBytes": 4580
+          },
+          {
+            "href": "/assets/print-overlays-CR4Kaw3U.js",
+            "bytes": 8931,
+            "gzipBytes": 3421
+          },
+          {
+            "href": "/assets/PickFileButton-DxW6c-Mt.js",
+            "bytes": 138586,
+            "gzipBytes": 41103
+          },
+          {
+            "href": "/assets/media-frame-DYTW7LOQ.js",
+            "bytes": 5112,
+            "gzipBytes": 2464
+          },
+          {
+            "href": "/assets/server-CUCeIUaQ.js",
+            "bytes": 2513,
+            "gzipBytes": 1181
+          },
+          {
+            "href": "/assets/switch-DsNiNpS3.js",
+            "bytes": 4421,
+            "gzipBytes": 1879
+          },
+          {
+            "href": "/assets/actions-C52cXm_e.js",
+            "bytes": 2502,
+            "gzipBytes": 1106
+          },
+          {
+            "href": "/assets/InstalledModuleTools-sIglvE-3.js",
+            "bytes": 3947,
+            "gzipBytes": 1776
+          },
+          {
+            "href": "/assets/print-issue-loader-BDE6C10L.js",
+            "bytes": 903,
+            "gzipBytes": 479
+          },
+          {
+            "href": "/assets/assessment-views-DkqG3hcL.js",
+            "bytes": 2452,
+            "gzipBytes": 1225
+          },
+          {
+            "href": "/assets/export-pdf-loader-B6jzK08r.js",
+            "bytes": 608,
+            "gzipBytes": 336
+          },
+          {
+            "href": "/assets/list-filters-CzX_aQpN.js",
+            "bytes": 5331,
+            "gzipBytes": 2041
+          },
+          {
+            "href": "/assets/QuickFormModal-5H1bdagR.js",
+            "bytes": 3865,
+            "gzipBytes": 1775
+          },
+          {
+            "href": "/assets/table-DtYEvC6f.js",
+            "bytes": 2001,
+            "gzipBytes": 732
+          },
+          {
+            "href": "/assets/empty-state-BSK3X7rh.js",
+            "bytes": 1342,
+            "gzipBytes": 653
+          }
+        ]
+      }
+    },
+    {
+      "id": "matricula",
+      "label": "Matrícula pública",
+      "sourceFiles": 4,
+      "queryHooks": 4,
+      "realtimeHandlers": 0,
+      "dynamicImports": 1,
+      "route": "/matricula/$slug",
+      "preloadBudget": {
+        "files": 51,
+        "bytes": 1468030,
+        "gzipBytes": 420855,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/_slug-zwKdTzsX.js",
+            "bytes": 10401,
+            "gzipBytes": 3166
+          },
+          {
+            "href": "/assets/print-overlays-CR4Kaw3U.js",
+            "bytes": 8931,
+            "gzipBytes": 3421
+          },
+          {
+            "href": "/assets/angola-territory-B9yU21ao.js",
+            "bytes": 486,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/actions-C52cXm_e.js",
+            "bytes": 2502,
+            "gzipBytes": 1106
+          },
+          {
+            "href": "/assets/server-L4MtJJXf.js",
+            "bytes": 817,
+            "gzipBytes": 465
+          },
+          {
+            "href": "/assets/print-issue-loader-BDE6C10L.js",
+            "bytes": 903,
+            "gzipBytes": 479
+          },
+          {
+            "href": "/assets/AngolaIdentityField-BFiZRkCb.js",
+            "bytes": 1339,
+            "gzipBytes": 744
+          },
+          {
+            "href": "/assets/EducationWorkflowVisual-BV49G2m4.js",
+            "bytes": 5609,
+            "gzipBytes": 1851
+          },
+          {
+            "href": "/assets/AngolaPhoneField-g_RlOzgl.js",
+            "bytes": 1170,
+            "gzipBytes": 681
+          }
+        ]
+      }
+    },
+    {
+      "id": "integracoes",
+      "label": "Integrações catalog-ready",
+      "sourceFiles": 3,
+      "queryHooks": 0,
+      "realtimeHandlers": 0,
+      "dynamicImports": 0,
+      "route": null,
+      "preloadBudget": null
+    },
+    {
+      "id": "arquivos",
+      "label": "Arquivos",
+      "sourceFiles": 7,
+      "queryHooks": 10,
+      "realtimeHandlers": 0,
+      "dynamicImports": 0,
+      "route": "/arquivos",
+      "preloadBudget": {
+        "files": 45,
+        "bytes": 1579375,
+        "gzipBytes": 452125,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/arquivos-CxTvbUsV.js",
+            "bytes": 970,
+            "gzipBytes": 604
+          },
+          {
+            "href": "/assets/PickFileButton-DxW6c-Mt.js",
+            "bytes": 138586,
+            "gzipBytes": 41103
+          },
+          {
+            "href": "/assets/InstalledModuleTools-sIglvE-3.js",
+            "bytes": 3947,
+            "gzipBytes": 1776
+          }
+        ]
+      }
+    },
+    {
+      "id": "lesson-plans",
+      "label": "Planos de Aula",
+      "sourceFiles": 4,
+      "queryHooks": 2,
+      "realtimeHandlers": 0,
+      "dynamicImports": 0,
+      "route": "/planos-aula",
+      "preloadBudget": {
+        "files": 49,
+        "bytes": 1611072,
+        "gzipBytes": 464003,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/planos-aula-DghSMvzb.js",
+            "bytes": 16622,
+            "gzipBytes": 5960
+          },
+          {
+            "href": "/assets/sql-checklist-link-BzPPtdBL.js",
+            "bytes": 11440,
+            "gzipBytes": 4580
+          },
+          {
+            "href": "/assets/PickFileButton-DxW6c-Mt.js",
+            "bytes": 138586,
+            "gzipBytes": 41103
+          },
+          {
+            "href": "/assets/server-secure-legacy-DqkCJN6j.js",
+            "bytes": 954,
+            "gzipBytes": 499
+          },
+          {
+            "href": "/assets/FormModal-TQpoONOn.js",
+            "bytes": 925,
+            "gzipBytes": 525
+          },
+          {
+            "href": "/assets/list-filters-CzX_aQpN.js",
+            "bytes": 5331,
+            "gzipBytes": 2041
+          },
+          {
+            "href": "/assets/empty-state-BSK3X7rh.js",
+            "bytes": 1342,
+            "gzipBytes": 653
+          }
+        ]
+      }
+    },
+    {
+      "id": "importar",
+      "label": "Motor Central de Importação",
+      "sourceFiles": 6,
+      "queryHooks": 1,
+      "realtimeHandlers": 0,
+      "dynamicImports": 3,
+      "route": null,
+      "preloadBudget": null
+    },
+    {
+      "id": "catracas",
+      "label": "Catracas e Cartão Virtual",
+      "sourceFiles": 10,
+      "queryHooks": 4,
+      "realtimeHandlers": 0,
+      "dynamicImports": 4,
+      "route": "/catracas",
+      "preloadBudget": {
+        "files": 52,
+        "bytes": 1498182,
+        "gzipBytes": 428045,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/catracas-B-8ENXCK.js",
+            "bytes": 41235,
+            "gzipBytes": 10493
+          },
+          {
+            "href": "/assets/dialog-BPWqb0Z-.js",
+            "bytes": 2355,
+            "gzipBytes": 965
+          },
+          {
+            "href": "/assets/school-date-CQO6Iohc.js",
+            "bytes": 464,
+            "gzipBytes": 339
+          },
+          {
+            "href": "/assets/EntityList-DzwP1OvX.js",
+            "bytes": 2828,
+            "gzipBytes": 1131
+          },
+          {
+            "href": "/assets/ResponsiveEntityView-DR9rtdW0.js",
+            "bytes": 577,
+            "gzipBytes": 304
+          },
+          {
+            "href": "/assets/switch-DsNiNpS3.js",
+            "bytes": 4421,
+            "gzipBytes": 1879
+          },
+          {
+            "href": "/assets/list-filters-CzX_aQpN.js",
+            "bytes": 5331,
+            "gzipBytes": 2041
+          },
+          {
+            "href": "/assets/table-DtYEvC6f.js",
+            "bytes": 2001,
+            "gzipBytes": 732
+          },
+          {
+            "href": "/assets/schema-missing-banner-DKpolq8H.js",
+            "bytes": 1176,
+            "gzipBytes": 671
+          },
+          {
+            "href": "/assets/server-ZDH6jcEs.js",
+            "bytes": 1922,
+            "gzipBytes": 848
+          }
+        ]
+      }
+    },
+    {
+      "id": "saas",
+      "label": "SaaS Control Center (plataforma)",
+      "sourceFiles": 8,
+      "queryHooks": 0,
+      "realtimeHandlers": 0,
+      "dynamicImports": 2,
+      "route": "/criar-escola",
+      "preloadBudget": {
+        "files": 44,
+        "bytes": 1440039,
+        "gzipBytes": 410356,
+        "assets": [
+          {
+            "href": "/assets/index-EJcEg0WJ.js",
+            "bytes": 239601,
+            "gzipBytes": 59936
+          },
+          {
+            "href": "/assets/rolldown-runtime-hePW80VL.js",
+            "bytes": 716,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/icons-lWzgGUYH.js",
+            "bytes": 59913,
+            "gzipBytes": 18433
+          },
+          {
+            "href": "/assets/framework-CIytk8im.js",
+            "bytes": 362497,
+            "gzipBytes": 113559
+          },
+          {
+            "href": "/assets/createServerFn-4XF9Z8ZE.js",
+            "bytes": 8872,
+            "gzipBytes": 3659
+          },
+          {
+            "href": "/assets/InstallConsentModal-jSXxhhIq.js",
+            "bytes": 144136,
+            "gzipBytes": 30055
+          },
+          {
+            "href": "/assets/auth-middleware-JDjVgB0Q.js",
+            "bytes": 332,
+            "gzipBytes": 191
+          },
+          {
+            "href": "/assets/client-C3GAko7W.js",
+            "bytes": 215961,
+            "gzipBytes": 56040
+          },
+          {
+            "href": "/assets/core-C6vcUs2R.js",
+            "bytes": 1285,
+            "gzipBytes": 651
+          },
+          {
+            "href": "/assets/AppShell-ka5N_Pgw.js",
+            "bytes": 180704,
+            "gzipBytes": 51468
+          },
+          {
+            "href": "/assets/toast-B2ot9Cxg.js",
+            "bytes": 50009,
+            "gzipBytes": 15262
+          },
+          {
+            "href": "/assets/input-CaurjZlr.js",
+            "bytes": 1116,
+            "gzipBytes": 695
+          },
+          {
+            "href": "/assets/preload-helper-Czpn1I53.js",
+            "bytes": 1196,
+            "gzipBytes": 675
+          },
+          {
+            "href": "/assets/desktop-utils-By23UXWY.js",
+            "bytes": 1215,
+            "gzipBytes": 648
+          },
+          {
+            "href": "/assets/button-tUdhlAH7.js",
+            "bytes": 4057,
+            "gzipBytes": 2040
+          },
+          {
+            "href": "/assets/use-current-account-DAomYmPJ.js",
+            "bytes": 38591,
+            "gzipBytes": 13105
+          },
+          {
+            "href": "/assets/session-expiry-BHokeuIx.js",
+            "bytes": 837,
+            "gzipBytes": 509
+          },
+          {
+            "href": "/assets/label-YBrdZUNo.js",
+            "bytes": 790,
+            "gzipBytes": 498
+          },
+          {
+            "href": "/assets/step-up-DtsjR_Be.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/siga-logo-nbdxCQA_.js",
+            "bytes": 733,
+            "gzipBytes": 414
+          },
+          {
+            "href": "/assets/access-policy-_JzA1I-0.js",
+            "bytes": 4837,
+            "gzipBytes": 1386
+          },
+          {
+            "href": "/assets/more-info-BO1HQcNM.js",
+            "bytes": 663,
+            "gzipBytes": 428
+          },
+          {
+            "href": "/assets/PageHeader-DsZ6A2xC.js",
+            "bytes": 6740,
+            "gzipBytes": 2381
+          },
+          {
+            "href": "/assets/icon-chip-ohk0-rWQ.js",
+            "bytes": 1019,
+            "gzipBytes": 559
+          },
+          {
+            "href": "/assets/inline-loading-XzFVvr2N.js",
+            "bytes": 410,
+            "gzipBytes": 300
+          },
+          {
+            "href": "/assets/textarea-BhBHKs2r.js",
+            "bytes": 630,
+            "gzipBytes": 416
+          },
+          {
+            "href": "/assets/ecosystem-urls-C1-FwrbY.js",
+            "bytes": 1875,
+            "gzipBytes": 764
+          },
+          {
+            "href": "/assets/types-CgA06yQH.js",
+            "bytes": 56638,
+            "gzipBytes": 12920
+          },
+          {
+            "href": "/assets/use-school-settings-CDc6o3Xw.js",
+            "bytes": 3419,
+            "gzipBytes": 1450
+          },
+          {
+            "href": "/assets/entity-focus-context-CekCWg8B.js",
+            "bytes": 933,
+            "gzipBytes": 490
+          },
+          {
+            "href": "/assets/tenant-context-DFOMW2Uz.js",
+            "bytes": 5140,
+            "gzipBytes": 2380
+          },
+          {
+            "href": "/assets/status-badge-a5SZRkX6.js",
+            "bytes": 7017,
+            "gzipBytes": 3024
+          },
+          {
+            "href": "/assets/outbox-session-CJ261H6I.js",
+            "bytes": 140,
+            "gzipBytes": 143
+          },
+          {
+            "href": "/assets/badge-FrqlaDlp.js",
+            "bytes": 882,
+            "gzipBytes": 460
+          },
+          {
+            "href": "/assets/action-error-toast-BYl824yO.js",
+            "bytes": 431,
+            "gzipBytes": 289
+          },
+          {
+            "href": "/assets/doc-help-button-Cmy7ya7i.js",
+            "bytes": 739,
+            "gzipBytes": 451
+          },
+          {
+            "href": "/assets/select-badS47Lv.js",
+            "bytes": 22915,
+            "gzipBytes": 7719
+          },
+          {
+            "href": "/assets/export-csv-PAMEoBlb.js",
+            "bytes": 502,
+            "gzipBytes": 369
+          },
+          {
+            "href": "/assets/ConfirmActionModal-CtvvGv89.js",
+            "bytes": 1463,
+            "gzipBytes": 851
+          },
+          {
+            "href": "/assets/error-message-C3YtGij_.js",
+            "bytes": 132,
+            "gzipBytes": 121
+          },
+          {
+            "href": "/assets/pedagogica-VrxjHyDH.js",
+            "bytes": 4891,
+            "gzipBytes": 2395
+          },
+          {
+            "href": "/assets/performance-supervisor-CBpgk0Gz.js",
+            "bytes": 1464,
+            "gzipBytes": 791
+          },
+          {
+            "href": "/assets/criar-escola-CLawY9Ky.js",
+            "bytes": 2920,
+            "gzipBytes": 1222
+          },
+          {
+            "href": "/assets/card-L60atTn_.js",
+            "bytes": 1247,
+            "gzipBytes": 492
+          }
+        ]
+      }
+    }
+  ]
+}

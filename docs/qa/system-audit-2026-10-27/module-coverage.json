@@ -1,0 +1,278 @@
+{
+  "root": {
+    "files": 5,
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0
+  },
+  "academic": {
+    "files": 70,
+    "passed": 492,
+    "failed": 0,
+    "skipped": 0
+  },
+  "access": {
+    "files": 12,
+    "passed": 104,
+    "failed": 0,
+    "skipped": 0
+  },
+  "ai-assist": {
+    "files": 1,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+  },
+  "alumni": {
+    "files": 6,
+    "passed": 31,
+    "failed": 0,
+    "skipped": 0
+  },
+  "angola": {
+    "files": 5,
+    "passed": 27,
+    "failed": 0,
+    "skipped": 0
+  },
+  "api": {
+    "files": 8,
+    "passed": 33,
+    "failed": 0,
+    "skipped": 0
+  },
+  "arquivos": {
+    "files": 15,
+    "passed": 82,
+    "failed": 0,
+    "skipped": 0
+  },
+  "audit": {
+    "files": 1,
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0
+  },
+  "auth": {
+    "files": 26,
+    "passed": 198,
+    "failed": 0,
+    "skipped": 0
+  },
+  "calendar": {
+    "files": 10,
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0
+  },
+  "catracas": {
+    "files": 6,
+    "passed": 60,
+    "failed": 0,
+    "skipped": 0
+  },
+  "communications": {
+    "files": 7,
+    "passed": 35,
+    "failed": 0,
+    "skipped": 0
+  },
+  "components": {
+    "files": 3,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0
+  },
+  "contacts": {
+    "files": 1,
+    "passed": 23,
+    "failed": 0,
+    "skipped": 0
+  },
+  "dashboard": {
+    "files": 10,
+    "passed": 43,
+    "failed": 0,
+    "skipped": 0
+  },
+  "documents": {
+    "files": 11,
+    "passed": 73,
+    "failed": 0,
+    "skipped": 0
+  },
+  "education-catalog": {
+    "files": 12,
+    "passed": 117,
+    "failed": 0,
+    "skipped": 0
+  },
+  "enrollment": {
+    "files": 10,
+    "passed": 40,
+    "failed": 0,
+    "skipped": 0
+  },
+  "features": {
+    "files": 1,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+  },
+  "finance": {
+    "files": 53,
+    "passed": 249,
+    "failed": 0,
+    "skipped": 0
+  },
+  "higher-ed": {
+    "files": 9,
+    "passed": 94,
+    "failed": 0,
+    "skipped": 0
+  },
+  "hr": {
+    "files": 10,
+    "passed": 86,
+    "failed": 0,
+    "skipped": 0
+  },
+  "import": {
+    "files": 29,
+    "passed": 197,
+    "failed": 0,
+    "skipped": 0
+  },
+  "integrations": {
+    "files": 24,
+    "passed": 141,
+    "failed": 0,
+    "skipped": 0
+  },
+  "intelligence": {
+    "files": 23,
+    "passed": 139,
+    "failed": 0,
+    "skipped": 0
+  },
+  "lesson-plans": {
+    "files": 3,
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0
+  },
+  "lib": {
+    "files": 27,
+    "passed": 170,
+    "failed": 0,
+    "skipped": 0
+  },
+  "messages": {
+    "files": 5,
+    "passed": 32,
+    "failed": 0,
+    "skipped": 0
+  },
+  "notifications": {
+    "files": 1,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  "offline-sync": {
+    "files": 1,
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0
+  },
+  "pedagogica": {
+    "files": 11,
+    "passed": 107,
+    "failed": 0,
+    "skipped": 0
+  },
+  "people": {
+    "files": 7,
+    "passed": 57,
+    "failed": 0,
+    "skipped": 0
+  },
+  "performance": {
+    "files": 2,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+  },
+  "otp": {
+    "files": 5,
+    "passed": 40,
+    "failed": 0,
+    "skipped": 0
+  },
+  "release": {
+    "files": 1,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  "saas": {
+    "files": 59,
+    "passed": 485,
+    "failed": 0,
+    "skipped": 2
+  },
+  "routes": {
+    "files": 59,
+    "passed": 356,
+    "failed": 0,
+    "skipped": 0
+  },
+  "school": {
+    "files": 9,
+    "passed": 47,
+    "failed": 0,
+    "skipped": 0
+  },
+  "school-website": {
+    "files": 33,
+    "passed": 217,
+    "failed": 0,
+    "skipped": 0
+  },
+  "spotlight": {
+    "files": 2,
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0
+  },
+  "security": {
+    "files": 88,
+    "passed": 805,
+    "failed": 0,
+    "skipped": 17
+  },
+  "students": {
+    "files": 15,
+    "passed": 111,
+    "failed": 0,
+    "skipped": 0
+  },
+  "tauri": {
+    "files": 19,
+    "passed": 128,
+    "failed": 0,
+    "skipped": 0
+  },
+  "ui": {
+    "files": 52,
+    "passed": 353,
+    "failed": 0,
+    "skipped": 0
+  },
+  "virtual-classroom": {
+    "files": 1,
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0
+  }
+}

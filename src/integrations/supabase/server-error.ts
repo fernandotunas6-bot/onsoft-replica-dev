@@ -19,6 +19,8 @@ const publicMessages: Record<string, string> = {
  * estrutura. A chave é o nome da restrição, que vem na mensagem do Postgres.
  */
 const constraintMessages: Record<string, string> = {
+  course_unit_enrollments_unique:
+    "O estudante já tem um registo nesta cadeira neste ano lectivo (mesmo anulado). Altere esse registo em vez de criar outro.",
   people_school_email_uidx: "Já existe uma pessoa com este e-mail nesta escola.",
   people_school_national_id_uidx: "Já existe uma pessoa com este BI nesta escola.",
   people_one_active_login_per_school: "Esta conta já está ligada a outra pessoa nesta escola.",
@@ -31,6 +33,7 @@ const constraintMessages: Record<string, string> = {
   students_school_id_person_id_key: "Esta pessoa já está registada como aluno.",
   students_school_id_student_number_key: "Já existe um aluno com este número.",
   teachers_school_id_person_id_key: "Esta pessoa já está registada como professor.",
+  teachers_school_id_employee_number_key: "Já existe um professor com este número.",
   teachers_one_login_per_school: "Esta conta já está ligada a outro professor nesta escola.",
   enrollments_one_current_per_year_uidx: "O aluno já tem uma matrícula activa neste ano lectivo.",
   class_groups_school_id_academic_year_id_code_key:
@@ -56,15 +59,66 @@ const constraintMessages: Record<string, string> = {
  * lotação chegava ao ecrã como «Um ou mais valores não respeitam as regras».
  */
 const businessMessages = new Set([
+  // Gatilho 20261025090000: segunda propina do mesmo mês, em emissões paralelas.
+  "Este aluno já tem a propina deste mês. Anule-a antes de emitir outra.",
   "A turma atingiu a capacidade configurada.",
   "A turma nova tem de ser da mesma escola e do mesmo ano lectivo da matrícula.",
   "Turma ativa inválida para esta escola.",
   "Identidade da matrícula é imutável.",
+  // register_student / enroll_student
+  "Estudante, ano letivo ou data de matrícula inválida.",
+  "Pessoa ou data de admissão inválida.",
+  "Encarregado inválido para esta escola.",
+  // register_teacher
+  "Dados funcionais ou pessoa inválida.",
+  "Existe disciplina inválida ou pertencente a outra escola.",
+  // merge_people (20261010110000)
+  "Seleccione duas pessoas diferentes.",
+  "Uma das pessoas não existe nesta escola.",
+  "As duas fichas têm contas de acesso diferentes. Não é seguro fundi-las — desactive o duplicado.",
+  "As duas fichas têm matrícula de aluno. Não é seguro fundi-las — desactive o duplicado.",
+  "As duas fichas têm vínculo laboral (RH). Não é seguro fundi-las — desactive o duplicado.",
+  "As duas fichas têm registo de professor. Não é seguro fundi-las — desactive o duplicado.",
+  // register_payment: sem isto, pagar a mais dizia só «Não foi possível registrar».
+  "Fatura inválida, cancelada ou já paga.",
+  "O valor do pagamento excede o saldo em aberto da fatura.",
+  "Esta chave de pagamento já foi usada noutro pagamento.",
+  // Sessões de caixa (20261024110000_finance_cash_sessions.sql).
+  "Abra o caixa antes de registar numerário.",
+  "Indique o fundo de maneio contado.",
+  "O caixa já está aberto.",
+  "Indique o numerário contado.",
+  "Este caixa já não está aberto.",
+  "Indique o motivo da diferença de caixa.",
+  "Não há diferença por aprovar neste caixa.",
+  "Só quem abriu o caixa, ou um Administrador, o pode fechar.",
+  "Só um Administrador aprova diferenças de caixa.",
+  "Quem fechou o caixa não pode aprovar a diferença.",
+  "Indique o valor depositado.",
+  "Indique o nº do talão de depósito.",
+  "Abra o caixa antes de depositar.",
+  "O depósito é maior do que o numerário na gaveta.",
+  "Este talão de depósito já está registado.",
+  "Indique o motivo da anulação do depósito.",
+  "Depósito não encontrado ou já anulado.",
+  "Este depósito já foi confirmado no extracto e não se anula.",
+  "O caixa deste depósito já fechou: a diferença fica no fecho.",
+  "Não há depósito por confirmar com este número.",
+  "Quem registou o depósito não o pode confirmar.",
   // Gatilho das mensagens (20261002100000_chat_integrity.sql).
   "Conversa inexistente.",
   "A mensagem tem de pertencer à escola da conversa.",
   "O anexo tem de ser um ficheiro da escola da conversa.",
   "Só pode responder a mensagens da mesma conversa.",
+
+  "A turma tem de pertencer à escola e ao ano lectivo seleccionados.",
+  "Este pedido já foi concluído com outros dados. Abra uma nova matrícula.",
+  "Indique encarregados distintos e apenas um principal.",
+  "Encarregado inválido para esta escola.",
+  "A data de admissão não pode ser futura.",
+  "Ano lectivo não encontrado.",
+  "Indique o nome e as datas válidas do ano lectivo.",
+  "Limite de alunos do plano atingido. Actualize o plano no portal comercial SIGA Plus.",
 ]);
 
 function constraintMessage(message: string | undefined): string | null {
@@ -72,12 +126,56 @@ function constraintMessage(message: string | undefined): string | null {
   return (name && constraintMessages[name]) || null;
 }
 
+/** Função ainda por criar nesta base (migração por aplicar): quem chama segue o caminho antigo. */
+export function isMissingFunction(error: DatabaseError | null | undefined): boolean {
+  return Boolean(
+    error &&
+    (error.code === "PGRST202" ||
+      error.code === "42883" ||
+      /could not find the function|function .* does not exist/i.test(error.message ?? "")),
+  );
+}
+
+/** Tabela ainda por criar nesta base (migração por aplicar): quem lê trata-a como vazia. */
+export function isMissingTable(error: DatabaseError | null | undefined): boolean {
+  return Boolean(
+    error &&
+    (error.code === "42P01" ||
+      error.code === "PGRST205" ||
+      // Só a tabela: «column … does not exist» (42703) ou uma função em falta são erros
+      // a mostrar, não «sem dados».
+      /relation .* does not exist|could not find the table/i.test(error.message ?? "")),
+  );
+}
+
+/**
+ * A base recusou por falta de 2FA (`private.is_aal2`) ou de permissão: as funções
+ * SECURITY DEFINER levantam 42501 «Sem autorização…». Uma só regra para o
+ * servidor traduzir a recusa em «active o 2FA» (havia seis cópias, com
+ * expressões diferentes).
+ */
+export function isRpcAuthDenied(error: DatabaseError | null | undefined): boolean {
+  if (!error) return false;
+  return (
+    error.code === "42501" ||
+    /is_aal2|autoriza[çc][ãa]o|permission denied/i.test(error.message ?? "")
+  );
+}
+
 /** Prevent database structure and raw SQL details from reaching browser clients. */
 export function publicDatabaseError(error: DatabaseError, fallback: string): Error {
   // A mensagem devolvida ao browser é deliberadamente vaga; sem este registo
   // no servidor um 23502/23503 fica invisível para quem depura.
   if (typeof window === "undefined") {
-    console.error("[db] %s %s", error.code ?? "(sem código)", error.message ?? fallback);
+    // Mensagens PG podem incluir valores de BI/e-mail ou SQL. Conservar só
+    // o código e o nome de uma restrição conhecida, nunca o texto bruto.
+    const code = /^[A-Z0-9]{5,10}$/.test(error.code ?? "") ? error.code : "unknown";
+    const name = /constraint "([a-z0-9_]+)"/i.exec(error.message ?? "")?.[1];
+    console.error(
+      "[db] code=%s constraint=%s",
+      code,
+      name && constraintMessages[name] ? name : "unknown",
+    );
   }
   const missingTable =
     error.code === "42P01" ||

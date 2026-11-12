@@ -38,6 +38,15 @@ vi.mock("@tanstack/react-router", async () => ({
   }) => <a href={`${to}${search?.ano ? `?ano=${search.ano}` : ""}`}>{children}</a>,
 }));
 vi.mock("@/components/layout/AppShell", async () => (await import("./_harness")).appShellMock());
+vi.mock("@/features/dashboard/components/StudentGradesCard", () => ({
+  StudentGradesCard: () => <div data-testid="student-grades-card" />,
+}));
+vi.mock("@/features/dashboard/components/StudentAttendanceCard", () => ({
+  StudentAttendanceCard: () => <div data-testid="student-attendance-card" />,
+}));
+vi.mock("@/features/dashboard/components/StudentTimetableCard", () => ({
+  StudentTimetableCard: () => <div data-testid="student-timetable-card" />,
+}));
 vi.mock("@/features/auth/use-current-account", async () =>
   (await import("./_harness")).currentAccountMock(),
 );
@@ -242,7 +251,7 @@ describe("/pedagogica — render", () => {
     renderRoute(Pedagogica);
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /Área Pedagógica/i })).toBeDefined();
+      expect(screen.getByRole("heading", { name: /Ensino e aprendizagem/i })).toBeDefined();
     });
     // A turma tem de chegar mesmo ao DOM: sem esta asserção o teste passaria
     // com o workspace vazio e não provava que o caminho de dados corre.
@@ -250,6 +259,11 @@ describe("/pedagogica — render", () => {
       expect(screen.getByRole("button", { name: "Turma 10ª A" })).toBeDefined();
     });
     expect(screen.queryByText("Nenhuma turma neste filtro")).toBeNull();
+    expect(
+      screen
+        .getByRole("tablist", { name: "Secções de ensino e aprendizagem" })
+        .getAttribute("aria-orientation"),
+    ).toBe("vertical");
   });
 
   it("a direcção abre na estrutura académica, com o estado real de cada módulo", async () => {
@@ -291,10 +305,11 @@ describe("/pedagogica — render", () => {
     renderRoute(Pedagogica);
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /Área Pedagógica/i })).toBeDefined();
+      expect(screen.getByRole("heading", { name: /Ensino e aprendizagem/i })).toBeDefined();
     });
     const horarios = screen.getByRole("tab", { name: /Horários/i });
     expect(horarios.getAttribute("data-state")).toBe("active");
+    expect(horarios.className).toContain("data-[state=active]:border-primary");
   });
 
   it("avisa quando o ano lectivo não tem os três trimestres e liga ao calendário", async () => {
@@ -353,7 +368,7 @@ describe("/pedagogica — render", () => {
       expect(listAcademicCalendarMock).toHaveBeenCalled();
     });
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /Área Pedagógica/i })).toBeDefined();
+      expect(screen.getByRole("heading", { name: /Ensino e aprendizagem/i })).toBeDefined();
     });
     expect(screen.queryByText(/trimestres configurados/)).toBeNull();
   });
@@ -375,6 +390,15 @@ describe("/pedagogica — render", () => {
       expect(screen.queryByRole("link", { name: "Configurar trimestres" })).toBeNull();
     },
   );
+
+  it("o aluno vê o próprio boletim e só os separadores com os seus dados", async () => {
+    seed();
+    setCurrentAccount({ role: "Aluno", roles: ["Aluno"] });
+    renderRoute(Pedagogica);
+    await waitFor(() => expect(screen.getByTestId("student-grades-card")).toBeDefined());
+    const tabs = screen.getAllByRole("tab").map((tab) => tab.textContent);
+    expect(tabs).toEqual(["Horários", "Presenças / Chamada", "Notas"]);
+  });
 
   it("mostra falha de carregamento sem a confundir com calendário completo", async () => {
     seed();

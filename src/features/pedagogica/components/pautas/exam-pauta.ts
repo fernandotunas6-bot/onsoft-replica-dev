@@ -2,6 +2,7 @@ import { recursoFinal } from "@/lib/angola-academic";
 import { calculateExamFinalGrade, normalizeGrade, roundGrade } from "./assessment";
 import type { ExamPautaStudent, Gender, StudentStatus } from "./types";
 import type { OfficialPautaSummary } from "./official-pauta";
+import { sexInitial } from "@/features/people/person-fields";
 
 type ExamAssessmentItem = {
   id: string;
@@ -21,11 +22,7 @@ type ExamEnrollment = {
   registration_number?: string | null;
 };
 
-function toGender(sex: string | null | undefined): Gender {
-  if (sex === "male") return "M";
-  if (sex === "female") return "F";
-  return "";
-}
+const toGender = (sex: string | null | undefined): Gender => sexInitial(sex);
 
 function componentAverage(
   component: string,
@@ -114,7 +111,7 @@ export function buildExamPautaStudents({
 
     return {
       id: enrollment.id,
-      code: enrollment.registration_number ?? `EST-${index + 1}`,
+      code: enrollment.registration_number ?? String(index + 1),
       number: index + 1,
       name: enrollment.student_name,
       gender: toGender(enrollment.student_gender),

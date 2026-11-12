@@ -24,7 +24,15 @@ export type ParsedFile = {
   sheets: ParsedSheet[];
 };
 
-const MAX_ROWS_PER_SHEET = 25_000;
+export const MAX_ROWS_PER_SHEET = 25_000;
+
+function assertRowLimit(count: number, sheetName: string) {
+  if (count > MAX_ROWS_PER_SHEET) {
+    throw new Error(
+      `A folha «${sheetName}» excede o limite de ${MAX_ROWS_PER_SHEET.toLocaleString("pt-PT")} linhas. Divida o ficheiro em lotes menores e volte a carregar. Nenhuma linha foi importada.`,
+    );
+  }
+}
 
 export async function parseImportFile(buffer: Buffer, fileName: string): Promise<ParsedFile> {
   const lower = fileName.toLowerCase();
@@ -63,13 +71,15 @@ async function parseXlsxBuffer(buffer: Buffer): Promise<ParsedFile> {
     const rows: Record<string, ImportCellValue>[] = [];
     worksheet.eachRow({ includeEmpty: false }, (row, rn) => {
       if (rn === 1) return;
-      if (rows.length >= MAX_ROWS_PER_SHEET) return;
       const obj: Record<string, ImportCellValue> = {};
       cleanHeaders.forEach((header, idx) => {
         const cell = row.getCell(idx + 1);
         obj[header] = cellToPrimitive(cell.value);
       });
-      if (!isBlankRow(obj)) rows.push(obj);
+      if (!isBlankRow(obj)) {
+        assertRowLimit(rows.length + 1, worksheet.name);
+        rows.push(obj);
+      }
     });
 
     sheets.push({ name: worksheet.name, headers: cleanHeaders, rows });
@@ -105,7 +115,13 @@ function parseCsvSheet(buffer: Buffer, sheetName: string): ParsedSheet {
     transformHeader: (h: string) => normalizeText(h),
   });
   const headers = (parsed.meta.fields ?? []).map((h) => normalizeText(h));
-  const rows = (parsed.data ?? []).filter((row) => !isBlankRow(row)).slice(0, MAX_ROWS_PER_SHEET);
+  if (parsed.errors.some((error) => error.code !== "UndetectableDelimiter")) {
+    throw new Error(
+      "O CSV contém linhas ou aspas inválidas. Verifique se todas as linhas têm as mesmas colunas e volte a carregar. Nenhuma linha foi importada.",
+    );
+  }
+  const rows = (parsed.data ?? []).filter((row) => !isBlankRow(row));
+  assertRowLimit(rows.length, sheetName);
   return { name: sheetName, headers, rows };
 }
 

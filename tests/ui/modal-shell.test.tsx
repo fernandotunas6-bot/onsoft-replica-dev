@@ -47,6 +47,29 @@ describe("protecção de fecho dos modais", () => {
     expect(screen.queryByRole("dialog", { name: "Alterações não guardadas" })).toBeNull();
     expect(onOpenChange).not.toHaveBeenCalled();
   });
+  it("mantém superfície compacta, sem zoom decorativo e com scroll seguro", () => {
+    setup();
+    const dialog = screen.getByRole("dialog", { name: "Editar aluno" });
+    expect(dialog.className).toContain("shadow-sm");
+    expect(dialog.className).toContain("overscroll-contain");
+    expect(dialog.className).not.toContain("zoom-in-95");
+    expect(dialog.className).not.toContain("shadow-xl");
+  });
+
+  it("mantém confirmação curta e alvos de toque acessíveis ao descartar rascunhos", () => {
+    const onOpenChange = setup({ hasUnsavedChanges: true });
+    fireEvent.keyDown(document, { key: "Escape" });
+    const dialog = screen.getByRole("dialog", { name: "Alterações não guardadas" });
+    expect(dialog.textContent).toContain("Tem alterações por guardar. Deseja sair sem guardar?");
+    expect(dialog.className).toContain("shadow-sm");
+    const keep = screen.getByRole("button", { name: "Continuar a editar" });
+    const discard = screen.getByRole("button", { name: "Descartar alterações" });
+    expect(keep.className).toContain("min-h-11");
+    expect(discard.className).toContain("min-h-11");
+    fireEvent.click(keep);
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
   it("só descarta depois da confirmação explícita", () => {
     const onOpenChange = setup({ hasUnsavedChanges: true });
     fireEvent.keyDown(document, { key: "Escape" });

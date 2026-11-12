@@ -30,6 +30,10 @@ const ROUTE_TREE = resolve(__dirname, "../../src/routeTree.gen.ts");
  * guarda, não de uma linha nova nesta lista.
  */
 const PUBLIC_BY_DESIGN: Record<string, string> = {
+  "public/school-content/$code.tsx":
+    "publicação do website por código público da escola; valida estado do tenant, protecção da base, origens exactas e devolve só o snapshot publicado, sem rascunhos ou IDs internos",
+  "public/school-blog/$code.tsx":
+    "blog público por escola; valida estado do tenant, protecção da base e CORS, filtra school_id/publicação e projecta apenas artigos publicados",
   "saas/signup.tsx": "registo público de escola; protegido por honeypot e rate-limit",
   "saas/plans.tsx": "tabela de preços mostrada no site comercial",
   "saas/education-catalog.search.tsx":

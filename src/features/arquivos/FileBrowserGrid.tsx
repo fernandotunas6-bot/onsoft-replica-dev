@@ -29,7 +29,7 @@ export function FileBrowserGrid({
   selectedIds: Set<string>;
   previewUrlById: Record<string, string>;
   uploadProgress: Record<string, number>;
-  account: { id: string; role: string };
+  account: { id: string; role: string; schoolId: string | null };
   pickMode: boolean;
   systemLockedMsg: string;
   onPick?: (file: SchoolFileRecord) => void;
@@ -75,6 +75,7 @@ export function FileBrowserGrid({
           >
             <FileCoverTile
               file={file}
+              viewer={{ schoolId: account.schoolId, ownerUserId: account.id }}
               selected={file.id === selectedId}
               locked={file.isSystem && !canAccessFileContent(file, account.id, account.role)}
               resolvedPreviewUrl={
@@ -101,8 +102,9 @@ export function FileBrowserGrid({
               ) : (
                 fileKindMeta[file.kind].label
               )}
-              {" · "}
-              {fileVisibilityMeta[file.visibility].short}
+              {file.storageBackend === "local"
+                ? " · Só neste dispositivo"
+                : ` · ${fileVisibilityMeta[file.visibility].short}`}
               {fileNeedsOrganization(file) ? " · Por organizar" : ""}
             </p>
           </button>

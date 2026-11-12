@@ -1,3 +1,5 @@
+import { schoolShiftLabel } from "@/lib/school-display";
+import { idOptions } from "@/lib/option-label";
 export type EnrollmentClassGroup = {
   id: string;
   name: string;
@@ -51,7 +53,7 @@ export function formatEnrollmentClassGroupLabel(group: EnrollmentClassGroup) {
     group.name,
     group.grade_name,
     group.course_name,
-    group.shift || null,
+    group.shift ? schoolShiftLabel(group.shift) : null,
     group.room_name && group.room_name !== "—" ? group.room_name : null,
     occupancy,
   ]
@@ -101,7 +103,7 @@ export function buildEnrollmentDirectory(
   const shifts = uniqueOptions(
     gradeRows.filter((group) => Boolean(group.shift)),
     (group) => group.shift || "",
-    (group) => group.shift || "",
+    (group) => schoolShiftLabel(group.shift),
   );
 
   const shiftRows = filters.shift
@@ -125,5 +127,47 @@ export function buildEnrollmentDirectory(
     shifts,
     rooms,
     classGroups: roomRows,
+  };
+}
+
+/**
+ * Opções de turma para os formulários de colocação: o valor é o id. As listas
+ * escolhiam a turma pelo texto «nome · classe», e duas turmas com o mesmo nome e
+ * classe em cursos diferentes davam a primeira; a ficha juntava ao rótulo um
+ * pedaço do id para as distinguir. Turmas sem ano lectivo não entram.
+ */
+export function classGroupChoices(
+  groups: Array<{
+    id: string;
+    name: string;
+    grade_name?: string | null;
+    course_name?: string | null;
+    academic_year_id?: string | null;
+  }>,
+) {
+  // Dois rótulos iguais (mesmo nome, classe e curso) levam um pedaço do id (idOptions).
+  return idOptions(
+    groups.filter((group) => group.academic_year_id),
+    (group) =>
+      [group.name, group.grade_name, group.course_name]
+        .filter((part) => part && part !== "—")
+        .join(" · "),
+  );
+}
+
+/** Resolve a navigation hint only within the workspace returned by the server. */
+export function enrollmentContextFromClass(
+  groups: readonly EnrollmentClassGroup[],
+  classGroupId: string | undefined,
+) {
+  const group = groups.find((row) => row.id === classGroupId);
+  if (!group || ["inactive", "archived", "closed"].includes(group.status ?? "")) return null;
+  return {
+    academicYearId: group.academic_year_id ?? "",
+    courseId: group.course_id || group.course_name,
+    gradeName: group.grade_name,
+    shift: group.shift ?? "",
+    roomName: group.room_name ?? "",
+    turmaId: group.id,
   };
 }

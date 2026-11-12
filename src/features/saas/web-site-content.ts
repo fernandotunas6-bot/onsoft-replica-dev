@@ -9,6 +9,7 @@
  * IP; as rotas do ADMIN exigem administrador da plataforma (requirePlatformAdminFromRequest).
  */
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import {
   resolvePublishedAt,
@@ -367,16 +368,16 @@ export async function listShowcaseSchools(): Promise<ShowcaseSchool[]> {
 
 export async function listShowcaseAdmin(): Promise<ShowcaseAdminRow[]> {
   const client = await db();
+  // O servidor corta em 1000: o `.limit(2000)` antigo prometia o que não lia.
+  const reads = pagedReadClient(client, { keys: { web_school_showcase: ["school_id"] } });
   const [{ data: schools, error }, { data: choices }] = await Promise.all([
-    client
+    reads
       .from("schools")
       .select("id, name, commercial_name, logo_url, city, province, status")
-      .order("name", { ascending: true })
-      .limit(2000),
-    client
+      .order("name", { ascending: true }),
+    reads
       .from("web_school_showcase")
-      .select("school_id, opted_in, opted_in_at, hidden_by_platform, hidden_reason")
-      .limit(2000),
+      .select("school_id, opted_in, opted_in_at, hidden_by_platform, hidden_reason"),
   ]);
   if (error) throw new Error("Não foi possível ler as escolas.");
   const bySchool = new Map(((choices ?? []) as Row[]).map((c) => [String(c["school_id"]), c]));

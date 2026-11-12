@@ -19,7 +19,7 @@ export type ClassWarningContext = {
 
 export const getClassWarningContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ classGroupId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ classGroupId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }): Promise<ClassWarningContext> => {
     const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       ...READ_ROLES,

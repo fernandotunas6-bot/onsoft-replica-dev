@@ -39,6 +39,11 @@ describe("anexos de mensagens: quem envia só partilha o que pode abrir", () => 
     }
   });
 
+  it("anexos só no IndexedDB não podem ser enviados a outros participantes", () => {
+    const local = ficheiro({ storageBackend: "local" });
+    expect(canShareFileInMessage(local, DONO, ["Administrador"])).toBe(false);
+  });
+
   it("alunos e encarregados não anexam ficheiros dos Arquivos", () => {
     expect(canShareFileInMessage(ficheiro(), DONO, ["Aluno"])).toBe(false);
     expect(canShareFileInMessage(ficheiro(), DONO, ["Encarregado"])).toBe(false);

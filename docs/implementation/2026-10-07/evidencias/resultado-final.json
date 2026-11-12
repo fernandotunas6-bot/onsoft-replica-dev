@@ -1,0 +1,22 @@
+{
+  "typecheck": "passed",
+  "lint": {
+    "errors": 0,
+    "warnings": 47
+  },
+  "build": "passed",
+  "tests": {
+    "passed": 3119,
+    "failed": 0,
+    "skipped": 3
+  },
+  "sql_atomic": "passed PGlite; production not applied",
+  "sql_mfa": "passed PGlite; production not applied",
+  "release": "blocked: missing confirmed RPCs and MFA policies",
+  "dependencies": {
+    "high": 0,
+    "moderate": 2,
+    "low": 3
+  },
+  "production_mutations": false
+}

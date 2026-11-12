@@ -33,7 +33,18 @@ export function useBreakpoint(): { breakpoint: Breakpoint; ready: boolean } {
   });
 
   React.useEffect(() => {
-    const update = () => setState({ breakpoint: read(), ready: true });
+    // Dois lados resolveram o mesmo: não voltar a desenhar quando o degrau não
+    // muda. Fica a versão do #180, que compara dentro do `setState` e devolve o
+    // mesmo objecto — o React desiste do render sozinho. A alternativa guardava o
+    // valor anterior numa variável fora do React e não tratava a passagem a
+    // `ready`, que é a única transição em que o degrau se repete e o estado deve
+    // mesmo mudar.
+    const update = () => {
+      const next = read();
+      setState((current) =>
+        current.ready && current.breakpoint === next ? current : { breakpoint: next, ready: true },
+      );
+    };
     update();
     window.addEventListener("resize", update, { passive: true });
     window.addEventListener("orientationchange", update);

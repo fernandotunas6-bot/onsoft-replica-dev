@@ -1,0 +1,154 @@
+[
+  {
+    "mode": "before",
+    "width": 320,
+    "pageOverflow": true,
+    "buttons": [
+      {
+        "within": true,
+        "clipped": false
+      },
+      {
+        "within": false,
+        "clipped": false
+      }
+    ],
+    "keyboardScroll": false,
+    "clearFilters": false,
+    "paginationDestination": false,
+    "errors": []
+  },
+  {
+    "mode": "before",
+    "width": 390,
+    "pageOverflow": true,
+    "buttons": [
+      {
+        "within": true,
+        "clipped": false
+      },
+      {
+        "within": true,
+        "clipped": false
+      }
+    ],
+    "keyboardScroll": false,
+    "clearFilters": false,
+    "paginationDestination": false,
+    "errors": []
+  },
+  {
+    "mode": "before",
+    "width": 834,
+    "pageOverflow": false,
+    "buttons": [
+      {
+        "within": true,
+        "clipped": false
+      },
+      {
+        "within": true,
+        "clipped": false
+      }
+    ],
+    "keyboardScroll": false,
+    "clearFilters": false,
+    "paginationDestination": false,
+    "errors": []
+  },
+  {
+    "mode": "before",
+    "width": 1440,
+    "pageOverflow": false,
+    "buttons": [
+      {
+        "within": true,
+        "clipped": false
+      },
+      {
+        "within": true,
+        "clipped": false
+      }
+    ],
+    "keyboardScroll": false,
+    "clearFilters": false,
+    "paginationDestination": false,
+    "errors": []
+  },
+  {
+    "mode": "after",
+    "width": 320,
+    "pageOverflow": false,
+    "buttons": [
+      {
+        "within": true,
+        "clipped": false
+      },
+      {
+        "within": true,
+        "clipped": false
+      }
+    ],
+    "keyboardScroll": true,
+    "clearFilters": true,
+    "paginationDestination": true,
+    "errors": []
+  },
+  {
+    "mode": "after",
+    "width": 390,
+    "pageOverflow": false,
+    "buttons": [
+      {
+        "within": true,
+        "clipped": false
+      },
+      {
+        "within": true,
+        "clipped": false
+      }
+    ],
+    "keyboardScroll": true,
+    "clearFilters": true,
+    "paginationDestination": true,
+    "errors": []
+  },
+  {
+    "mode": "after",
+    "width": 834,
+    "pageOverflow": false,
+    "buttons": [
+      {
+        "within": true,
+        "clipped": false
+      },
+      {
+        "within": true,
+        "clipped": false
+      }
+    ],
+    "keyboardScroll": true,
+    "clearFilters": true,
+    "paginationDestination": true,
+    "errors": []
+  },
+  {
+    "mode": "after",
+    "width": 1440,
+    "pageOverflow": false,
+    "buttons": [
+      {
+        "within": true,
+        "clipped": false
+      },
+      {
+        "within": true,
+        "clipped": false
+      }
+    ],
+    "keyboardScroll": true,
+    "clearFilters": true,
+    "paginationDestination": true,
+    "errors": []
+  }
+]

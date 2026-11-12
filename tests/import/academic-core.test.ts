@@ -18,14 +18,14 @@ describe("Import académico — resolução estrita de referências", () => {
     {
       id: "student-1",
       person_id: "person-1",
-      student_number: "PROC-2026-042",
+      student_number: "1260042",
       national_id: "005432190LA048",
       status: "active",
     },
     {
       id: "student-2",
       person_id: "person-2",
-      student_number: "PROC-2026-043",
+      student_number: "1260043",
       national_id: "005432190LA049",
       status: "active",
     },
@@ -46,7 +46,7 @@ describe("Import académico — resolução estrita de referências", () => {
   ];
 
   it("resolve aluno apenas por processo ou BI exacto normalizado", () => {
-    expect(resolveStudent("PROC-2026-042", students)).toEqual({
+    expect(resolveStudent("1260042", students)).toEqual({
       row: students[0],
       ambiguous: false,
     });

@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "@/lib/timing-safe-equal";
+import { bufferToBase64 } from "@/lib/base64";
 
 /**
  * Verificação de assinatura dos webhooks do Resend (esquema Svix).
@@ -39,13 +40,6 @@ function decodeSecret(secret: string): Uint8Array | null {
   }
 }
 
-function toBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-}
-
 export async function verifyResendWebhookSignature(
   input: ResendSignatureInput,
 ): Promise<ResendSignatureResult> {
@@ -82,7 +76,7 @@ export async function verifyResendWebhookSignature(
     cryptoKey,
     new TextEncoder().encode(signedContent),
   );
-  const expected = toBase64(signature);
+  const expected = bufferToBase64(signature);
 
   // O cabeçalho traz uma ou mais assinaturas separadas por espaço, cada uma
   // prefixada pela versão do esquema (`v1,<assinatura>`). Durante uma rotação

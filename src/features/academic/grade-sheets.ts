@@ -76,7 +76,7 @@ export type GradeSheetBoard = {
   }>;
 };
 
-const boardInput = z.object({ academicYearId: z.string().uuid().optional() });
+const boardInput = z.object({ academicYearId: z.string().guid().optional() });
 
 export const getGradeSheetBoard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -348,7 +348,7 @@ async function gradeSheetBuiltAt(db: Db, schoolId: string, sheetId: string) {
   return data?.created_at ? str(data.created_at) : null;
 }
 
-const detailInput = z.object({ sheetId: z.string().uuid() });
+const detailInput = z.object({ sheetId: z.string().guid() });
 
 export const getGradeSheetDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -467,8 +467,8 @@ export const getGradeSheetDetail = createServerFn({ method: "GET" })
   });
 
 const buildInput = z.object({
-  classGroupId: z.string().uuid(),
-  termId: z.string().uuid().nullable(),
+  classGroupId: z.string().guid(),
+  termId: z.string().guid().nullable(),
   kind: z.enum(["term", "annual"]),
 });
 
@@ -528,7 +528,7 @@ export const buildGradeSheet = createServerFn({ method: "POST" })
   });
 
 const transitionInput = z.object({
-  sheetId: z.string().uuid(),
+  sheetId: z.string().guid(),
   status: z.enum(GRADE_SHEET_STATUSES),
   reason: z.string().trim().max(1000).optional(),
 });

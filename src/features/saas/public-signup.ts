@@ -4,6 +4,7 @@ import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import {
   isReservedTestEmail,
+  canUseReservedSignupEmail,
   isSignupEmailVerificationRequired,
   verifySignupVerificationToken,
 } from "@/features/saas/signup-verification";
@@ -49,9 +50,17 @@ export async function runPublicSchoolSignup(
   // Prova de posse do e-mail antes de gastar o limite de pedidos e de escrever
   // o que quer que seja: sem ela, qualquer pessoa criava uma conta confirmada
   // com o e-mail de outra.
+  // Domínios .test/.example/.invalid/.localhost nunca recebem e-mail.
+  // Servem para E2E, mas só num projecto de staging explicitamente validado.
+  if (
+    isReservedTestEmail(wizardData.admin_email) &&
+    !canUseReservedSignupEmail(wizardData.admin_email)
+  ) {
+    throw new Error("Endereço de e-mail reservado para testes. Utilize um e-mail verdadeiro.");
+  }
   if (
     isSignupEmailVerificationRequired() &&
-    !isReservedTestEmail(wizardData.admin_email) &&
+    !canUseReservedSignupEmail(wizardData.admin_email) &&
     !verifySignupVerificationToken(verificationToken, wizardData.admin_email)
   ) {
     throw new Error(EMAIL_NOT_VERIFIED_MESSAGE);

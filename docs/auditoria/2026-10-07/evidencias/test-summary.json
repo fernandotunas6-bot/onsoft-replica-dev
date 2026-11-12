@@ -1,0 +1,11 @@
+{
+  "success": false,
+  "numTotalTests": 3100,
+  "numPassedTests": 3095,
+  "numFailedTests": 2,
+  "numPendingTests": 3,
+  "numTotalTestSuites": 1317,
+  "numPassedTestSuites": 1315,
+  "numFailedTestSuites": 2,
+  "files": 469
+}

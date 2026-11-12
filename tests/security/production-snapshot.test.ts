@@ -34,6 +34,7 @@ type Snapshot = {
     cmd: string;
     papeis: string;
     usando: string;
+    modo: "PERMISSIVE" | "RESTRICTIVE";
   }>;
   funcoes: Array<{ schema: string; funcao: string }>;
   triggers: Array<{ tabela: string; trigger: string; funcao: string }>;
@@ -79,8 +80,7 @@ const NAO_DECLARADAS_HOJE = 0;
  * As únicas políticas que concedem acesso ao papel anónimo, todas por desenho e
  * verificadas uma a uma a 2026-09-13:
  *
- *   enrollment_applications  INSERT sem leitura — submissão da matrícula pública
- *   enrollment_forms         SELECT limitado a formulários abertos e não apagados
+ *   Matrícula pública passou a ser só do servidor em 2026-10-25.
  *   reserved_subdomains      lista estática de slugs reservados, lida no registo
  *   school_branding          logótipo e cores, que o login mostra antes da sessão
  *
@@ -88,8 +88,6 @@ const NAO_DECLARADAS_HOJE = 0;
  * tem de ser justificada por escrito antes de passar.
  */
 const ANON_POLICIES_ESPERADAS = [
-  "enrollment_applications.Public insert open enrollment applications",
-  "enrollment_forms.Public read open enrollment forms",
   "reserved_subdomains.public_read_reserved_subdomains",
   "school_branding.public_read_school_branding",
 ];
@@ -152,17 +150,13 @@ const ANON_POLICIES_ESPERADAS = [
 // AppyPay) se confirmaram em produção. Voltou a esvaziar a 2026-10-02: as três
 // tabelas do chat (20261002093000_chat_conversations.sql) foram aplicadas e
 // aparecem no retrato recapturado nesse dia.
+// O retrato de 2026-10-21 confirma também tenant_billing_profiles.
+// 2026-10-24/25: sessões de caixa e depósito da gaveta no banco (#283) —
+// `finance_cash_points`, `finance_cash_sessions` e `finance_cash_deposits`
+// confirmadas no retrato recapturado deste ciclo, depois de a #283 fundir.
+// 2026-10-26: as duas tabelas do QR da escola (20261026100000) entraram no retrato
+// depois de aplicadas, pelo que a lista voltou a ficar vazia.
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
-  // 20261007100000_web_site_content.sql (site público gerido no ADMIN): sai daqui
-  // quando o retrato for recapturado depois de aplicada.
-  "web_blog_posts",
-  "web_contact_messages",
-  "web_faqs",
-  "web_school_showcase",
-  // 20261015120000_tenant_billing_profiles.sql (cobrança por escola no ADMIN). O código
-  // funciona sem ela: lê-a tolerando a falta (`tableReady: false`) e as gravações
-  // respondem com a migração que falta. Sai daqui quando o retrato a mostrar.
-  "tenant_billing_profiles",
   // 20261012160000_siga_ai_module.sql (SIGA AI): sai daqui quando o retrato for
   // recapturado depois de aplicada.
   "siga_ai_settings",
@@ -226,7 +220,9 @@ describe("produção vs repositório", () => {
     // O dia em que alguém acrescentar uma política que cubra `anon` a uma
     // destas tabelas, os dados saem. É isso que este teste impede.
     const comAnon = snap.politicas
-      .filter((p) => p.papeis.includes("anon"))
+      // RESTRICTIVE combines with permissive grants using AND and never grants
+      // access on its own. school_web_content_server_only explicitly denies it.
+      .filter((p) => p.papeis.includes("anon") && p.modo !== "RESTRICTIVE")
       .map((p) => `${p.tabela}.${p.politica}`)
       .sort();
 

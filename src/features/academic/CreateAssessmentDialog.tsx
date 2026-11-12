@@ -10,6 +10,7 @@ import {
   createAssessment,
   updateAssessmentItem,
   deleteAssessmentItem,
+  getAssessmentDeletionImpact,
 } from "@/features/academic/server";
 import { assessmentComponents, assessmentKinds, assessmentPurposes } from "@/lib/angola-academic";
 
@@ -151,22 +152,26 @@ export function CreateAssessmentDialog({
 
   const handleDelete = async () => {
     if (!editingItem?.id) return;
-    if (!confirm(`Tem a certeza que pretende eliminar a avaliação "${editingItem.name}"?`)) {
-      return;
-    }
     setDeleting(true);
     try {
-      try {
-        await deleteAssessmentItem({ data: { itemId: editingItem.id, force: false } });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "";
-        if (!message.includes("nota(s) lançada(s)")) throw error;
-        if (!confirm(`${message} Eliminar mesmo assim?`)) {
-          setDeleting(false);
-          return;
-        }
-        await deleteAssessmentItem({ data: { itemId: editingItem.id, force: true } });
+      // Impacto contado no servidor antes de perguntar: uma só confirmação, com o
+      // número real de notas que se perdem (e recusa logo se o período fechou).
+      const impact = await getAssessmentDeletionImpact({
+        data: { itemId: editingItem.id, force: false },
+      });
+      if (impact.blocker) {
+        toast.error(impact.blocker);
+        return;
       }
+      const lines = [
+        `Eliminar a avaliação "${editingItem.name}"?`,
+        ...impact.impacts.map((item) => `• ${item.count} ${item.label}`),
+        impact.warning ?? "",
+      ].filter(Boolean);
+      if (!confirm(lines.join("\n"))) return;
+      await deleteAssessmentItem({
+        data: { itemId: editingItem.id, force: impact.impacts.length > 0 },
+      });
       toast.success("Avaliação eliminada.");
       onOpenChange(false);
       onCreated();

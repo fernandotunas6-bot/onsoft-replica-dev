@@ -63,11 +63,11 @@ describe("pagamentos: estados depois do registo ficam nos registos", () => {
 
 describe("alunos", () => {
   it("trocar o encarregado principal verifica o erro", () => {
-    expect(read("src/features/students/server.ts")).toMatch(/error: primaryError/);
+    expect(read("src/features/students/guardian-links.ts")).toMatch(/error: primaryError/);
   });
 
   it("matricular numa turma confirma o aluno activo", () => {
-    expect(read("src/features/students/server.ts")).toMatch(/error: activateError/);
+    expect(read("src/features/students/enrollment-core.ts")).toMatch(/error: activateError/);
   });
 });
 
@@ -82,7 +82,7 @@ describe("ano lectivo: um activo de cada vez", () => {
   });
 
   it("calendário lectivo verifica o fecho do ano anterior", () => {
-    expect(read("src/features/calendar/server.ts")).toMatch(/error: closeError/);
+    expect(read("src/features/calendar/server.ts")).toContain("siga_save_active_academic_year");
   });
 });
 

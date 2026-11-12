@@ -19,7 +19,7 @@ export default function Dashboard2Page() {
   return (
     <MarketingLayout
       title="O que a escola ganha"
-      description="Mapa rápido dos módulos SIGA Plus — operação real depois do trial."
+      description="Mapa rápido dos módulos do SIGA Plus, com o manual de cada um."
       eyebrow="Produto"
     >
       <div className="container mx-auto space-y-8 px-4 py-10 sm:px-6 lg:px-8">
@@ -47,7 +47,7 @@ export default function Dashboard2Page() {
               <CardContent>
                 <Button variant="outline" size="sm" asChild>
                   <a href={mod.href} target="_blank" rel="noreferrer">
-                    Ler no DOC
+                    Ler o manual
                   </a>
                 </Button>
               </CardContent>

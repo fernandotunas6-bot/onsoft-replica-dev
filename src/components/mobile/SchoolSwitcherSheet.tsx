@@ -40,6 +40,7 @@ export function SchoolSwitcherSheet({
   } = useSchoolSettings();
 
   const switchSchool = (schoolId: string, schoolName: string) => {
+    if (!schoolId) return;
     if (schoolId === currentUser.schoolId) {
       onOpenChange(false);
       return;
@@ -66,7 +67,7 @@ export function SchoolSwitcherSheet({
                 ? [
                     {
                       membershipId: "current",
-                      schoolId: currentUser.schoolId ?? "current",
+                      schoolId: currentUser.schoolId ?? "",
                       schoolName: currentUser.schoolName,
                       roleName: currentUser.role,
                       status: "active",
@@ -74,14 +75,17 @@ export function SchoolSwitcherSheet({
                   ]
                 : []
             ).map((school) => {
-              const active = school.schoolId === currentUser.schoolId;
+              const active = Boolean(school.schoolId) && school.schoolId === currentUser.schoolId;
+              const selectable =
+                Boolean(school.schoolId) && !("isActive" in school && school.isActive === false);
               return (
                 <li key={school.membershipId} className="border-b border-border last:border-b-0">
                   <button
                     type="button"
                     aria-pressed={active}
+                    disabled={!selectable}
                     onClick={() => switchSchool(school.schoolId, school.schoolName)}
-                    className="flex min-h-[64px] w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:bg-secondary"
+                    className="flex min-h-[64px] w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <span
                       className={cn(

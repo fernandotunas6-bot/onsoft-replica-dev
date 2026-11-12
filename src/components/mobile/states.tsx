@@ -1,5 +1,6 @@
+import { FeedbackIcon } from "@/components/ui/feedback-icon";
 import * as React from "react";
-import { AlertTriangle, RefreshCw, SearchX } from "lucide-react";
+import { RefreshCw, SearchX } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -64,7 +65,7 @@ export function MobileErrorState({
   return (
     <div className="flex flex-col items-center px-6 py-8 text-center">
       <span className="inline-flex size-11 items-center justify-center rounded-full bg-destructive/10 text-destructive-strong">
-        <AlertTriangle className="size-5" aria-hidden />
+        <FeedbackIcon state="error" className="size-5" />
       </span>
       <p className="mt-4 text-[14px] font-semibold text-foreground">
         Não foi possível carregar {what}.

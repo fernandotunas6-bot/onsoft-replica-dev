@@ -78,4 +78,34 @@ describe("estrutura académica pelo contexto da escola", () => {
     const programs = plan.programs.map((p) => p.code);
     expect(new Set(programs).size).toBe(programs.length);
   });
+
+  it("nenhum nível ou classe nasce com sequence 0 — a base recusa-o", () => {
+    // `academic_levels` e `grade_levels` têm ambas CHECK (sequence > 0). Com
+    // sequence 0, o upsert falhava com 23514 e a escola via «Há um campo com um
+    // valor inválido», a falar de datas e números. Nenhuma escola chegou a ter
+    // Iniciação por causa disto.
+    const combinacoes: Array<Parameters<typeof planSchoolStructure>[0]> = [
+      ["pre_escolar"],
+      ["pre_escolar", "primario"],
+      ["pre_escolar", "primario", "i_ciclo", "ii_ciclo"],
+      ["primario"],
+      ["superior"],
+    ];
+    for (const stages of combinacoes) {
+      const plan = planSchoolStructure(stages);
+      for (const level of plan.levels) {
+        expect(level.sequence, `nível ${level.code} em [${stages.join(", ")}]`).toBeGreaterThan(0);
+      }
+      for (const grade of plan.grades) {
+        expect(grade.sequence, `classe ${grade.code} em [${stages.join(", ")}]`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("a Iniciação continua a vir antes do Primário", () => {
+    const plan = planSchoolStructure(["pre_escolar", "primario"]);
+    expect(plan.levels.map((l) => l.code)).toEqual(["INIC", "EP"]);
+    const [inic, ep] = plan.levels;
+    expect(inic.sequence).toBeLessThan(ep.sequence);
+  });
 });

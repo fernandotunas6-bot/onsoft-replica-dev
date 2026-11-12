@@ -1,0 +1,13 @@
+# Secções herdadas do modelo de UI (shadcn, personalizador de temas, guias Vite e
+# Next.js com pnpm, Vercel e Netlify) que não descreviam o SIGA Plus. Saíram a
+# 10/11/2026; os endereços antigos levam à página viva equivalente.
+/components/*        /guide/features              301
+/components          /guide/features              301
+/theme-customizer/*  /guide/theme-system         301
+/theme-customizer    /guide/theme-system         301
+/vite/*              /guide/choosing-framework   301
+/vite                /guide/choosing-framework   301
+/nextjs/*            /admin/control-center       301
+/nextjs              /admin/control-center       301
+/README              /                            301
+/README.html         /                            301

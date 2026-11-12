@@ -24,6 +24,7 @@ describe("settings deep link", () => {
 
   it("opens the root panel when no id is passed", () => {
     requestSettingsOpen();
+    expect(consumeSettingsOpen()).toBe("");
     expect(consumeSettingsOpen()).toBeUndefined();
   });
 });

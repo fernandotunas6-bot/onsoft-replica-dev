@@ -1,4 +1,5 @@
-import { normalizeText } from "../engine/normalize";
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
+import { normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
 
@@ -8,25 +9,21 @@ type PautasCache = ImportRefCache & {
   enrollmentByStudentId: Map<string, EnrollmentRecord>;
 };
 
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
-
 export const pautasImporter: RowImporter = {
   module: "pautas",
 
   async loadRefCache(ctx) {
     const [students, enrollments] = await Promise.all([
       loadStudentRefs(ctx.db, ctx.schoolId),
-      ctx.db
-        .from("enrollments")
-        .select("id, student_id, final_average")
-        .eq("school_id", ctx.schoolId)
-        .eq("status", "active"),
+      readAllPages((from, to) =>
+        ctx.db
+          .from("enrollments")
+          .select("id, student_id, final_average")
+          .eq("school_id", ctx.schoolId)
+          .eq("status", "active")
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ]);
 
     if (enrollments.error) {

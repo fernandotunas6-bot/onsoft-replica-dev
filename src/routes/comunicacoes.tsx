@@ -1,5 +1,7 @@
+import { PageActionMenu } from "@/components/layout/PageActionMenu";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { realtimeInvalidator } from "@/lib/realtime-invalidate";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +49,7 @@ import {
   announcementAudienceOptions,
   announcementChannelOptions,
   announcementStatusOptions,
+  SCHEDULED_CHANNEL_MESSAGE,
 } from "@/features/communications/schemas";
 import {
   archiveSchoolAnnouncement,
@@ -64,6 +67,12 @@ import { usePersistedListFilters } from "@/lib/list-filters";
 import { getDocUrl, DOC_PATHS } from "@/lib/ecosystem-urls";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import {
+  announcementStatusKey,
+  audienceLabel,
+  canalLabel,
+  estadoLabel,
+} from "@/features/communications/labels";
 
 const comunicacoesFilterDefaults = {
   q: "",
@@ -111,39 +120,11 @@ const canalIcon = {
   portal: Monitor,
 } as const;
 
-const canalLabel: Record<Channel, string> = {
-  sms: "SMS",
-  whatsapp: "WhatsApp",
-  email: "E-mail",
-  portal: "Portal",
-};
-
 const estadoTone: Record<string, string> = {
   sent: toneClass.success,
   scheduled: toneClass.info,
   draft: toneClass.muted,
   cancelled: toneClass.muted,
-};
-
-const estadoLabel: Record<string, string> = {
-  sent: "Enviado",
-  scheduled: "Agendado",
-  draft: "Rascunho",
-  cancelled: "Arquivado",
-};
-
-const audienceLabel: Record<Audience, string> = {
-  all_guardians: "Todos os encarregados",
-  guardians_with_debt: "Encarregados com dívida",
-  students_secondary: "Alunos do ensino secundário",
-  students_finalists: "Alunos finalistas",
-  teaching_staff: "Corpo docente",
-  alumni_all: "Alumni (todos com consentimento)",
-  alumni_opportunities: "Alumni (oportunidades & carreiras)",
-  alumni_events: "Alumni (eventos & encontros)",
-  alumni_mentoring: "Alumni (mentoria)",
-  alumni_surveys: "Alumni (pesquisas e tracer studies)",
-  alumni_fundraising: "Alumni (campanhas & bolsas)",
 };
 
 const audienceOptions: Array<{ value: Audience; label: string }> = (
@@ -191,6 +172,7 @@ function ComunicacoesPage() {
   });
 
   useEffect(() => {
+    const realtime = realtimeInvalidator(queryClient);
     const channel = supabase
       .channel(`school_announcements_realtime:${realtimeInstanceId}`)
       .on(
@@ -201,14 +183,13 @@ function ComunicacoesPage() {
           table: "school_announcements",
         },
         () => {
-          void queryClient.invalidateQueries({
-            queryKey: ["communications", "announcements"],
-          });
+          realtime.invalidate(["communications", "announcements"]);
         },
       )
       .subscribe();
 
     return () => {
+      realtime.dispose();
       void supabase.removeChannel(channel);
     };
   }, [queryClient, realtimeInstanceId]);
@@ -478,7 +459,11 @@ function ComunicacoesPage() {
     const form = formRef.current;
     if (!form) return;
     if (!form.reportValidity()) return;
-    const scheduledFor = readAnnouncementForm(form).scheduledFor;
+    const { scheduledFor, channel } = readAnnouncementForm(form);
+    if (scheduledFor && channel !== "portal") {
+      toast.error("Não foi possível agendar", { description: SCHEDULED_CHANNEL_MESSAGE });
+      return;
+    }
     void saveAnnouncement(form, scheduledFor ? "scheduled" : "draft");
   };
 
@@ -510,46 +495,52 @@ function ComunicacoesPage() {
           description="Comunicados institucionais para encarregados, alunos e corpo docente."
           actions={
             <>
-              <DocHelpButton title="Navegação — Comunicações" />
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() => setTemplatesModalOpen(true)}
-              >
-                <FileText className="size-4" /> Templates
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarCsv}
-                disabled={!filtered.length}
-              >
-                <Download className="size-4" /> CSV
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarPdf}
-                disabled={!filtered.length}
-              >
-                <FileDown className="size-4" /> PDF
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarOficial}
-                disabled={!filtered.length}
-              >
-                <FileBadge className="size-4" /> Oficial
-              </Button>
-              <PickFileButton
-                area="escola"
-                onPick={(file) =>
-                  toast.success(file.name, {
-                    description: "Ficheiro da biblioteca para o comunicado.",
-                  })
-                }
-              />
+              <PageActionMenu>
+                <DocHelpButton title="Navegação — Comunicações" />
+                {canManage ? (
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => setTemplatesModalOpen(true)}
+                  >
+                    <FileText className="size-4" /> Modelos
+                  </Button>
+                ) : null}
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={exportarCsv}
+                  disabled={!filtered.length}
+                >
+                  <Download className="size-4" /> CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={exportarPdf}
+                  disabled={!filtered.length}
+                >
+                  <FileDown className="size-4" /> PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={exportarOficial}
+                  disabled={!filtered.length}
+                >
+                  <FileBadge className="size-4" /> Oficial
+                </Button>
+                {canManage ? (
+                  <PickFileButton
+                    area="escola"
+                    onPick={(file) =>
+                      toast.success(file.name, {
+                        description: "Ficheiro da biblioteca para o comunicado.",
+                      })
+                    }
+                  />
+                ) : null}
+              </PageActionMenu>
               {canManage && !migrationMissing ? (
                 <Button className="gap-2" onClick={abrirFormulario}>
                   <Send className="size-4" /> Novo comunicado
@@ -626,6 +617,9 @@ function ComunicacoesPage() {
               <Panel title="Histórico" description="Comunicados criados na escola">
                 <ListFilterBar
                   className="mb-4"
+                  resultCount={filtered.length}
+                  resultNoun="comunicação"
+                  resultNounPlural="comunicações"
                   values={filters}
                   activeCount={activeCount}
                   onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
@@ -666,7 +660,7 @@ function ComunicacoesPage() {
                 {announcementsQuery.isLoading ? (
                   <p className="text-sm text-muted-foreground">A carregar comunicados…</p>
                 ) : announcementsQuery.isError && !migrationMissing ? (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm text-destructive-strong">
                     {announcementsQuery.error instanceof Error
                       ? announcementsQuery.error.message
                       : "Não foi possível carregar os comunicados."}
@@ -708,7 +702,15 @@ function ComunicacoesPage() {
                                 <Icon className="size-4" />
                               </span>
                               <div>
-                                <p className="font-semibold">{c.title}</p>
+                                <p className="font-semibold [overflow-wrap:anywhere]">
+                                  <Link
+                                    to="/comunicacoes/$announcementId"
+                                    params={{ announcementId: c.id }}
+                                    className="hover:text-primary hover:underline"
+                                  >
+                                    {c.title}
+                                  </Link>
+                                </p>
                                 <p className="mt-1 text-sm text-muted-foreground">{c.body}</p>
                                 <p className="mt-2 text-xs text-muted-foreground">
                                   {audienceLabel[audience] ?? c.audience} ·{" "}
@@ -917,7 +919,7 @@ function ComunicacoesPage() {
                                             <Button
                                               size="sm"
                                               variant="ghost"
-                                              className="gap-1.5 text-destructive"
+                                              className="gap-1.5 text-destructive-strong"
                                               onClick={open}
                                             >
                                               <Archive className="size-3.5" /> Arquivar
@@ -931,15 +933,7 @@ function ComunicacoesPage() {
                               </div>
                             </div>
                             <StatusBadge
-                              status={
-                                status === "sent"
-                                  ? "paid"
-                                  : status === "scheduled"
-                                    ? "pending"
-                                    : status === "cancelled"
-                                      ? "cancelled"
-                                      : "inactive"
-                              }
+                              status={announcementStatusKey(status)}
                               label={estadoLabel[status] ?? c.status}
                             />
                           </div>

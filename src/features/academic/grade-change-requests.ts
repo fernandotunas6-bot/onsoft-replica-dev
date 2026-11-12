@@ -14,6 +14,7 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, requireSgaWriterForWrite } from "@/integrations/supabase/sga-admin";
 import { insertInAppNotifications } from "./lesson-delivery";
 import { LOCKED_SHEET_STATUSES } from "./sga-grades";
+import { ownTeacherId } from "./own-teacher";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -22,20 +23,10 @@ const isMissing = (m?: string) => /schema cache|does not exist|42P01|PGRST205/i.
 
 export const GRADE_COMPONENTS = ["MAC", "NPP", "NPT"] as const;
 
-async function ownTeacherId(db: Db, schoolId: string, userId: string) {
-  const { data } = await db
-    .from("teachers")
-    .select("id")
-    .eq("school_id", schoolId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  return data?.id ? String(data.id) : null;
-}
-
 const requestInput = z.object({
-  sheetId: z.string().uuid(),
-  enrollmentId: z.string().uuid(),
-  subjectId: z.string().uuid(),
+  sheetId: z.string().guid(),
+  enrollmentId: z.string().guid(),
+  subjectId: z.string().guid(),
   component: z.enum(GRADE_COMPONENTS),
   newScore: z.number().min(0).max(20),
   reason: z.string().trim().min(5, "Indique o motivo (pelo menos 5 caracteres).").max(500),
@@ -263,7 +254,7 @@ export const listGradeChangeRequests = createServerFn({ method: "GET" })
   });
 
 const decideInput = z.object({
-  gradeScoreId: z.string().uuid(),
+  gradeScoreId: z.string().guid(),
   approve: z.boolean(),
   note: z.string().trim().max(500).optional(),
 });

@@ -1,0 +1,32 @@
+[
+  {
+    "width": 1024,
+    "directLinkContext": true,
+    "manualCollapsePreserved": true,
+    "collapsedContextPreserved": true,
+    "navigation": {
+      "to": "/pedagogica",
+      "search": {
+        "tab": "notas",
+        "turma": "class-b",
+        "disciplina": "pt",
+        "pauta": "1"
+      }
+    }
+  },
+  {
+    "width": 1440,
+    "directLinkContext": true,
+    "manualCollapsePreserved": true,
+    "collapsedContextPreserved": true,
+    "navigation": {
+      "to": "/pedagogica",
+      "search": {
+        "tab": "notas",
+        "turma": "class-b",
+        "disciplina": "pt",
+        "pauta": "1"
+      }
+    }
+  }
+]

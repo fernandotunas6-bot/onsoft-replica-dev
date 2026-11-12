@@ -1,0 +1,2012 @@
+{
+  "kind": "production-asset-sizes",
+  "assets": [
+    {
+      "file": "export-pdf-CCDECM0_.js",
+      "bytes": 432459,
+      "gzipBytes": 137624
+    },
+    {
+      "file": "BarChart-BAPBWitz.js",
+      "bytes": 369985,
+      "gzipBytes": 96943
+    },
+    {
+      "file": "framework-CIytk8im.js",
+      "bytes": 362497,
+      "gzipBytes": 113160
+    },
+    {
+      "file": "index-wiBJhLJW.js",
+      "bytes": 240221,
+      "gzipBytes": 59667
+    },
+    {
+      "file": "index-EJcEg0WJ.js",
+      "bytes": 239601,
+      "gzipBytes": 59590
+    },
+    {
+      "file": "styles-CnPR1fs3.css",
+      "bytes": 234496,
+      "gzipBytes": 49861
+    },
+    {
+      "file": "client-BigCv3p-.js",
+      "bytes": 216207,
+      "gzipBytes": 55845
+    },
+    {
+      "file": "client-C3GAko7W.js",
+      "bytes": 215961,
+      "gzipBytes": 55820
+    },
+    {
+      "file": "html2canvas-DCcDvdvP.js",
+      "bytes": 199504,
+      "gzipBytes": 45778
+    },
+    {
+      "file": "AppShell-ka5N_Pgw.js",
+      "bytes": 180704,
+      "gzipBytes": 51331
+    },
+    {
+      "file": "AppShell-CceBbjmc.js",
+      "bytes": 180704,
+      "gzipBytes": 51322
+    },
+    {
+      "file": "SettingsCenter-BVnjv9Xh.js",
+      "bytes": 164484,
+      "gzipBytes": 43235
+    },
+    {
+      "file": "SettingsCenter-jRXgoPOz.js",
+      "bytes": 164484,
+      "gzipBytes": 43240
+    },
+    {
+      "file": "index.es-5v7ubLSO.js",
+      "bytes": 151441,
+      "gzipBytes": 48246
+    },
+    {
+      "file": "pedagogica-DkYivekd.js",
+      "bytes": 147790,
+      "gzipBytes": 37670
+    },
+    {
+      "file": "pedagogica-BRF8Xy6G.js",
+      "bytes": 147790,
+      "gzipBytes": 37673
+    },
+    {
+      "file": "InstallConsentModal-D_dq0_Xh.js",
+      "bytes": 144136,
+      "gzipBytes": 29788
+    },
+    {
+      "file": "InstallConsentModal-jSXxhhIq.js",
+      "bytes": 144136,
+      "gzipBytes": 29787
+    },
+    {
+      "file": "PickFileButton-BwGNny9T.js",
+      "bytes": 138586,
+      "gzipBytes": 40956
+    },
+    {
+      "file": "PickFileButton-DxW6c-Mt.js",
+      "bytes": 138586,
+      "gzipBytes": 40959
+    },
+    {
+      "file": "routes-BaWUuWbQ.js",
+      "bytes": 108004,
+      "gzipBytes": 26870
+    },
+    {
+      "file": "routes-BPDQYVXN.js",
+      "bytes": 108004,
+      "gzipBytes": 26873
+    },
+    {
+      "file": "alunos-DJAAVMZj.js",
+      "bytes": 74381,
+      "gzipBytes": 19325
+    },
+    {
+      "file": "alunos-WvPpPMMS.js",
+      "bytes": 74381,
+      "gzipBytes": 19325
+    },
+    {
+      "file": "pessoas-Gt2g4ode.js",
+      "bytes": 72896,
+      "gzipBytes": 16859
+    },
+    {
+      "file": "pessoas-CyHZuqUI.js",
+      "bytes": 72896,
+      "gzipBytes": 16857
+    },
+    {
+      "file": "icons-lWzgGUYH.js",
+      "bytes": 59913,
+      "gzipBytes": 18185
+    },
+    {
+      "file": "types-CgA06yQH.js",
+      "bytes": 56638,
+      "gzipBytes": 12860
+    },
+    {
+      "file": "AssessmentCenter-ChyKDJTJ.js",
+      "bytes": 50522,
+      "gzipBytes": 14255
+    },
+    {
+      "file": "toast-B2ot9Cxg.js",
+      "bytes": 50009,
+      "gzipBytes": 15153
+    },
+    {
+      "file": "PautasWorkspaceModule-Lf16sGT3.js",
+      "bytes": 49225,
+      "gzipBytes": 11055
+    },
+    {
+      "file": "comunicacoes--qSOuFGn.js",
+      "bytes": 45378,
+      "gzipBytes": 12839
+    },
+    {
+      "file": "comunicacoes-D2KhmSYL.js",
+      "bytes": 45378,
+      "gzipBytes": 12840
+    },
+    {
+      "file": "pedagogica_.superior-BVK22ciP.js",
+      "bytes": 42824,
+      "gzipBytes": 11500
+    },
+    {
+      "file": "pedagogica_.superior-az0n479h.js",
+      "bytes": 42824,
+      "gzipBytes": 11498
+    },
+    {
+      "file": "_studentId-BVM7B9ed.js",
+      "bytes": 42639,
+      "gzipBytes": 12127
+    },
+    {
+      "file": "_studentId-ChMQ5J4S.js",
+      "bytes": 42639,
+      "gzipBytes": 12126
+    },
+    {
+      "file": "catracas-B-8ENXCK.js",
+      "bytes": 41235,
+      "gzipBytes": 10491
+    },
+    {
+      "file": "catracas-Bl6fKxfp.js",
+      "bytes": 41235,
+      "gzipBytes": 10491
+    },
+    {
+      "file": "use-current-account-BGCe1rIm.js",
+      "bytes": 38714,
+      "gzipBytes": 13112
+    },
+    {
+      "file": "use-current-account-DAomYmPJ.js",
+      "bytes": 38591,
+      "gzipBytes": 13052
+    },
+    {
+      "file": "faturas-DBIuz1qs.js",
+      "bytes": 34338,
+      "gzipBytes": 10879
+    },
+    {
+      "file": "faturas-CqU4sPaS.js",
+      "bytes": 34338,
+      "gzipBytes": 10875
+    },
+    {
+      "file": "dist-wRjYk2A5.js",
+      "bytes": 33880,
+      "gzipBytes": 11430
+    },
+    {
+      "file": "calendario-CqY1XN2t.js",
+      "bytes": 33689,
+      "gzipBytes": 10303
+    },
+    {
+      "file": "calendario-ByuMbx4u.js",
+      "bytes": 33689,
+      "gzipBytes": 10301
+    },
+    {
+      "file": "acessos-BiRgud-R.js",
+      "bytes": 33294,
+      "gzipBytes": 9316
+    },
+    {
+      "file": "acessos-V4tupZy_.js",
+      "bytes": 33294,
+      "gzipBytes": 9321
+    },
+    {
+      "file": "relatorios.academicos-CIRUNE59.js",
+      "bytes": 29035,
+      "gzipBytes": 8981
+    },
+    {
+      "file": "relatorios.academicos-Dea2Ec6v.js",
+      "bytes": 29035,
+      "gzipBytes": 8980
+    },
+    {
+      "file": "configuracoes_.assinatura-DFg558Z5.js",
+      "bytes": 28534,
+      "gzipBytes": 8163
+    },
+    {
+      "file": "ScheduleWorkspace-l-XY_dsb.js",
+      "bytes": 27929,
+      "gzipBytes": 8614
+    },
+    {
+      "file": "configuracoes_.assinatura-C5FeIwzf.js",
+      "bytes": 27427,
+      "gzipBytes": 8066
+    },
+    {
+      "file": "purify.es-JEAr64Sr.js",
+      "bytes": 27128,
+      "gzipBytes": 10433
+    },
+    {
+      "file": "PieChart-UgqmCOL6.js",
+      "bytes": 25823,
+      "gzipBytes": 6886
+    },
+    {
+      "file": "financeiro-1E9sUhq0.js",
+      "bytes": 25753,
+      "gzipBytes": 7799
+    },
+    {
+      "file": "financeiro-a9D9-Mtr.js",
+      "bytes": 25753,
+      "gzipBytes": 7801
+    },
+    {
+      "file": "documentos-DQvBm2LW.js",
+      "bytes": 24798,
+      "gzipBytes": 7574
+    },
+    {
+      "file": "documentos-B9ogA-dY.js",
+      "bytes": 24798,
+      "gzipBytes": 7571
+    },
+    {
+      "file": "pedagogica_.catalogo-BXUL3kgr.js",
+      "bytes": 23727,
+      "gzipBytes": 7461
+    },
+    {
+      "file": "pedagogica_.catalogo-CXfIWpcu.js",
+      "bytes": 23727,
+      "gzipBytes": 7462
+    },
+    {
+      "file": "browser-Cpc4qo6y.js",
+      "bytes": 23473,
+      "gzipBytes": 8741
+    },
+    {
+      "file": "select-_A-c0J0F.js",
+      "bytes": 22915,
+      "gzipBytes": 7721
+    },
+    {
+      "file": "select-badS47Lv.js",
+      "bytes": 22915,
+      "gzipBytes": 7721
+    },
+    {
+      "file": "ChatDock-DxDkNlJS.js",
+      "bytes": 22603,
+      "gzipBytes": 7252
+    },
+    {
+      "file": "ChatDock-Bt6cFbpr.js",
+      "bytes": 22603,
+      "gzipBytes": 7255
+    },
+    {
+      "file": "countries-D8w-VSsd.js",
+      "bytes": 21554,
+      "gzipBytes": 6454
+    },
+    {
+      "file": "alumni.portal-BUuE4NxJ.js",
+      "bytes": 20812,
+      "gzipBytes": 5688
+    },
+    {
+      "file": "alumni.portal-ikjashnN.js",
+      "bytes": 20812,
+      "gzipBytes": 5689
+    },
+    {
+      "file": "CurriculoWorkspaceTab-DmdALAnk.js",
+      "bytes": 20765,
+      "gzipBytes": 5333
+    },
+    {
+      "file": "ExamsTab-BFz0obi8.js",
+      "bytes": 19044,
+      "gzipBytes": 5864
+    },
+    {
+      "file": "ExamsTab-DgnXtlmB.js",
+      "bytes": 19044,
+      "gzipBytes": 5864
+    },
+    {
+      "file": "financeiro.rh.pagamentos-BDxjamT-.js",
+      "bytes": 17981,
+      "gzipBytes": 5433
+    },
+    {
+      "file": "financeiro.rh.pagamentos-BslcdhT4.js",
+      "bytes": 17981,
+      "gzipBytes": 5434
+    },
+    {
+      "file": "scroll-area-Bd28pAxU.js",
+      "bytes": 17784,
+      "gzipBytes": 5798
+    },
+    {
+      "file": "scroll-area-DNA1Phq7.js",
+      "bytes": 17784,
+      "gzipBytes": 5802
+    },
+    {
+      "file": "DashboardCharts-LrgU9U9h.js",
+      "bytes": 17563,
+      "gzipBytes": 5982
+    },
+    {
+      "file": "webview-Dmw701GB.js",
+      "bytes": 17400,
+      "gzipBytes": 3797
+    },
+    {
+      "file": "professor.presenca-D0cs9avx.js",
+      "bytes": 16956,
+      "gzipBytes": 5082
+    },
+    {
+      "file": "professor.presenca-Nq3BZboC.js",
+      "bytes": 16956,
+      "gzipBytes": 5084
+    },
+    {
+      "file": "planos-aula-DghSMvzb.js",
+      "bytes": 16622,
+      "gzipBytes": 5954
+    },
+    {
+      "file": "planos-aula-BjpLp9y2.js",
+      "bytes": 16622,
+      "gzipBytes": 5953
+    },
+    {
+      "file": "print-html-BDgSAAW8.js",
+      "bytes": 16554,
+      "gzipBytes": 6095
+    },
+    {
+      "file": "DisciplinasWorkspaceTab-Dp88aFtQ.js",
+      "bytes": 16044,
+      "gzipBytes": 5192
+    },
+    {
+      "file": "pedagogica_.risco-C8rC_x1Y.js",
+      "bytes": 15775,
+      "gzipBytes": 5394
+    },
+    {
+      "file": "pedagogica_.risco-CIWkIFIK.js",
+      "bytes": 15775,
+      "gzipBytes": 5396
+    },
+    {
+      "file": "use-suggestions-DxMT-3lB.js",
+      "bytes": 15213,
+      "gzipBytes": 3763
+    },
+    {
+      "file": "use-suggestions-DrNGSCUS.js",
+      "bytes": 15213,
+      "gzipBytes": 3764
+    },
+    {
+      "file": "AttendanceCallDialog-C8ROOGow.js",
+      "bytes": 14788,
+      "gzipBytes": 4844
+    },
+    {
+      "file": "AttendanceCallDialog-CH-E3eVP.js",
+      "bytes": 14788,
+      "gzipBytes": 4846
+    },
+    {
+      "file": "alumni-DjTLtdf0.js",
+      "bytes": 14640,
+      "gzipBytes": 4509
+    },
+    {
+      "file": "alumni-Cpikc-Bf.js",
+      "bytes": 14640,
+      "gzipBytes": 4508
+    },
+    {
+      "file": "AssessmentModelsTab-BJh5kU_Y.js",
+      "bytes": 13722,
+      "gzipBytes": 4124
+    },
+    {
+      "file": "AssessmentModelsTab-DceEqxp6.js",
+      "bytes": 13722,
+      "gzipBytes": 4125
+    },
+    {
+      "file": "GradeSheetsBoard-DndwKGyq.js",
+      "bytes": 13591,
+      "gzipBytes": 4588
+    },
+    {
+      "file": "GradeSheetsBoard-BdPzjBNB.js",
+      "bytes": 13591,
+      "gzipBytes": 4588
+    },
+    {
+      "file": "ProfileSettingsPanel-ZgPCtwy4.js",
+      "bytes": 13094,
+      "gzipBytes": 4502
+    },
+    {
+      "file": "ProfileSettingsPanel-D3xjpazT.js",
+      "bytes": 13094,
+      "gzipBytes": 4500
+    },
+    {
+      "file": "alumni.operations-CLbqoMKX.js",
+      "bytes": 13065,
+      "gzipBytes": 3834
+    },
+    {
+      "file": "alumni.operations-CC5iYVqb.js",
+      "bytes": 13065,
+      "gzipBytes": 3832
+    },
+    {
+      "file": "relatorios.financeiros-DWI1h0r5.js",
+      "bytes": 12358,
+      "gzipBytes": 4058
+    },
+    {
+      "file": "relatorios.financeiros-Xz89u7v7.js",
+      "bytes": 12358,
+      "gzipBytes": 4057
+    },
+    {
+      "file": "alumni._alumniId-CV3t6C3w.js",
+      "bytes": 12333,
+      "gzipBytes": 3311
+    },
+    {
+      "file": "alumni._alumniId-DimqH8ZC.js",
+      "bytes": 12333,
+      "gzipBytes": 3313
+    },
+    {
+      "file": "tesouraria-Bkb5YipT.js",
+      "bytes": 12029,
+      "gzipBytes": 4253
+    },
+    {
+      "file": "tesouraria-L2zgNTQN.js",
+      "bytes": 12029,
+      "gzipBytes": 4255
+    },
+    {
+      "file": "subjects-DT6978hH.js",
+      "bytes": 11921,
+      "gzipBytes": 3481
+    },
+    {
+      "file": "PayflowStudentSyncButton-DmcR8bRA.js",
+      "bytes": 11466,
+      "gzipBytes": 3699
+    },
+    {
+      "file": "sql-checklist-link-BzPPtdBL.js",
+      "bytes": 11440,
+      "gzipBytes": 4572
+    },
+    {
+      "file": "alumni.portal.portfolio-BAei769r.js",
+      "bytes": 11376,
+      "gzipBytes": 3476
+    },
+    {
+      "file": "alumni.portal.portfolio-D2rgpqSz.js",
+      "bytes": 11376,
+      "gzipBytes": 3476
+    },
+    {
+      "file": "financeiro.rh.folha-CIoffjqb.js",
+      "bytes": 11222,
+      "gzipBytes": 3811
+    },
+    {
+      "file": "financeiro.rh.folha-DWQrR8eP.js",
+      "bytes": 11222,
+      "gzipBytes": 3812
+    },
+    {
+      "file": "alumni.pipeline-CuU8Hm3c.js",
+      "bytes": 11187,
+      "gzipBytes": 3236
+    },
+    {
+      "file": "alumni.pipeline-BFhJLnqF.js",
+      "bytes": 11187,
+      "gzipBytes": 3238
+    },
+    {
+      "file": "LineChart-BSaHEGPx.js",
+      "bytes": 11029,
+      "gzipBytes": 4209
+    },
+    {
+      "file": "financeiro.rh-DYk8-z9z.js",
+      "bytes": 10630,
+      "gzipBytes": 3500
+    },
+    {
+      "file": "financeiro.rh-B7fB8krs.js",
+      "bytes": 10630,
+      "gzipBytes": 3498
+    },
+    {
+      "file": "_slug-ISOhrnkZ.js",
+      "bytes": 10401,
+      "gzipBytes": 3172
+    },
+    {
+      "file": "_slug-zwKdTzsX.js",
+      "bytes": 10401,
+      "gzipBytes": 3172
+    },
+    {
+      "file": "SalasWorkspaceTab-77sCm4Y2.js",
+      "bytes": 10379,
+      "gzipBytes": 3224
+    },
+    {
+      "file": "perfil-nTgaLg6z.js",
+      "bytes": 10166,
+      "gzipBytes": 3731
+    },
+    {
+      "file": "perfil-CnzHg90r.js",
+      "bytes": 10166,
+      "gzipBytes": 3733
+    },
+    {
+      "file": "RightRail-DYmEZVQ6.js",
+      "bytes": 10099,
+      "gzipBytes": 3337
+    },
+    {
+      "file": "RightRail-DhpDKiYr.js",
+      "bytes": 10099,
+      "gzipBytes": 3339
+    },
+    {
+      "file": "alumni.portal.portfolio.showcase-BcQNaDrU.js",
+      "bytes": 9872,
+      "gzipBytes": 3092
+    },
+    {
+      "file": "alumni.portal.portfolio.showcase-Y85bhpHU.js",
+      "bytes": 9872,
+      "gzipBytes": 3093
+    },
+    {
+      "file": "financeiro.rh.presenca-GfxoXK_U.js",
+      "bytes": 9686,
+      "gzipBytes": 2950
+    },
+    {
+      "file": "financeiro.rh.presenca-C_9YGFY5.js",
+      "bytes": 9686,
+      "gzipBytes": 2949
+    },
+    {
+      "file": "auth.reset-password-BZP_U3hN.js",
+      "bytes": 9421,
+      "gzipBytes": 3047
+    },
+    {
+      "file": "auth.reset-password-BCxxZUe5.js",
+      "bytes": 9421,
+      "gzipBytes": 3050
+    },
+    {
+      "file": "financeiro.rh.salarios-LeZPqtTn.js",
+      "bytes": 9004,
+      "gzipBytes": 3137
+    },
+    {
+      "file": "financeiro.rh.salarios-CIF00ItK.js",
+      "bytes": 9004,
+      "gzipBytes": 3138
+    },
+    {
+      "file": "print-overlays-CR4Kaw3U.js",
+      "bytes": 8931,
+      "gzipBytes": 3422
+    },
+    {
+      "file": "createServerFn-4XF9Z8ZE.js",
+      "bytes": 8872,
+      "gzipBytes": 3660
+    },
+    {
+      "file": "AttendanceWorkspaceModule-CU8ovHrP.js",
+      "bytes": 8831,
+      "gzipBytes": 3020
+    },
+    {
+      "file": "AttendanceWorkspaceModule-2xIddOrr.js",
+      "bytes": 8831,
+      "gzipBytes": 3021
+    },
+    {
+      "file": "TeacherWorkspacePanel-DEt3ffkJ.js",
+      "bytes": 8761,
+      "gzipBytes": 3349
+    },
+    {
+      "file": "TeacherWorkspacePanel-CI_8FGow.js",
+      "bytes": 8761,
+      "gzipBytes": 3349
+    },
+    {
+      "file": "CompetenciesTab-Ct0wqnRs.js",
+      "bytes": 8611,
+      "gzipBytes": 2947
+    },
+    {
+      "file": "CompetenciesTab-BsV9vz8h.js",
+      "bytes": 8611,
+      "gzipBytes": 2948
+    },
+    {
+      "file": "_teacherId-16SgRtRW.js",
+      "bytes": 8342,
+      "gzipBytes": 3239
+    },
+    {
+      "file": "_teacherId-DmF3Wek1.js",
+      "bytes": 8342,
+      "gzipBytes": 3236
+    },
+    {
+      "file": "pedagogica_.pautas-superior-jg5Oqfc-.js",
+      "bytes": 7933,
+      "gzipBytes": 3083
+    },
+    {
+      "file": "pedagogica_.pautas-superior-JEgHZQlO.js",
+      "bytes": 7933,
+      "gzipBytes": 3080
+    },
+    {
+      "file": "alumni.insights-B_pw8KgS.js",
+      "bytes": 7564,
+      "gzipBytes": 2438
+    },
+    {
+      "file": "alumni.insights-Dz51v0j2.js",
+      "bytes": 7564,
+      "gzipBytes": 2440
+    },
+    {
+      "file": "financeiro.rh.faltas-Ds3g8fWC.js",
+      "bytes": 7338,
+      "gzipBytes": 2863
+    },
+    {
+      "file": "financeiro.rh.faltas-BtHxmkBJ.js",
+      "bytes": 7338,
+      "gzipBytes": 2862
+    },
+    {
+      "file": "alumni._alumniId.portfolio-DnCB2rAv.js",
+      "bytes": 7297,
+      "gzipBytes": 2438
+    },
+    {
+      "file": "alumni._alumniId.portfolio-DOooJamg.js",
+      "bytes": 7297,
+      "gzipBytes": 2439
+    },
+    {
+      "file": "alumni.portal.portfolio.print-NhN4G4O-.js",
+      "bytes": 7261,
+      "gzipBytes": 2293
+    },
+    {
+      "file": "alumni.portal.portfolio.print-BVOFJYEM.js",
+      "bytes": 7261,
+      "gzipBytes": 2292
+    },
+    {
+      "file": "configuracoes_.boas-vindas-DbiJE3sy.js",
+      "bytes": 7211,
+      "gzipBytes": 2698
+    },
+    {
+      "file": "configuracoes_.boas-vindas-BixE_Ayb.js",
+      "bytes": 7211,
+      "gzipBytes": 2697
+    },
+    {
+      "file": "status-badge-a5SZRkX6.js",
+      "bytes": 7017,
+      "gzipBytes": 3046
+    },
+    {
+      "file": "status-badge-a6_kyhw4.js",
+      "bytes": 7017,
+      "gzipBytes": 3046
+    },
+    {
+      "file": "pedagogica_.superior_.certificado-mhHIsNtt.js",
+      "bytes": 6904,
+      "gzipBytes": 2884
+    },
+    {
+      "file": "pedagogica_.superior_.certificado-C6hCIWsk.js",
+      "bytes": 6904,
+      "gzipBytes": 2884
+    },
+    {
+      "file": "PageHeader-DsZ6A2xC.js",
+      "bytes": 6740,
+      "gzipBytes": 2387
+    },
+    {
+      "file": "alumni.communications-hxom5Ymd.js",
+      "bytes": 6651,
+      "gzipBytes": 2289
+    },
+    {
+      "file": "alumni.communications-CXNLkr8V.js",
+      "bytes": 6651,
+      "gzipBytes": 2290
+    },
+    {
+      "file": "pedagogica_.superior_.historico-BAebjwgh.js",
+      "bytes": 6378,
+      "gzipBytes": 2022
+    },
+    {
+      "file": "pedagogica_.superior_.historico-JOYluNoA.js",
+      "bytes": 6378,
+      "gzipBytes": 2021
+    },
+    {
+      "file": "pedagogica_.presenca-docente-Cp7W4NXf.js",
+      "bytes": 6006,
+      "gzipBytes": 2527
+    },
+    {
+      "file": "pedagogica_.presenca-docente-DKHNdBS7.js",
+      "bytes": 6006,
+      "gzipBytes": 2526
+    },
+    {
+      "file": "assessment-models-tu2kl1fs.js",
+      "bytes": 5957,
+      "gzipBytes": 2482
+    },
+    {
+      "file": "alumni.portal.portfolio.education-BDUo623X.js",
+      "bytes": 5952,
+      "gzipBytes": 2156
+    },
+    {
+      "file": "alumni.portal.portfolio.education-Ck9jqO_B.js",
+      "bytes": 5952,
+      "gzipBytes": 2156
+    },
+    {
+      "file": "ModalFooter-ywOYZPUN.js",
+      "bytes": 5795,
+      "gzipBytes": 1863
+    },
+    {
+      "file": "ClassMaterialsPanel-7cAWcPD3.js",
+      "bytes": 5786,
+      "gzipBytes": 2348
+    },
+    {
+      "file": "ClassMaterialsPanel-CBB2U5wm.js",
+      "bytes": 5786,
+      "gzipBytes": 2346
+    },
+    {
+      "file": "EducationWorkflowVisual-BV49G2m4.js",
+      "bytes": 5609,
+      "gzipBytes": 1837
+    },
+    {
+      "file": "angola-academic-BlcfEE5d.js",
+      "bytes": 5557,
+      "gzipBytes": 2186
+    },
+    {
+      "file": "configuracoes_.inicio-JYDMZjo3.js",
+      "bytes": 5431,
+      "gzipBytes": 2206
+    },
+    {
+      "file": "configuracoes_.inicio-keiG9Ffa.js",
+      "bytes": 5431,
+      "gzipBytes": 2203
+    },
+    {
+      "file": "list-filters-CzX_aQpN.js",
+      "bytes": 5331,
+      "gzipBytes": 2046
+    },
+    {
+      "file": "AttendanceJustificationModal-BNCruYik.js",
+      "bytes": 5289,
+      "gzipBytes": 1867
+    },
+    {
+      "file": "AttendanceJustificationModal-DGjEiPhH.js",
+      "bytes": 5289,
+      "gzipBytes": 1868
+    },
+    {
+      "file": "tenant-context-Idch7IO_.js",
+      "bytes": 5140,
+      "gzipBytes": 2382
+    },
+    {
+      "file": "tenant-context-DFOMW2Uz.js",
+      "bytes": 5140,
+      "gzipBytes": 2382
+    },
+    {
+      "file": "media-frame-DYTW7LOQ.js",
+      "bytes": 5112,
+      "gzipBytes": 2480
+    },
+    {
+      "file": "alumni.documents-DEwXfCtb.js",
+      "bytes": 5050,
+      "gzipBytes": 1961
+    },
+    {
+      "file": "alumni.documents-Cou9KVV9.js",
+      "bytes": 5050,
+      "gzipBytes": 1960
+    },
+    {
+      "file": "pedagogica-VrxjHyDH.js",
+      "bytes": 4891,
+      "gzipBytes": 2405
+    },
+    {
+      "file": "pedagogica-BNp0iDnO.js",
+      "bytes": 4891,
+      "gzipBytes": 2400
+    },
+    {
+      "file": "access-policy-_JzA1I-0.js",
+      "bytes": 4837,
+      "gzipBytes": 1386
+    },
+    {
+      "file": "saft-validator-BJpi8kDA.js",
+      "bytes": 4660,
+      "gzipBytes": 1745
+    },
+    {
+      "file": "checkbox-BtcK2DSO.js",
+      "bytes": 4623,
+      "gzipBytes": 1986
+    },
+    {
+      "file": "SequentialSheetModal-CA_pNJ7T.js",
+      "bytes": 4581,
+      "gzipBytes": 1957
+    },
+    {
+      "file": "configuracoes_.diagnostico-CW6NlPbK.js",
+      "bytes": 4491,
+      "gzipBytes": 1809
+    },
+    {
+      "file": "configuracoes_.diagnostico-BYoifB5p.js",
+      "bytes": 4491,
+      "gzipBytes": 1811
+    },
+    {
+      "file": "alumni.matching-BeDN2N0V.js",
+      "bytes": 4475,
+      "gzipBytes": 1842
+    },
+    {
+      "file": "alumni.matching-CvJieArN.js",
+      "bytes": 4475,
+      "gzipBytes": 1841
+    },
+    {
+      "file": "install-QnbQmdpc.js",
+      "bytes": 4433,
+      "gzipBytes": 1745
+    },
+    {
+      "file": "switch-DsNiNpS3.js",
+      "bytes": 4421,
+      "gzipBytes": 1884
+    },
+    {
+      "file": "server-Bs23fLvS.js",
+      "bytes": 4334,
+      "gzipBytes": 1918
+    },
+    {
+      "file": "pedagogica_.pautas-superior_.imprimir-CqHVP5zS.js",
+      "bytes": 4149,
+      "gzipBytes": 1595
+    },
+    {
+      "file": "pedagogica_.pautas-superior_.imprimir-iydNYDU-.js",
+      "bytes": 4149,
+      "gzipBytes": 1595
+    },
+    {
+      "file": "button-tUdhlAH7.js",
+      "bytes": 4057,
+      "gzipBytes": 2059
+    },
+    {
+      "file": "verificar-CTvYVkf6.js",
+      "bytes": 4037,
+      "gzipBytes": 1499
+    },
+    {
+      "file": "verificar-DKOBahyV.js",
+      "bytes": 4037,
+      "gzipBytes": 1498
+    },
+    {
+      "file": "server-Bm4SWC2-.js",
+      "bytes": 4035,
+      "gzipBytes": 1695
+    },
+    {
+      "file": "InstalledModuleTools-sIglvE-3.js",
+      "bytes": 3947,
+      "gzipBytes": 1794
+    },
+    {
+      "file": "QuickFormModal-5H1bdagR.js",
+      "bytes": 3865,
+      "gzipBytes": 1786
+    },
+    {
+      "file": "saas-admin-Cgspxjgu.js",
+      "bytes": 3793,
+      "gzipBytes": 1402
+    },
+    {
+      "file": "schemas-COJQ_jC7.js",
+      "bytes": 3687,
+      "gzipBytes": 1360
+    },
+    {
+      "file": "auth.magic-link-BndlRxQQ.js",
+      "bytes": 3685,
+      "gzipBytes": 1496
+    },
+    {
+      "file": "auth.magic-link-BHVghFqq.js",
+      "bytes": 3685,
+      "gzipBytes": 1496
+    },
+    {
+      "file": "server-BCzW-kpT.js",
+      "bytes": 3597,
+      "gzipBytes": 1622
+    },
+    {
+      "file": "use-school-settings-CDc6o3Xw.js",
+      "bytes": 3419,
+      "gzipBytes": 1446
+    },
+    {
+      "file": "auth.email-change-ssXgsUxe.js",
+      "bytes": 3274,
+      "gzipBytes": 1343
+    },
+    {
+      "file": "auth.email-change-J1nRWOlz.js",
+      "bytes": 3274,
+      "gzipBytes": 1343
+    },
+    {
+      "file": "print-issue-BNDgETqB.js",
+      "bytes": 3244,
+      "gzipBytes": 1618
+    },
+    {
+      "file": "convite._token-CTv-uMgC.js",
+      "bytes": 3240,
+      "gzipBytes": 1390
+    },
+    {
+      "file": "convite._token-D0yy0l8d.js",
+      "bytes": 3240,
+      "gzipBytes": 1390
+    },
+    {
+      "file": "GradeChangeRequestsPanel-CQNolciJ.js",
+      "bytes": 3054,
+      "gzipBytes": 1423
+    },
+    {
+      "file": "GradeChangeRequestsPanel-DTfIWTvv.js",
+      "bytes": 3054,
+      "gzipBytes": 1422
+    },
+    {
+      "file": "alumni.calendar-wOTSFLui.js",
+      "bytes": 2978,
+      "gzipBytes": 1315
+    },
+    {
+      "file": "alumni.calendar-CrsvZE-R.js",
+      "bytes": 2978,
+      "gzipBytes": 1316
+    },
+    {
+      "file": "dist-BSoIFGNz.js",
+      "bytes": 2922,
+      "gzipBytes": 1292
+    },
+    {
+      "file": "criar-escola-CLawY9Ky.js",
+      "bytes": 2920,
+      "gzipBytes": 1228
+    },
+    {
+      "file": "app-marks-ID0PG8Ft.js",
+      "bytes": 2876,
+      "gzipBytes": 1220
+    },
+    {
+      "file": "EntityList-DzwP1OvX.js",
+      "bytes": 2828,
+      "gzipBytes": 1131
+    },
+    {
+      "file": "RelatoriosFinanceirosCategoryCharts-rCwsvEvG.js",
+      "bytes": 2779,
+      "gzipBytes": 992
+    },
+    {
+      "file": "server-CUCeIUaQ.js",
+      "bytes": 2513,
+      "gzipBytes": 1194
+    },
+    {
+      "file": "actions-C52cXm_e.js",
+      "bytes": 2502,
+      "gzipBytes": 1108
+    },
+    {
+      "file": "assessment-views-DkqG3hcL.js",
+      "bytes": 2452,
+      "gzipBytes": 1227
+    },
+    {
+      "file": "ListPaginationBar-BeRc7Eb_.js",
+      "bytes": 2427,
+      "gzipBytes": 910
+    },
+    {
+      "file": "PedagogicaNotasCharts-DzgNZcVz.js",
+      "bytes": 2398,
+      "gzipBytes": 836
+    },
+    {
+      "file": "dialog-BPWqb0Z-.js",
+      "bytes": 2355,
+      "gzipBytes": 971
+    },
+    {
+      "file": "PayflowAdminLaunchButton-CQti9Vl5.js",
+      "bytes": 2354,
+      "gzipBytes": 1220
+    },
+    {
+      "file": "advanced-academic-server-CTx5OJdc.js",
+      "bytes": 2300,
+      "gzipBytes": 1019
+    },
+    {
+      "file": "attendance-server-RIXxL2VT.js",
+      "bytes": 2253,
+      "gzipBytes": 982
+    },
+    {
+      "file": "ics-Cbsgbrs_.js",
+      "bytes": 2245,
+      "gzipBytes": 1126
+    },
+    {
+      "file": "catalog-8PXR1es2.js",
+      "bytes": 2144,
+      "gzipBytes": 930
+    },
+    {
+      "file": "RelatoriosAcademicosCharts-vIGSZphm.js",
+      "bytes": 2130,
+      "gzipBytes": 861
+    },
+    {
+      "file": "search-DPpKe3ZT.js",
+      "bytes": 2089,
+      "gzipBytes": 1011
+    },
+    {
+      "file": "schemas-CfweewJe.js",
+      "bytes": 2089,
+      "gzipBytes": 775
+    },
+    {
+      "file": "server-C-wbSaSD.js",
+      "bytes": 2025,
+      "gzipBytes": 888
+    },
+    {
+      "file": "calendar-status-56nGs-G4.js",
+      "bytes": 2020,
+      "gzipBytes": 1006
+    },
+    {
+      "file": "portfolio-BgVHN0wC.js",
+      "bytes": 2010,
+      "gzipBytes": 1010
+    },
+    {
+      "file": "portfolio-BsO0H6nm.js",
+      "bytes": 2010,
+      "gzipBytes": 1011
+    },
+    {
+      "file": "table-DtYEvC6f.js",
+      "bytes": 2001,
+      "gzipBytes": 733
+    },
+    {
+      "file": "identifiers-FUdtEZVW.js",
+      "bytes": 1930,
+      "gzipBytes": 833
+    },
+    {
+      "file": "server-ZDH6jcEs.js",
+      "bytes": 1922,
+      "gzipBytes": 879
+    },
+    {
+      "file": "callback-YHGrorg9.js",
+      "bytes": 1909,
+      "gzipBytes": 860
+    },
+    {
+      "file": "callback-CzHHlz0t.js",
+      "bytes": 1909,
+      "gzipBytes": 860
+    },
+    {
+      "file": "dates-DWX-JTzL.js",
+      "bytes": 1875,
+      "gzipBytes": 863
+    },
+    {
+      "file": "ecosystem-urls-C1-FwrbY.js",
+      "bytes": 1875,
+      "gzipBytes": 762
+    },
+    {
+      "file": "server-5MqDra3k.js",
+      "bytes": 1864,
+      "gzipBytes": 946
+    },
+    {
+      "file": "consistency-check-BLz9alhM.js",
+      "bytes": 1855,
+      "gzipBytes": 997
+    },
+    {
+      "file": "verification-B6ScQrq3.js",
+      "bytes": 1778,
+      "gzipBytes": 1015
+    },
+    {
+      "file": "states-Bcni1Ubb.js",
+      "bytes": 1777,
+      "gzipBytes": 772
+    },
+    {
+      "file": "pwned-password-B4tmjTVf.js",
+      "bytes": 1724,
+      "gzipBytes": 904
+    },
+    {
+      "file": "timetable-lessons-bz0sdNNy.js",
+      "bytes": 1647,
+      "gzipBytes": 873
+    },
+    {
+      "file": "calendario.ics-Bf9S2yTu.js",
+      "bytes": 1630,
+      "gzipBytes": 916
+    },
+    {
+      "file": "calendario.ics-DV-QxuaY.js",
+      "bytes": 1630,
+      "gzipBytes": 916
+    },
+    {
+      "file": "grade-sheet-workflow-CfuaVRiZ.js",
+      "bytes": 1628,
+      "gzipBytes": 567
+    },
+    {
+      "file": "aurora-CyvZglNG.js",
+      "bytes": 1625,
+      "gzipBytes": 699
+    },
+    {
+      "file": "assessment-engine-DAJ-vqwU.js",
+      "bytes": 1538,
+      "gzipBytes": 776
+    },
+    {
+      "file": "platform-domain-BkJO6Zer.js",
+      "bytes": 1510,
+      "gzipBytes": 803
+    },
+    {
+      "file": "_._lovable.oauth.consent-DIsjUPT8.js",
+      "bytes": 1502,
+      "gzipBytes": 834
+    },
+    {
+      "file": "_._lovable.oauth.consent-Cqsgmkdx.js",
+      "bytes": 1502,
+      "gzipBytes": 833
+    },
+    {
+      "file": "performance-supervisor-CBpgk0Gz.js",
+      "bytes": 1464,
+      "gzipBytes": 790
+    },
+    {
+      "file": "ConfirmActionModal-CtvvGv89.js",
+      "bytes": 1463,
+      "gzipBytes": 852
+    },
+    {
+      "file": "academic-nav-Sc52AeYj.js",
+      "bytes": 1417,
+      "gzipBytes": 692
+    },
+    {
+      "file": "empty-state-BSK3X7rh.js",
+      "bytes": 1342,
+      "gzipBytes": 652
+    },
+    {
+      "file": "AngolaIdentityField-BFiZRkCb.js",
+      "bytes": 1339,
+      "gzipBytes": 745
+    },
+    {
+      "file": "education-history-CkExhclH.js",
+      "bytes": 1319,
+      "gzipBytes": 646
+    },
+    {
+      "file": "education-history-D8PgpkQ7.js",
+      "bytes": 1319,
+      "gzipBytes": 647
+    },
+    {
+      "file": "alert-DqKloPb5.js",
+      "bytes": 1309,
+      "gzipBytes": 625
+    },
+    {
+      "file": "core-C6vcUs2R.js",
+      "bytes": 1285,
+      "gzipBytes": 650
+    },
+    {
+      "file": "alterar-senha-DHR2eY8T.js",
+      "bytes": 1279,
+      "gzipBytes": 731
+    },
+    {
+      "file": "alterar-senha-CYfGDp9x.js",
+      "bytes": 1279,
+      "gzipBytes": 730
+    },
+    {
+      "file": "card-L60atTn_.js",
+      "bytes": 1247,
+      "gzipBytes": 494
+    },
+    {
+      "file": "desktop-utils-By23UXWY.js",
+      "bytes": 1215,
+      "gzipBytes": 653
+    },
+    {
+      "file": "preload-helper-Czpn1I53.js",
+      "bytes": 1196,
+      "gzipBytes": 676
+    },
+    {
+      "file": "schema-missing-banner-DKpolq8H.js",
+      "bytes": 1176,
+      "gzipBytes": 676
+    },
+    {
+      "file": "AngolaPhoneField-g_RlOzgl.js",
+      "bytes": 1170,
+      "gzipBytes": 682
+    },
+    {
+      "file": "skeletons-BACXaPh7.js",
+      "bytes": 1147,
+      "gzipBytes": 501
+    },
+    {
+      "file": "ModalSidebar-DeIdGkZV.js",
+      "bytes": 1136,
+      "gzipBytes": 598
+    },
+    {
+      "file": "ModalSidebar-CImxKfXO.js",
+      "bytes": 1136,
+      "gzipBytes": 598
+    },
+    {
+      "file": "input-CaurjZlr.js",
+      "bytes": 1116,
+      "gzipBytes": 698
+    },
+    {
+      "file": "angola-identity-DZmNlBNz.js",
+      "bytes": 1113,
+      "gzipBytes": 591
+    },
+    {
+      "file": "server-CaiKKHeq.js",
+      "bytes": 1090,
+      "gzipBytes": 556
+    },
+    {
+      "file": "schemas-lryBP9jI.js",
+      "bytes": 1031,
+      "gzipBytes": 641
+    },
+    {
+      "file": "icon-chip-ohk0-rWQ.js",
+      "bytes": 1019,
+      "gzipBytes": 560
+    },
+    {
+      "file": "FinanceiroCashChart-ChI82pxX.js",
+      "bytes": 1019,
+      "gzipBytes": 547
+    },
+    {
+      "file": "arquivos-CMY3H9B5.js",
+      "bytes": 970,
+      "gzipBytes": 602
+    },
+    {
+      "file": "use-breakpoint-DUBKDwcU.js",
+      "bytes": 970,
+      "gzipBytes": 450
+    },
+    {
+      "file": "arquivos-CxTvbUsV.js",
+      "bytes": 970,
+      "gzipBytes": 602
+    },
+    {
+      "file": "chat-server-DrTJ2KTc.js",
+      "bytes": 961,
+      "gzipBytes": 505
+    },
+    {
+      "file": "server-secure-legacy-DqkCJN6j.js",
+      "bytes": 954,
+      "gzipBytes": 504
+    },
+    {
+      "file": "entity-focus-context-CekCWg8B.js",
+      "bytes": 933,
+      "gzipBytes": 492
+    },
+    {
+      "file": "FormModal-TQpoONOn.js",
+      "bytes": 925,
+      "gzipBytes": 523
+    },
+    {
+      "file": "print-issue-loader-BDE6C10L.js",
+      "bytes": 903,
+      "gzipBytes": 479
+    },
+    {
+      "file": "badge-FrqlaDlp.js",
+      "bytes": 882,
+      "gzipBytes": 460
+    },
+    {
+      "file": "dist-js-JtEEMXXS.js",
+      "bytes": 856,
+      "gzipBytes": 437
+    },
+    {
+      "file": "self-service-CMAlc55D.js",
+      "bytes": 850,
+      "gzipBytes": 460
+    },
+    {
+      "file": "teacher-lessons-ZFi9EdOe.js",
+      "bytes": 843,
+      "gzipBytes": 457
+    },
+    {
+      "file": "session-expiry-BzipYYiM.js",
+      "bytes": 837,
+      "gzipBytes": 506
+    },
+    {
+      "file": "session-expiry-BHokeuIx.js",
+      "bytes": 837,
+      "gzipBytes": 510
+    },
+    {
+      "file": "QuickModal-CM5CAhpy.js",
+      "bytes": 832,
+      "gzipBytes": 472
+    },
+    {
+      "file": "money-value-BHcuBaXm.js",
+      "bytes": 829,
+      "gzipBytes": 500
+    },
+    {
+      "file": "server-L4MtJJXf.js",
+      "bytes": 817,
+      "gzipBytes": 469
+    },
+    {
+      "file": "label-YBrdZUNo.js",
+      "bytes": 790,
+      "gzipBytes": 498
+    },
+    {
+      "file": "lazy-visible-k2xOzcH8.js",
+      "bytes": 766,
+      "gzipBytes": 479
+    },
+    {
+      "file": "configuracoes-B9Y-cXXj.js",
+      "bytes": 765,
+      "gzipBytes": 497
+    },
+    {
+      "file": "configuracoes-CqBxnrSJ.js",
+      "bytes": 765,
+      "gzipBytes": 495
+    },
+    {
+      "file": "dist-BdM_zx-B.js",
+      "bytes": 746,
+      "gzipBytes": 502
+    },
+    {
+      "file": "doc-help-button-Cmy7ya7i.js",
+      "bytes": 739,
+      "gzipBytes": 450
+    },
+    {
+      "file": "siga-logo-nbdxCQA_.js",
+      "bytes": 733,
+      "gzipBytes": 412
+    },
+    {
+      "file": "zoom-gpzdSQxG.js",
+      "bytes": 725,
+      "gzipBytes": 418
+    },
+    {
+      "file": "server-CzA0-Poe.js",
+      "bytes": 721,
+      "gzipBytes": 415
+    },
+    {
+      "file": "rolldown-runtime-hePW80VL.js",
+      "bytes": 716,
+      "gzipBytes": 430
+    },
+    {
+      "file": "payflow.settlement-Bv2mARBw.js",
+      "bytes": 699,
+      "gzipBytes": 433
+    },
+    {
+      "file": "dist-C9eFa4-F.js",
+      "bytes": 678,
+      "gzipBytes": 435
+    },
+    {
+      "file": "recent-contacts-BrlkuOER.js",
+      "bytes": 672,
+      "gzipBytes": 418
+    },
+    {
+      "file": "more-info-BO1HQcNM.js",
+      "bytes": 663,
+      "gzipBytes": 427
+    },
+    {
+      "file": "gateway.confirm-DwHuBpck.js",
+      "bytes": 659,
+      "gzipBytes": 405
+    },
+    {
+      "file": "gateway.unitel.confirm-DyeIGvqz.js",
+      "bytes": 640,
+      "gzipBytes": 393
+    },
+    {
+      "file": "textarea-BhBHKs2r.js",
+      "bytes": 630,
+      "gzipBytes": 414
+    },
+    {
+      "file": "logo-chip-DSvez7WD.js",
+      "bytes": 624,
+      "gzipBytes": 426
+    },
+    {
+      "file": "device-scan-BaumW621.js",
+      "bytes": 613,
+      "gzipBytes": 375
+    },
+    {
+      "file": "export-pdf-loader-B6jzK08r.js",
+      "bytes": 608,
+      "gzipBytes": 335
+    },
+    {
+      "file": "portal-format-BxTC4Lbj.js",
+      "bytes": 582,
+      "gzipBytes": 405
+    },
+    {
+      "file": "ResponsiveEntityView-DR9rtdW0.js",
+      "bytes": 577,
+      "gzipBytes": 303
+    },
+    {
+      "file": "use-passing-value-KH7IWvfy.js",
+      "bytes": 546,
+      "gzipBytes": 344
+    },
+    {
+      "file": "grade-change-requests-DH-D_8Nf.js",
+      "bytes": 505,
+      "gzipBytes": 341
+    },
+    {
+      "file": "angola-phone-BTDt-8Vs.js",
+      "bytes": 504,
+      "gzipBytes": 311
+    },
+    {
+      "file": "reset-password-server-xyGEq8Y3.js",
+      "bytes": 504,
+      "gzipBytes": 376
+    },
+    {
+      "file": "export-csv-PAMEoBlb.js",
+      "bytes": 502,
+      "gzipBytes": 364
+    },
+    {
+      "file": "magic-link-server-wNy9UjMj.js",
+      "bytes": 500,
+      "gzipBytes": 373
+    },
+    {
+      "file": "angola-territory-B9yU21ao.js",
+      "bytes": 486,
+      "gzipBytes": 302
+    },
+    {
+      "file": "engine-DK9G2NT3.js",
+      "bytes": 481,
+      "gzipBytes": 315
+    },
+    {
+      "file": "admin-tools-BZiqxFPG.js",
+      "bytes": 474,
+      "gzipBytes": 310
+    },
+    {
+      "file": "email-change-server-qwHpTm--.js",
+      "bytes": 469,
+      "gzipBytes": 359
+    },
+    {
+      "file": "school-date-CQO6Iohc.js",
+      "bytes": 464,
+      "gzipBytes": 335
+    },
+    {
+      "file": "PayflowBrandIcon-1O6VsHE7.js",
+      "bytes": 463,
+      "gzipBytes": 337
+    },
+    {
+      "file": "calendar.ics-DKnBvdj_.js",
+      "bytes": 461,
+      "gzipBytes": 307
+    },
+    {
+      "file": "education-catalog.search-DuVAMwXK.js",
+      "bytes": 447,
+      "gzipBytes": 324
+    },
+    {
+      "file": "resend.webhook-1omLiWy9.js",
+      "bytes": 447,
+      "gzipBytes": 310
+    },
+    {
+      "file": "whatsapp-status-DX8FoJ46.js",
+      "bytes": 441,
+      "gzipBytes": 312
+    },
+    {
+      "file": "twilio-sms-BbAyu4Ww.js",
+      "bytes": 438,
+      "gzipBytes": 306
+    },
+    {
+      "file": "signup-CxeZsFuF.js",
+      "bytes": 434,
+      "gzipBytes": 321
+    },
+    {
+      "file": "action-error-toast-BXt0sJOr.js",
+      "bytes": 431,
+      "gzipBytes": 291
+    },
+    {
+      "file": "step-up-DtsjR_Be.js",
+      "bytes": 431,
+      "gzipBytes": 291
+    },
+    {
+      "file": "action-error-toast-BYl824yO.js",
+      "bytes": 431,
+      "gzipBytes": 291
+    },
+    {
+      "file": "usage.sync-Dlq6TF9-.js",
+      "bytes": 427,
+      "gzipBytes": 313
+    },
+    {
+      "file": "email.routes-BmveTP2l.js",
+      "bytes": 421,
+      "gzipBytes": 304
+    },
+    {
+      "file": "education-catalog-DXeNrnjN.js",
+      "bytes": 419,
+      "gzipBytes": 306
+    },
+    {
+      "file": "tenants-ChYrTfBb.js",
+      "bytes": 411,
+      "gzipBytes": 298
+    },
+    {
+      "file": "inline-loading-XzFVvr2N.js",
+      "bytes": 410,
+      "gzipBytes": 301
+    },
+    {
+      "file": "public.site-jkIj3DS8.js",
+      "bytes": 407,
+      "gzipBytes": 295
+    },
+    {
+      "file": "tenants.admin-access-REJ5-ylL.js",
+      "bytes": 405,
+      "gzipBytes": 295
+    },
+    {
+      "file": "site.messages-C4ORfHWX.js",
+      "bytes": 404,
+      "gzipBytes": 296
+    },
+    {
+      "file": "site.faqs-BeAFhqSs.js",
+      "bytes": 403,
+      "gzipBytes": 295
+    },
+    {
+      "file": "domains.poll-FG4-s5xQ.js",
+      "bytes": 401,
+      "gzipBytes": 289
+    },
+    {
+      "file": "tenants.billing-CsEfsPBk.js",
+      "bytes": 401,
+      "gzipBytes": 299
+    },
+    {
+      "file": "site.showcase-WcJHe8Fj.js",
+      "bytes": 400,
+      "gzipBytes": 293
+    },
+    {
+      "file": "tenants.subscription-DmncqQfM.js",
+      "bytes": 400,
+      "gzipBytes": 298
+    },
+    {
+      "file": "platform-admins-C_Dx7RZp.js",
+      "bytes": 397,
+      "gzipBytes": 292
+    },
+    {
+      "file": "platform-admins.revoke-DVflCVGK.js",
+      "bytes": 397,
+      "gzipBytes": 290
+    },
+    {
+      "file": "subscriptions.backfill-CfS7zRX5.js",
+      "bytes": 396,
+      "gzipBytes": 297
+    },
+    {
+      "file": "domains-taS2iB1a.js",
+      "bytes": 396,
+      "gzipBytes": 297
+    },
+    {
+      "file": "tenants.lookup-Txh1nKz4.js",
+      "bytes": 396,
+      "gzipBytes": 293
+    },
+    {
+      "file": "domains.check-CP5_ZUUF.js",
+      "bytes": 395,
+      "gzipBytes": 293
+    },
+    {
+      "file": "me-4bxFG8Ud.js",
+      "bytes": 395,
+      "gzipBytes": 295
+    },
+    {
+      "file": "subscriptions-D3b4-zaN.js",
+      "bytes": 395,
+      "gzipBytes": 297
+    },
+    {
+      "file": "tenants.status-QWOdoNe6.js",
+      "bytes": 394,
+      "gzipBytes": 286
+    },
+    {
+      "file": "gateway-webhooks-BQed90RN.js",
+      "bytes": 393,
+      "gzipBytes": 287
+    },
+    {
+      "file": "domains.verify-DKkpQWmD.js",
+      "bytes": 392,
+      "gzipBytes": 293
+    },
+    {
+      "file": "audit-logs-3_XB-Pub.js",
+      "bytes": 391,
+      "gzipBytes": 285
+    },
+    {
+      "file": "site.posts-xal7EHB1.js",
+      "bytes": 390,
+      "gzipBytes": 287
+    },
+    {
+      "file": "domains.status-CV8P45rB.js",
+      "bytes": 390,
+      "gzipBytes": 289
+    },
+    {
+      "file": "public.contact-DJ1TdJoN.js",
+      "bytes": 386,
+      "gzipBytes": 277
+    },
+    {
+      "file": "education-catalog.adoption-BMLBm1EA.js",
+      "bytes": 385,
+      "gzipBytes": 286
+    },
+    {
+      "file": "stats-D53rGxdW.js",
+      "bytes": 384,
+      "gzipBytes": 284
+    },
+    {
+      "file": "public.blog-3USqfUCi.js",
+      "bytes": 379,
+      "gzipBytes": 275
+    },
+    {
+      "file": "plans-Bvei34-g.js",
+      "bytes": 378,
+      "gzipBytes": 278
+    },
+    {
+      "file": "signup-server-DNkgtXDO.js",
+      "bytes": 367,
+      "gzipBytes": 303
+    },
+    {
+      "file": "ai-assist.functions-DPXovYee.js",
+      "bytes": 359,
+      "gzipBytes": 267
+    },
+    {
+      "file": "setup-status-7a9lCz-T.js",
+      "bytes": 358,
+      "gzipBytes": 273
+    },
+    {
+      "file": "server-B9wC5u3m.js",
+      "bytes": 357,
+      "gzipBytes": 264
+    },
+    {
+      "file": "dist-CKd_lQt0.js",
+      "bytes": 346,
+      "gzipBytes": 268
+    },
+    {
+      "file": "auth-middleware-JDjVgB0Q.js",
+      "bytes": 332,
+      "gzipBytes": 191
+    },
+    {
+      "file": "labels-2ylTvrWI.js",
+      "bytes": 332,
+      "gzipBytes": 208
+    },
+    {
+      "file": "realtime-invalidate-CLadhk8t.js",
+      "bytes": 283,
+      "gzipBytes": 218
+    },
+    {
+      "file": "typeof-B5XbjTb1.js",
+      "bytes": 271,
+      "gzipBytes": 169
+    },
+    {
+      "file": "_._lovable.oauth.consent-CfhhUE52.js",
+      "bytes": 256,
+      "gzipBytes": 232
+    },
+    {
+      "file": "skeleton-Dv96NZkn.js",
+      "bytes": 248,
+      "gzipBytes": 201
+    },
+    {
+      "file": "mailboxes--ZT_lL-H.js",
+      "bytes": 205,
+      "gzipBytes": 176
+    },
+    {
+      "file": "dist-D8Wfxh48.js",
+      "bytes": 156,
+      "gzipBytes": 151
+    },
+    {
+      "file": "currency-CSxrW-jG.js",
+      "bytes": 143,
+      "gzipBytes": 142
+    },
+    {
+      "file": "outbox-session-uHkcBE5P.js",
+      "bytes": 140,
+      "gzipBytes": 141
+    },
+    {
+      "file": "outbox-session-CJ261H6I.js",
+      "bytes": 140,
+      "gzipBytes": 143
+    },
+    {
+      "file": "error-message-C3YtGij_.js",
+      "bytes": 132,
+      "gzipBytes": 117
+    },
+    {
+      "file": "confirm-close-BLnaONgY.js",
+      "bytes": 114,
+      "gzipBytes": 127
+    },
+    {
+      "file": "utils-BedqnZ7i.js",
+      "bytes": 93,
+      "gzipBytes": 103
+    },
+    {
+      "file": "stable-empty-BkoXbxRG.js",
+      "bytes": 39,
+      "gzipBytes": 59
+    }
+  ],
+  "totalBytes": 7687390,
+  "totalGzipBytes": 2235774
+}

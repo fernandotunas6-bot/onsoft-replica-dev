@@ -15,6 +15,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { recordAccessAudit } from "@/features/audit/record-audit";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 import type { SgaMembershipContext } from "@/integrations/supabase/sga";
@@ -1066,14 +1067,13 @@ export type AiUsageMetrics = {
 
 export async function getUsageMetrics(schoolId: string): Promise<AiUsageMetrics> {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await (
-    await db()
-  )
+  // Por páginas: o PostgREST devolve no máximo 1000 linhas e cortava sem aviso, por
+  // isso o `.limit(5000)` de antes dava métricas de 7 dias erradas numa escola activa.
+  const { data, error } = await pagedReadClient(await db())
     .from("siga_ai_usage")
     .select("model, elapsed_ms, created_at")
     .eq("school_id", schoolId)
-    .gte("created_at", since)
-    .limit(5000);
+    .gte("created_at", since);
   if (error) return { last24h: 0, last7d: 0, avgElapsedMs: null, topModels: [] };
   const rows = (data ?? []) as Row[];
   const dayAgo = Date.now() - 24 * 60 * 60 * 1000;

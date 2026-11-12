@@ -12,8 +12,8 @@ import { finalClassification } from "@/features/higher-ed/engine";
 import { getStudentTranscript } from "@/features/higher-ed/server";
 
 const searchSchema = z.object({
-  programId: z.string().uuid(),
-  studentId: z.string().uuid(),
+  programId: z.string().guid(),
+  studentId: z.string().guid(),
 });
 
 export const Route = createFileRoute("/pedagogica_/superior_/historico")({
@@ -64,7 +64,7 @@ function TranscriptPage() {
         {transcript.isLoading ? (
           <p className="text-sm text-muted-foreground">A preparar o histórico…</p>
         ) : !data ? (
-          <p className="text-sm text-destructive">
+          <p className="text-sm text-destructive-strong">
             {transcript.error instanceof Error
               ? transcript.error.message
               : "Não foi possível abrir o histórico."}
@@ -169,7 +169,7 @@ function TranscriptPage() {
                   {(() => {
                     if (data.progress.average === null) return "—";
                     const final = data.progress.completed
-                      ? finalClassification(data.progress.average)
+                      ? finalClassification(data.progress.averageExact)
                       : null;
                     return final
                       ? `${final.value} valores (${final.mention})`

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { numberMatches } from "@/features/education-catalog/identifiers";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -20,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import type { EnrollmentStatus, ExamSeason } from "@/features/higher-ed/engine";
 import {
@@ -101,7 +102,7 @@ function HigherEdPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Pedagógica"
+          group="Académico"
           title="Ensino Superior"
           description="Planos curriculares com créditos e precedências, inscrições por cadeira, épocas de avaliação e o regulamento da instituição."
           icon={GraduationCap}
@@ -151,29 +152,31 @@ function HigherEdPage() {
                 onSaved={setProgramId}
               />
             ) : null}
-            <Tabs defaultValue="plano">
-              <TabsList>
+            <Tabs layout="sidebar" defaultValue="plano">
+              <TabsList aria-label="Secções do ensino superior">
                 <TabsTrigger value="plano">Cursos e plano</TabsTrigger>
                 <TabsTrigger value="estudantes">Estudantes</TabsTrigger>
                 <TabsTrigger value="regulamento">Regulamento</TabsTrigger>
                 <TabsTrigger value="acesso">Acesso</TabsTrigger>
                 <TabsTrigger value="emolumentos">Emolumentos</TabsTrigger>
               </TabsList>
-              <TabsContent value="plano" className="mt-4">
-                <PlanTab programId={selected} />
-              </TabsContent>
-              <TabsContent value="estudantes" className="mt-4">
-                <StudentsTab programId={selected} />
-              </TabsContent>
-              <TabsContent value="regulamento" className="mt-4">
-                <RegulationTab canEdit={isAdmin} />
-              </TabsContent>
-              <TabsContent value="acesso" className="mt-4">
-                <AccessTab programId={selected} />
-              </TabsContent>
-              <TabsContent value="emolumentos" className="mt-4">
-                <FeesTab canEdit={isAdmin} />
-              </TabsContent>
+              <TabsPanels>
+                <TabsContent value="plano" className="mt-4">
+                  <PlanTab programId={selected} />
+                </TabsContent>
+                <TabsContent value="estudantes" className="mt-4">
+                  <StudentsTab programId={selected} />
+                </TabsContent>
+                <TabsContent value="regulamento" className="mt-4">
+                  <RegulationTab canEdit={isAdmin} />
+                </TabsContent>
+                <TabsContent value="acesso" className="mt-4">
+                  <AccessTab programId={selected} />
+                </TabsContent>
+                <TabsContent value="emolumentos" className="mt-4">
+                  <FeesTab canEdit={isAdmin} />
+                </TabsContent>
+              </TabsPanels>
             </Tabs>
           </>
         )}
@@ -182,7 +185,7 @@ function HigherEdPage() {
   );
 }
 
-/** Excel com Vagas, Acesso, Matrículas e Graduados para o SISIES (MESCTI). */
+/** Excel com Vagas, Acesso, Matrículas, Graduados e Bolsas para o SISIES (MESCTI). */
 function SisiesExportButton() {
   const run = useMutation({
     mutationFn: () => exportSisiesWorkbook(),
@@ -549,7 +552,9 @@ function PlanTab({ programId }: { programId: string }) {
             {issues.map((issue, index) => (
               <li
                 key={`${issue.code}-${index}`}
-                className={issue.level === "error" ? "text-destructive" : "text-muted-foreground"}
+                className={
+                  issue.level === "error" ? "text-destructive-strong" : "text-muted-foreground"
+                }
               >
                 {issue.message}
               </li>
@@ -685,8 +690,10 @@ function StudentsTab({ programId }: { programId: string }) {
   const [search, setSearch] = useState("");
   const list = useMemo(
     () =>
-      (students.data ?? []).filter((s) =>
-        `${s.name} ${s.number ?? ""}`.toLowerCase().includes(search.trim().toLowerCase()),
+      (students.data ?? []).filter(
+        (s) =>
+          s.name.toLowerCase().includes(search.trim().toLowerCase()) ||
+          numberMatches(s.number, search),
       ),
     [students.data, search],
   );
@@ -1065,7 +1072,7 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
           </Button>
         ) : null}
         {!student.data.activeYearId ? (
-          <span className="text-xs text-destructive">
+          <span className="text-xs text-destructive-strong">
             Sem ano lectivo activo: não há inscrições.
           </span>
         ) : null}

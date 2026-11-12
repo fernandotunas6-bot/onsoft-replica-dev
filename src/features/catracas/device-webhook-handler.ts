@@ -64,7 +64,10 @@ export async function runDeviceGatePassWebhook(
   if (resolved.deviceId) {
     await db
       .from("siga_turnstile_devices")
-      .update({ last_ping_at: new Date().toISOString(), status: "online" })
+      // Só o sinal de vida. O estado («Manutenção», «Offline») é escolhido pelo
+      // administrador para bloquear a passagem: antes cada leitura punha «online»,
+      // e a segunda leitura numa catraca em manutenção já passava.
+      .update({ last_ping_at: new Date().toISOString() })
       .eq("id", resolved.deviceId);
   }
 

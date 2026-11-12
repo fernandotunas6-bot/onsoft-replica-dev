@@ -1,0 +1,90 @@
+{
+  "source_commit": "9ea3e93c3f95eaab616a1c18bb50fe97f2889550",
+  "mfa_dependency": {
+    "pr": 369,
+    "head": "eed44e16503d82153e2d97b67dcb6ca1dfb0c8e9",
+    "login_mfa": "off by default; explicit account opt-in"
+  },
+  "vitest": {
+    "numTotalTests": 5339,
+    "numPassedTests": 5320,
+    "numFailedTests": 0,
+    "numPendingTests": 19,
+    "success": true
+  },
+  "checks": [
+    {
+      "command": "npm test -- --maxWorkers=2",
+      "result": "5320 passed; 19 skipped; 0 failed"
+    },
+    {
+      "command": "npm run build",
+      "result": "passed; Cloudflare module"
+    },
+    {
+      "command": "npm run typecheck",
+      "result": "passed; exit 0 on explicit recheck"
+    },
+    {
+      "command": "npm run lint",
+      "result": "0 errors; 52 warnings"
+    },
+    {
+      "command": "STYLE_CHECK_CHANGED_FROM=origin/pr-369 npm run check",
+      "result": "passed; 6 changed source files"
+    },
+    {
+      "command": "node scripts/siga/check-built-mobile-absences.mjs",
+      "result": "failed before with HTTP 400; passed after with HTTP 401/SESSION_INVALID"
+    },
+    {
+      "command": "PGlite tests/sql/*.mjs",
+      "result": "46 passed"
+    },
+    {
+      "command": "Node mobile backend and readonly checker tests",
+      "result": "34 passed"
+    },
+    {
+      "command": "Python desktop SQLite tests",
+      "result": "7 passed"
+    },
+    {
+      "command": "Chromium compiled Worker smoke",
+      "result": "390 and 1440px; login/signup navigation and focus; no overflow/page errors"
+    }
+  ],
+  "school_readonly_checks": {
+    "school": "Colegio Adventista - Huambo",
+    "active_years": 1,
+    "enrollment_student_school_mismatch": 0,
+    "enrollment_class_school_mismatch": 0,
+    "class_year_school_mismatch": 0
+  },
+  "limits": [
+    "No independent staging project identified",
+    "No native Flutter SDK execution",
+    "No payment provider transaction or authenticated cross-school RLS proof",
+    "Corrections not deployed to production"
+  ],
+  "authenticated_readonly": "7 pages, main visible, Adventista label present, no observed JS exception; no institutional writes",
+  "later_main_alignment": {
+    "main": "c061fb75",
+    "merge_commit": "3b5f680b",
+    "scope": "New main includes UI/navigation changes beyond the fully tested source_commit; separate regression/build/typecheck results recorded subsequently",
+    "regressions": {
+      "files": 50,
+      "passed": 433,
+      "failed": 0
+    },
+    "build": "passed",
+    "changed_source_lint": "0 errors; 2 pre-existing fast-refresh warnings",
+    "route_tree": "Build regenerated routeTree.gen.ts and removed a duplicated TanStack registration",
+    "typecheck": "passed; exit 0"
+  },
+  "delivery": {
+    "draft_pr": 376,
+    "url": "https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/376",
+    "deployed": false
+  }
+}

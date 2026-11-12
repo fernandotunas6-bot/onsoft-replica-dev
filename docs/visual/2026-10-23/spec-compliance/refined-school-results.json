@@ -1,0 +1,44 @@
+[
+  {
+    "width": 1024,
+    "kind": "school",
+    "insideViewport": true,
+    "focusRestored": true,
+    "truncatedLabels": 0
+  },
+  {
+    "width": 1024,
+    "kind": "account",
+    "insideViewport": true,
+    "focusRestored": true,
+    "truncatedLabels": 0
+  },
+  {
+    "width": 1024,
+    "kind": "collapsed-school",
+    "insideViewport": true,
+    "focusRestored": true,
+    "truncatedLabels": 0
+  },
+  {
+    "width": 1440,
+    "kind": "school",
+    "insideViewport": true,
+    "focusRestored": true,
+    "truncatedLabels": 0
+  },
+  {
+    "width": 1440,
+    "kind": "account",
+    "insideViewport": true,
+    "focusRestored": true,
+    "truncatedLabels": 0
+  },
+  {
+    "width": 1440,
+    "kind": "collapsed-school",
+    "insideViewport": true,
+    "focusRestored": true,
+    "truncatedLabels": 0
+  }
+]

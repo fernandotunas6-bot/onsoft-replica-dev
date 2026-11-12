@@ -13,10 +13,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import {
   submitAttendanceJustification,
   reviewAttendanceJustification,
+  openAttendanceJustificationFile,
 } from "@/features/pedagogica/attendance-server";
 
 export function SubmitAttendanceJustificationModal({
@@ -104,24 +104,11 @@ export function SubmitAttendanceJustificationModal({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Anexar Atestado ou Documento (Opcional)</Label>
-            <div className="flex items-center gap-2">
-              <PickFileButton
-                acceptKinds={["pdf", "png", "jpeg"]}
-                onPick={(file) => {
-                  setFileId(file.id);
-                  setFileName(file.name);
-                  toast.success("Documento anexado da biblioteca");
-                }}
-              />
-              {fileName ? (
-                <span className="text-xs font-medium truncate flex items-center gap-1 text-primary">
-                  <Paperclip className="size-3.5" /> {fileName}
-                </span>
-              ) : null}
-            </div>
-          </div>
+          {/* Alunos e encarregados não carregam ficheiros nos Arquivos (só o pessoal):
+              o botão abria uma biblioteca vazia e não anexava nada. */}
+          <p className="rounded-lg bg-muted/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+            Se tiver atestado ou outro documento, entregue-o na secretaria e indique-o no motivo.
+          </p>
         </div>
 
         <DialogFooter>
@@ -157,6 +144,24 @@ export function ReviewAttendanceJustificationModal({
 }) {
   const queryClient = useQueryClient();
   const [reviewNotes, setReviewNotes] = useState("");
+  const [openingFile, setOpeningFile] = useState(false);
+  const openAttachment = async () => {
+    // A janela abre já (no clique), para o browser não a bloquear.
+    const tab = window.open("", "_blank");
+    setOpeningFile(true);
+    try {
+      const { url } = await openAttendanceJustificationFile({ data: { justificationId } });
+      if (tab) tab.location.href = url;
+      else window.location.assign(url);
+    } catch (error) {
+      tab?.close();
+      toast.error("Não foi possível abrir o anexo", {
+        description: error instanceof Error ? error.message : "Tente novamente.",
+      });
+    } finally {
+      setOpeningFile(false);
+    }
+  };
 
   const reviewMutation = useMutation({
     mutationFn: reviewAttendanceJustification,
@@ -193,9 +198,16 @@ export function ReviewAttendanceJustificationModal({
             <p className="font-semibold text-muted-foreground">Motivo apresentado:</p>
             <p className="mt-1 font-medium text-foreground">{reason}</p>
             {fileName ? (
-              <p className="mt-2 text-primary font-semibold flex items-center gap-1">
-                <Paperclip className="size-3.5" /> Anexo: {fileName}
-              </p>
+              // Antes só se via o nome: quem decidia não conseguia abrir o atestado.
+              <Button
+                type="button"
+                variant="link"
+                className="mt-2 h-auto gap-1 p-0 text-xs font-semibold"
+                disabled={openingFile}
+                onClick={() => void openAttachment()}
+              >
+                <Paperclip className="size-3.5" /> Abrir anexo: {fileName}
+              </Button>
             ) : null}
           </div>
 

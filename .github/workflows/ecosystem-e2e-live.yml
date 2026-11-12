@@ -14,25 +14,54 @@ jobs:
   live:
     name: Ecossistema @live — comercial + matrícula
     runs-on: ubuntu-latest
+    environment: staging
+    env:
+      SIGA_E2E_ALLOW_WRITES: "1"
+      SIGA_E2E_PROJECT_REF: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+      SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verificar secrets Supabase
+      - name: 'Verificar configuração do staging (falhar se estiver incompleto)'
         id: secrets
         env:
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          STAGING_SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
         run: |
-          if [ -z "$SUPABASE_SECRET_KEY" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Secrets em falta — skip @live nocturno."
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+          missing=0
+          for name in STAGING_SUPABASE_PROJECT_ID STAGING_SUPABASE_URL STAGING_SUPABASE_PUBLISHABLE_KEY STAGING_SUPABASE_SECRET_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::warning::Falta $name no ambiente staging."
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            {
+              echo "### E2E @live: staging incompleto — não executado"
+              echo "- A validação de isolamento entre escolas NÃO foi realizada."
+              echo "- Configurar os quatro segredos STAGING_SUPABASE_* no ambiente staging."
+              echo "- Voltar a executar depois de confirmar uma base independente da produção."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Staging incompleto: E2E não executado; falhar no agendamento e na execução manual."
+            exit 1
           fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
         if: steps.secrets.outputs.skip != 'true'
         with:
           node-version: "24"
+
+      - name: Validar staging independente antes de qualquer escrita
+        if: steps.secrets.outputs.skip != 'true'
+        env:
+          STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          STAGING_SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
+        run: node scripts/siga/release-staging-preflight.mjs
 
       - uses: oven-sh/setup-bun@v2
         if: steps.secrets.outputs.skip != 'true'
@@ -57,9 +86,10 @@ jobs:
       - name: Configurar Supabase para E2E @live
         if: steps.secrets.outputs.skip != 'true'
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SIGA_E2E_LIVE: "1"
+          SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
         run: node scripts/siga/prepare-ci-env.mjs
 
       - name: Arrancar ecossistema (4 apps)
@@ -75,10 +105,22 @@ jobs:
       - name: Pipeline @live (smoke + Python + Playwright TS)
         if: steps.secrets.outputs.skip != 'true'
         env:
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
           SIGA_E2E_LIVE: "1"
           CI: "true"
         run: node scripts/siga/e2e-ecosystem-live.mjs
+
+      - name: Registar evidência de homologação autenticada
+        if: success() && steps.secrets.outputs.skip != 'true'
+        run: |
+          {
+            echo "### Homologação E2E @live"
+            echo "- SHA validado: \`$GITHUB_SHA\`"
+            echo "- Workflow: \`$GITHUB_WORKFLOW\`"
+            echo "- Ambiente: staging isolado"
+            echo "- Testes: smoke, Playwright Python e Playwright TS"
+            echo "- Resultado: passos executados com sucesso"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publicar relatório Playwright (falhas @live)
         if: failure() && steps.secrets.outputs.skip != 'true'

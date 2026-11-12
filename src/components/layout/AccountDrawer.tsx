@@ -13,7 +13,9 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, lazy, Suspense } from "react";
+
+import { canPrefetchResources } from "@/lib/preload";
 import { EnvironmentSwitcher } from "@/components/layout/EnvironmentSwitcher";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -31,7 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { IconChip } from "@/components/ui/icon-chip";
 import type { ChipTone } from "@/components/ui/icon-chip";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { UserProfileModal } from "@/components/auth/UserProfileModal";
+
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSignOut } from "@/features/auth/use-sign-out";
 import { canAccessPath } from "@/features/auth/access-policy";
@@ -58,7 +60,7 @@ type Row = {
 
 // Lista vertical no estilo Minimals: ícone em chip suave + rótulo + contador.
 const rows: Row[] = [
-  { label: "Início", to: "/", icon: Home, tone: "primary" },
+  { label: "Início", to: "/portal", icon: Home, tone: "primary" },
   {
     label: "Minha Conta / Perfil",
     to: "__profile__",
@@ -95,6 +97,19 @@ const rows: Row[] = [
   { label: "Configurações de conta", to: "__settings__", icon: Settings, tone: "muted" },
 ];
 
+/**
+ * O modal do perfil estava sempre montado, por isso descia em todas as páginas — e,
+ * por `AppShell` -> `AccountDrawer`, também no ecrã de entrada — arrastando o
+ * `PickFileButton` (28 565 bytes em gzip). Só abre por acção do utilizador.
+ * Monta-se à primeira abertura e fica montado, para a animação de fecho não ser
+ * cortada; o pedaço é aquecido quando a gaveta abre, portanto antes do clique.
+ */
+const UserProfileModal = lazy(() =>
+  import("@/components/auth/UserProfileModal").then((module) => ({
+    default: module.UserProfileModal,
+  })),
+);
+
 export function AccountDrawer({
   open,
   onOpenChange,
@@ -110,6 +125,18 @@ export function AccountDrawer({
   const { colleagues } = useFrequentColleagues();
   const [view, setView] = useState<"menu" | "directory">("menu");
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  // Monta à primeira abertura e fica: desmontar cortava a animação de fecho.
+  const [profileModalMounted, setProfileModalMounted] = useState(false);
+  useEffect(() => {
+    if (profileModalOpen) setProfileModalMounted(true);
+  }, [profileModalOpen]);
+  // Quem abre a gaveta está a um clique do perfil: aquecer agora evita a espera
+  // no clique. É especulativo, por isso respeita a mesma política do resto do
+  // ciclo e não desce em rede limitada — aí carrega no clique, como antes.
+  useEffect(() => {
+    if (!open || !canPrefetchResources()) return;
+    void import("@/components/auth/UserProfileModal");
+  }, [open]);
   const [globalSignOutOpen, setGlobalSignOutOpen] = useState(false);
   const [profileModalTab, setProfileModalTab] = useState<
     "perfil" | "foto" | "seguranca" | "instituicoes"
@@ -304,7 +331,7 @@ export function AccountDrawer({
             <div className="space-y-2 px-4 pb-6 pt-3">
               <Button
                 variant="ghost"
-                className="w-full justify-center gap-2 rounded-2xl bg-destructive/10 py-5 font-semibold text-destructive hover:bg-destructive/15 hover:text-destructive"
+                className="w-full justify-center gap-2 rounded-2xl bg-destructive/10 py-5 font-semibold text-destructive-strong hover:bg-destructive/15 hover:text-destructive-strong"
                 onClick={handleSignOut}
                 disabled={signingOut}
               >
@@ -324,11 +351,15 @@ export function AccountDrawer({
         </SheetContent>
       </Sheet>
 
-      <UserProfileModal
-        open={profileModalOpen}
-        onOpenChange={setProfileModalOpen}
-        defaultTab={profileModalTab}
-      />
+      {profileModalMounted ? (
+        <Suspense fallback={null}>
+          <UserProfileModal
+            open={profileModalOpen}
+            onOpenChange={setProfileModalOpen}
+            defaultTab={profileModalTab}
+          />
+        </Suspense>
+      ) : null}
       <AlertDialog open={globalSignOutOpen} onOpenChange={setGlobalSignOutOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -340,7 +371,7 @@ export function AccountDrawer({
           <AlertDialogFooter>
             <AlertDialogCancel disabled={signingOut}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive-hover"
               onClick={() => void handleGlobalSignOut()}
               disabled={signingOut}
             >

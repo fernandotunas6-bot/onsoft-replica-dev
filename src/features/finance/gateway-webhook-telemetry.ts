@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { checkGatewayFailureRateAlert } from "@/features/finance/gateway-failure-rate-alert";
+import { isMissingTable } from "@/integrations/supabase/server-error";
 
 export type GatewayWebhookEventMeta = {
   channel: string;
@@ -19,15 +20,6 @@ export type GatewayWebhookHandlerResult = {
   receiptNumber?: string | null;
   planSettled?: boolean;
 };
-
-function isMissingTable(error: { code?: string; message?: string } | null) {
-  return Boolean(
-    error &&
-    (error.code === "42P01" ||
-      error.code === "PGRST205" ||
-      /schema cache|does not exist|relation .* does not exist/i.test(error.message ?? "")),
-  );
-}
 
 function maskReference(reference: string) {
   const clean = reference.replace(/\s+/g, "");

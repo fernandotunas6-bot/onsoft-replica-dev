@@ -23,7 +23,7 @@ import {
   updateScheduleSlotInputSchema,
 } from "./schemas";
 import { z } from "zod";
-import { schoolTodayIso } from "@/lib/school-date";
+import { schoolDateInDays, schoolTodayIso } from "@/lib/school-date";
 
 function timeSlice(value: unknown): string {
   return String(value ?? "").slice(0, 5);
@@ -401,9 +401,9 @@ export const listCurricula = createServerFn({ method: "GET" })
   .validator((input: unknown) =>
     z
       .object({
-        academicYearId: z.string().uuid().optional(),
-        courseId: z.string().uuid().optional(),
-        gradeLevelId: z.string().uuid().optional(),
+        academicYearId: z.string().guid().optional(),
+        courseId: z.string().guid().optional(),
+        gradeLevelId: z.string().guid().optional(),
       })
       .parse(input ?? {}),
   )
@@ -507,8 +507,8 @@ export const listTeacherAvailability = createServerFn({ method: "GET" })
   .validator((input: unknown) =>
     z
       .object({
-        teacherId: z.string().uuid(),
-        academicYearId: z.string().uuid().optional(),
+        teacherId: z.string().guid(),
+        academicYearId: z.string().guid().optional(),
       })
       .parse(input),
   )
@@ -1031,23 +1031,31 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
     // 2. Associar slots ativos da turma a esta versão de horário
     if (classSubjects.length > 0) {
       const csIds = classSubjectIds;
-      await db
+      const { error: linkError } = await db
         .from("timetable_slots")
         .update({ schedule_id: schedule.id, updated_by: context.userId })
         .eq("school_id", membership.schoolId)
         .in("class_subject_id", csIds)
         .eq("status", "active");
+      if (linkError) {
+        throw publicDatabaseError(
+          linkError,
+          "Horário publicado, mas não foi possível associar as aulas à versão publicada.",
+        );
+      }
     }
 
     // 3. Sincronizar com Calendário / Presenças se solicitado
     let generatedSessions = 0;
     if (data.syncToCalendar) {
-      generatedSessions = await syncScheduleSlotsToSessions({
+      const { syncAcademicAgendaToSessions } = await import("@/features/calendar/agenda-sessions");
+      generatedSessions = await syncAcademicAgendaToSessions({
         db,
         schoolId: membership.schoolId,
         classGroupId: data.classGroupId,
         academicYearId: data.academicYearId,
         userId: context.userId,
+        context,
       });
     }
 
@@ -1066,118 +1074,6 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 // 10. SINCRONIZAÇÃO HORÁRIO -> SESSÕES / CALENDÁRIO
 // ---------------------------------------------------------------------------
-async function syncScheduleSlotsToSessions({
-  db,
-  schoolId,
-  classGroupId,
-  academicYearId,
-  userId,
-}: {
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>;
-  schoolId: string;
-  classGroupId: string;
-  academicYearId: string;
-  userId: string;
-}): Promise<number> {
-  // Obter período lectivo ativo (term)
-  const { data: currentTerm } = await db
-    .from("terms")
-    .select("starts_on, ends_on")
-    .eq("school_id", schoolId)
-    .eq("academic_year_id", academicYearId)
-    .lte("starts_on", schoolTodayIso())
-    .gte("ends_on", schoolTodayIso())
-    .maybeSingle();
-
-  const startDate = currentTerm?.starts_on ?? schoolTodayIso();
-  const endDate =
-    currentTerm?.ends_on ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-
-  // Buscar slots da turma
-  const { data: classSubjects } = await db
-    .from("class_subjects")
-    .select("id, subject_id, teacher_id")
-    .eq("school_id", schoolId)
-    .eq("class_group_id", classGroupId)
-    .eq("status", "active");
-
-  if (!classSubjects || classSubjects.length === 0) return 0;
-
-  const csMap = new Map(classSubjects.map((c) => [c.id, c]));
-  const csIds = classSubjects.map((c) => c.id);
-
-  const { data: slots } = await db
-    .from("timetable_slots")
-    .select("id, class_subject_id, weekday, starts_at, ends_at, room")
-    .eq("school_id", schoolId)
-    .in("class_subject_id", csIds)
-    .eq("status", "active");
-
-  if (!slots || slots.length === 0) return 0;
-
-  // Materializar próximas 4 semanas (exemplo de janela lectiva controlada para não sobrecarregar).
-  // Constrói primeiro a lista completa de candidatos (slot, data) e resolve tudo em
-  // apenas 2 pedidos à base de dados (1 SELECT + 1 INSERT em lote), em vez de um
-  // SELECT+INSERT sequencial por cada par (dia, slot) — o que antes chegava a
-  // centenas de idas e vindas para uma única publicação de horário.
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const maxEnd = new Date(Math.min(end.getTime(), start.getTime() + 28 * 86400000));
-
-  const candidates: Array<{ slot: (typeof slots)[number]; dateStr: string }> = [];
-  for (let d = new Date(start); d <= maxEnd; d.setDate(d.getDate() + 1)) {
-    const jsDay = d.getDay(); // 0=Dom, 1=Seg, ... 5=Sex
-    if (jsDay === 0) continue;
-
-    const dateStr = d.toISOString().slice(0, 10);
-    for (const slot of slots.filter((s) => s.weekday === jsDay)) {
-      if (csMap.has(slot.class_subject_id)) candidates.push({ slot, dateStr });
-    }
-  }
-
-  if (candidates.length === 0) return 0;
-
-  const slotIds = [...new Set(candidates.map((c) => c.slot.id))];
-  const { data: existingSessions } = await db
-    .from("siga_attendance_sessions")
-    .select("timetable_slot_id, lesson_date")
-    .eq("school_id", schoolId)
-    .in("timetable_slot_id", slotIds)
-    .gte("lesson_date", startDate)
-    .lte("lesson_date", endDate);
-
-  const existingKeys = new Set(
-    (existingSessions ?? []).map((r) => `${r.timetable_slot_id}:${r.lesson_date}`),
-  );
-
-  const rowsToInsert = candidates
-    .filter((c) => !existingKeys.has(`${c.slot.id}:${c.dateStr}`))
-    .map(({ slot, dateStr }) => {
-      const cs = csMap.get(slot.class_subject_id)!;
-      return {
-        school_id: schoolId,
-        academic_year_id: academicYearId,
-        class_group_id: classGroupId,
-        subject_id: cs.subject_id,
-        teacher_id: cs.teacher_id,
-        timetable_slot_id: slot.id,
-        lesson_date: dateStr,
-        starts_at: timeSlice(slot.starts_at),
-        ends_at: timeSlice(slot.ends_at),
-        status: "pending",
-        created_by: userId,
-      };
-    });
-
-  if (rowsToInsert.length === 0) return 0;
-
-  const { error } = await db.from("siga_attendance_sessions").insert(rowsToInsert);
-  if (error)
-    throw publicDatabaseError(error, "Não foi possível sincronizar as sessões de presença.");
-
-  return rowsToInsert.length;
-}
-
 // ---------------------------------------------------------------------------
 // 11. PAINEL "AGORA NA ESCOLA" & RECOMENDAÇÕES INTELIGENTES
 // ---------------------------------------------------------------------------

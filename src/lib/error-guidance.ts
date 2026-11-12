@@ -338,10 +338,22 @@ const RULES: Rule[] = [
     fix: "Desactive-o em vez de o apagar, ou retire primeiro as ligações (turmas, matrículas, faturas) que dependem dele.",
   },
   {
+    // Separada da regra seguinte porque uma restrição CHECK não é um problema de
+    // formato: o valor está bem escrito e é recusado por estar fora do que o
+    // campo aceita. Mandar «rever as datas dd/mm/aaaa» mandava procurar onde não
+    // estava — foi o que aconteceu a 30/10/2026 com uma classe de ordem zero.
+    id: "process.value-out-of-range",
+    kind: "process",
+    match: /violates check constraint/i,
+    codes: ["23514"],
+    title: "Há um valor fora do que este campo aceita",
+    fix: "O valor está bem escrito mas não é aceite — costuma ser um número que tem de ser maior que zero, ou uma data fora do intervalo permitido. Corrija esse campo e guarde outra vez.",
+  },
+  {
     id: "process.invalid-value",
     kind: "process",
-    match: /violates check constraint|violates not-null|invalid input syntax|value too long/i,
-    codes: ["23514", "23502", "22P02", "22001"],
+    match: /violates not-null|invalid input syntax|value too long/i,
+    codes: ["23502", "22P02", "22001"],
     title: "Há um campo com um valor inválido",
     fix: "Reveja os campos obrigatórios e o formato (datas dd/mm/aaaa, valores só com números) e guarde outra vez.",
   },

@@ -1,6 +1,14 @@
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
-import { useEffect, useMemo, useRef, useState, lazy, Suspense, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  lazy,
+  Suspense,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
@@ -33,13 +41,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import { STAGE_LABELS } from "@/features/academic/academic-architecture";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
+import { StudentGradesCard } from "@/features/dashboard/components/StudentGradesCard";
+import { StudentTimetableCard } from "@/features/dashboard/components/StudentTimetableCard";
+import { StudentAttendanceCard } from "@/features/dashboard/components/StudentAttendanceCard";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { ClassGroupSheet, SEM_SALA } from "@/features/academic/ClassGroupSheet";
-import { TurmaProfileModal } from "@/features/academic/components/TurmaProfileModal";
 import { GradePautaSheet } from "@/features/academic/GradePautaSheet";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { overlayServico } from "@/features/documents/print-overlays";
@@ -74,6 +84,8 @@ import { SchoolNowWidget } from "@/features/academic/components/SchoolNowWidget"
 import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { toast } from "@/lib/toast";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
+import { distinctOptionLabels, resolveOptionId } from "@/lib/option-label";
+import { subjectsOfClass } from "@/features/academic/pauta-subjects";
 
 // Os separadores que não abrem logo só se descarregam quando alguém os abre:
 // juntos pesavam ~300 KB no arranque da página. Estrutura e Turmas (os separadores
@@ -171,8 +183,10 @@ const pedagogicaSearchSchema = z
         "competencias",
       ])
       .optional(),
-    turma: z.string().uuid().optional(),
-    disciplina: z.string().uuid().optional(),
+    turma: z.string().guid().optional(),
+    disciplina: z.string().guid().optional(),
+    // O horário de um professor (menu do professor, SIGA Context Engine).
+    professor: z.string().guid().optional(),
     pauta: z.enum(["1"]).optional(),
     dia: z
       .string()
@@ -191,6 +205,13 @@ const pedagogicaFilterDefaults = {
 };
 
 type PedagogicaTab = NonNullable<z.infer<typeof pedagogicaSearchSchema>["tab"]>;
+
+/** Separadores com dados do próprio aluno; os restantes são da equipa. */
+const familyTabs = new Set<PedagogicaTab>(["horarios", "presencas", "notas"]);
+
+function allowedTab(value: PedagogicaTab | undefined, isFamily: boolean) {
+  return value && (!isFamily || familyTabs.has(value)) ? value : undefined;
+}
 
 export const Route = createFileRoute("/pedagogica")({
   validateSearch: pedagogicaSearchSchema,
@@ -220,15 +241,6 @@ const shiftLabels = {
   evening: "Noite",
 } as const;
 
-function optionLabel(id: string, label: string) {
-  return `${label} · ${id.slice(0, 8)}`;
-}
-
-function resolveOptionId(options: string[], selected: string | undefined, ids: string[]) {
-  const index = options.indexOf(selected ?? "");
-  return index >= 0 ? ids[index] : undefined;
-}
-
 function PedagogicaPage() {
   const navigate = useNavigate({ from: "/pedagogica" });
   const queryClient = useQueryClient();
@@ -245,17 +257,31 @@ function PedagogicaPage() {
     tab: tabFromSearch,
     turma: turmaFromSearch,
     disciplina: disciplinaFromSearch,
+    professor: professorFromSearch,
     pauta,
     dia: diaFromSearch,
   } = Route.useSearch();
+  // Alunos e encarregados não recebem o espaço de trabalho da escola: vêem o boletim,
+  // o horário e as presenças do próprio aluno (ou do educando), pelos mesmos
+  // componentes do painel inicial. Os outros separadores ficavam vazios.
+  const isFamily = account.role === "Aluno" || account.role === "Encarregado";
+  const familyStudentId =
+    account.role === "Encarregado"
+      ? (account.activeStudent?.student_id ??
+        account.linkedEntities.linked_students[0]?.student_id ??
+        null)
+      : null;
   // Direcção e secretaria abrem na estrutura do ano; os restantes nas turmas.
   const [tab, setTab] = useState<PedagogicaTab>(
-    tabFromSearch ??
-      (["Administrador", "Secretaria"].includes(account.role) ? "estrutura" : "turmas"),
+    allowedTab(tabFromSearch, isFamily) ??
+      (isFamily
+        ? "notas"
+        : ["Administrador", "Secretaria"].includes(account.role)
+          ? "estrutura"
+          : "turmas"),
   );
   const [bootstrapping, setBootstrapping] = useState(false);
   const [assessmentOpen, setAssessmentOpen] = useState(false);
-  const [openTurmaId, setOpenTurmaId] = useState<string | null>(null);
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "pedagogica",
     pedagogicaFilterDefaults,
@@ -321,8 +347,9 @@ function PedagogicaPage() {
   });
 
   useEffect(() => {
-    if (tabFromSearch) setTab(tabFromSearch);
-  }, [tabFromSearch]);
+    const next = allowedTab(tabFromSearch, isFamily);
+    if (next) setTab(next);
+  }, [tabFromSearch, isFamily]);
 
   useEffect(() => {
     if (tab === "notas") warmPedagogicaCharts();
@@ -331,15 +358,6 @@ function PedagogicaPage() {
   useEffect(() => {
     if (pauta === "1") setAssessmentOpen(true);
   }, [pauta, turmaFromSearch, disciplinaFromSearch]);
-
-  // Traz o separador activo à vista quando a linha desliza (telemóvel).
-  const tabsListRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const active = tabsListRef.current?.querySelector<HTMLElement>(
-      '[role="tab"][data-state="active"]',
-    );
-    active?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
-  }, [tab]);
 
   const onTabChange = (next: string) => {
     if (
@@ -392,29 +410,43 @@ function PedagogicaPage() {
   const visibleGradeLevels = gradeLevels.filter((grade) =>
     gradeMatchesTeachingLevels(String(grade.name ?? ""), teachingLevels),
   );
-  const yearOptions = academicYears.map((year) => optionLabel(year.id, year.name));
-  const gradeOptions = visibleGradeLevels.map((grade) => optionLabel(grade.id, grade.name));
+  const yearOptions = distinctOptionLabels(academicYears, (year) => year.name);
+  const gradeOptions = distinctOptionLabels(visibleGradeLevels, (grade) => grade.name);
   // Salas físicas activas (`rooms`). O campus da turma vem da sala escolhida.
   const activeClassrooms = classrooms.filter((room) => room.status === "active");
   const roomOptions = [
     SEM_SALA,
-    ...activeClassrooms.map((room) =>
-      optionLabel(room.id, room.capacity ? `${room.name} (${room.capacity} lugares)` : room.name),
+    ...distinctOptionLabels(activeClassrooms, (room) =>
+      room.capacity ? `${room.name} (${room.capacity} lugares)` : room.name,
     ),
   ];
-  const subjectOptions = subjects.map((subject) => optionLabel(subject.id, subject.name));
+  const subjectOptions = distinctOptionLabels(subjects, (subject) => subject.name);
   const teachers = teachersQuery.data ?? [];
-  const teacherOptions = teachers.map((teacher) => optionLabel(teacher.id, teacher.full_name));
-  const turmaAssignOptions = classGroups.map((group) => optionLabel(group.id, group.name));
+  const teacherOptions = distinctOptionLabels(teachers, (teacher) => teacher.full_name);
+  const turmaAssignOptions = distinctOptionLabels(classGroups, (group) => group.name);
   const teacherNameById = new Map(teachers.map((teacher) => [teacher.id, teacher.full_name]));
   const refreshAcademic = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ["academic", "pedagogical-workspace"] }),
       queryClient.invalidateQueries({ queryKey: ["academic", "teacher-workspace"] }),
     ]).then(() => undefined);
-  const enrollmentSelectOptions = enrollmentOptions.map((enrollment) =>
-    optionLabel(enrollment.id, enrollment.label),
+  const enrollmentSelectOptions = distinctOptionLabels(
+    enrollmentOptions,
+    (enrollment) => enrollment.label,
   );
+  // Nota avulsa: disciplinas da turma do aluno, com os rótulos de `subjectOptions`
+  // (o `resolveOptionId` encontra o id pela posição nessa lista).
+  const avulsaSubjectOptions = (enrollmentLabel: string | undefined) => {
+    const enrollmentId = resolveOptionId(
+      enrollmentSelectOptions,
+      enrollmentLabel,
+      enrollmentOptions.map((row) => row.id),
+    );
+    const classGroupId =
+      enrollmentOptions.find((row) => row.id === enrollmentId)?.class_group_id ?? "";
+    const ids = new Set(subjectsOfClass(subjects, classSubjects, classGroupId).map((s) => s.id));
+    return subjectOptions.filter((_, index) => ids.has(subjects[index]?.id ?? ""));
+  };
   const structureReady = academicYears.length > 0 && courses.length > 0 && gradeLevels.length > 0;
 
   const mediaNotas =
@@ -705,8 +737,8 @@ function PedagogicaPage() {
       <div className="space-y-6">
         <PageHeader
           group="Académico"
-          title="Área Pedagógica"
-          description="Turmas, disciplinas, notas e horários ligados ao Supabase."
+          title="Ensino e aprendizagem"
+          description="Organize turmas, horários, avaliações e a actividade lectiva da escola."
           actions={
             <>
               {teachingLevels.includes("superior") &&
@@ -757,9 +789,10 @@ function PedagogicaPage() {
                     // chamada) está em /pedagogica/risco; o relatório antigo
                     // abria sempre vazio e dizia "nenhum aluno em risco".
                     onClick={() => void navigate({ to: "/pedagogica/risco" })}
-                    className="gap-2 text-xs text-destructive cursor-pointer"
+                    className="gap-2 text-xs text-destructive-strong cursor-pointer"
                   >
-                    <ShieldAlert className="size-3.5 text-destructive" /> Relatório Risco Abandono
+                    <ShieldAlert className="size-3.5 text-destructive-strong" /> Relatório Risco
+                    Abandono
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -954,452 +987,499 @@ function PedagogicaPage() {
           </div>
         ) : null}
 
-        <Tabs value={tab} onValueChange={onTabChange}>
-          {/* Uma só linha que desliza: com 12 separadores, quebrar em várias
-              linhas empurrava (e tapava) o conteúdo. */}
-          <TabsList
-            ref={tabsListRef}
-            className="no-scrollbar flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto"
-          >
+        <Tabs layout="sidebar" value={tab} onValueChange={onTabChange}>
+          {/* Secções verticais agrupadas pelo percurso do ano lectivo. */}
+          <TabsList aria-label="Secções de ensino e aprendizagem">
             {/* Pela ordem do ano lectivo (academic-architecture.ts): cada
                 informação nasce numa etapa e segue para a seguinte. */}
             <TabStageLabel>{STAGE_LABELS.estrutura}</TabStageLabel>
             {canReadAcademic ? (
-              <TabsTrigger value="estrutura">Estrutura académica</TabsTrigger>
+              <AcademicTab value="estrutura">Estrutura académica</AcademicTab>
             ) : null}
             {canReadAcademic ? (
-              <TabsTrigger value="modelos">Modelos de avaliação</TabsTrigger>
+              <AcademicTab value="modelos">Modelos de avaliação</AcademicTab>
             ) : null}
-            <TabsTrigger value="curriculo">Currículo & Turnos</TabsTrigger>
-            <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger>
-            {canReadAcademic ? <TabsTrigger value="competencias">Competências</TabsTrigger> : null}
+            {!isFamily ? <AcademicTab value="curriculo">Currículo & Turnos</AcademicTab> : null}
+            {!isFamily ? <AcademicTab value="disciplinas">Disciplinas</AcademicTab> : null}
+            {canReadAcademic ? <AcademicTab value="competencias">Competências</AcademicTab> : null}
             <TabStageLabel>{STAGE_LABELS.pessoas}</TabStageLabel>
-            <TabsTrigger value="turmas">Turmas</TabsTrigger>
-            <TabsTrigger value="horarios">Horários</TabsTrigger>
-            <TabsTrigger value="salas">Salas & Espaços</TabsTrigger>
-            <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
+            {!isFamily ? <AcademicTab value="turmas">Turmas</AcademicTab> : null}
+            <AcademicTab value="horarios">Horários</AcademicTab>
+            {!isFamily ? <AcademicTab value="salas">Salas & Espaços</AcademicTab> : null}
+            <AcademicTab value="presencas">Presenças / Chamada</AcademicTab>
             <TabStageLabel>{STAGE_LABELS.avaliacao}</TabStageLabel>
-            <TabsTrigger value="notas">Notas</TabsTrigger>
-            <TabsTrigger value="pautas">Pautas</TabsTrigger>
+            <AcademicTab value="notas">Notas</AcademicTab>
+            {!isFamily ? <AcademicTab value="pautas">Pautas</AcademicTab> : null}
             {canReadAcademic ? (
               <>
                 <TabStageLabel>{STAGE_LABELS.resultado}</TabStageLabel>
-                <TabsTrigger value="exames">Exames e resultado final</TabsTrigger>
+                <AcademicTab value="exames">Exames e resultado final</AcademicTab>
               </>
             ) : null}
           </TabsList>
-          <div className="mt-4">
-            <InstalledModuleTools
-              module="pedagogica"
-              onExport={(kind) => {
-                if (kind === "sige_classes") exportarTurmasCsv();
-              }}
-            />
-            <div className="mt-3">
-              <PickFileButton
-                area="escola"
-                onPick={(file) =>
-                  toast.success(file.name, { description: "Material da biblioteca pedagógica." })
+          <TabsPanels>
+            <div className="mt-4">
+              <InstalledModuleTools
+                module="pedagogica"
+                onExport={(kind) => {
+                  if (kind === "sige_classes") exportarTurmasCsv();
+                }}
+              />
+              {canReadAcademic ? (
+                <div className="mt-3">
+                  <PickFileButton
+                    area="escola"
+                    onPick={(file) =>
+                      toast.success(file.name, {
+                        description: "Material da biblioteca pedagógica.",
+                      })
+                    }
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            {canReadAcademic ? (
+              <TabsContent value="estrutura" className="mt-5">
+                <AcademicStructureTab
+                  schoolName={school?.name ?? null}
+                  yearId={selectedYearId ?? null}
+                  yearLabel={activeYearLabel}
+                  onOpenTab={onTabChange}
+                />
+              </TabsContent>
+            ) : null}
+            {canReadAcademic ? (
+              <TabsContent value="modelos" className="mt-5">
+                <LazyTab>
+                  <AssessmentModelsTab />
+                </LazyTab>
+              </TabsContent>
+            ) : null}
+
+            <TabsContent value="turmas" className="mt-5 space-y-6">
+              <TurmasWorkspaceTab
+                canReadAcademic={canReadAcademic}
+                canManageAcademic={canManageAcademic}
+                isLoading={workspaceQuery.isLoading}
+                isError={workspaceQuery.isError}
+                errorMessage={
+                  workspaceQuery.error instanceof Error ? workspaceQuery.error.message : undefined
+                }
+                structureReady={structureReady}
+                bootstrapping={bootstrapping}
+                bootstrapStructure={bootstrapStructure}
+                filters={filters}
+                setFilter={(name, value) => setFilter(name as keyof typeof filters, value)}
+                resetFilters={resetFilters}
+                activeCount={activeCount}
+                courses={courses}
+                turmasComDados={turmasComDados}
+                workspace={workspace}
+                teacherNameById={teacherNameById}
+                canvasWork={canvasWork}
+                // A ficha da turma tem página própria.
+                onOpenTurma={(id) =>
+                  void navigate({ to: "/pedagogica/turmas/$turmaId", params: { turmaId: id } })
                 }
               />
-            </div>
-          </div>
-
-          {canReadAcademic ? (
-            <TabsContent value="estrutura" className="mt-5">
-              <AcademicStructureTab
-                schoolName={school?.name ?? null}
-                yearId={selectedYearId ?? null}
-                yearLabel={activeYearLabel}
-                onOpenTab={onTabChange}
-              />
             </TabsContent>
-          ) : null}
-          {canReadAcademic ? (
-            <TabsContent value="modelos" className="mt-5">
+
+            <TabsContent value="disciplinas" className="mt-5">
               <LazyTab>
-                <AssessmentModelsTab />
-              </LazyTab>
-            </TabsContent>
-          ) : null}
-
-          <TabsContent value="turmas" className="mt-5 space-y-6">
-            <TurmasWorkspaceTab
-              canReadAcademic={canReadAcademic}
-              canManageAcademic={canManageAcademic}
-              isLoading={workspaceQuery.isLoading}
-              isError={workspaceQuery.isError}
-              errorMessage={
-                workspaceQuery.error instanceof Error ? workspaceQuery.error.message : undefined
-              }
-              structureReady={structureReady}
-              bootstrapping={bootstrapping}
-              bootstrapStructure={bootstrapStructure}
-              filters={filters}
-              setFilter={(name, value) => setFilter(name as keyof typeof filters, value)}
-              resetFilters={resetFilters}
-              activeCount={activeCount}
-              courses={courses}
-              turmasComDados={turmasComDados}
-              workspace={workspace}
-              teacherNameById={teacherNameById}
-              canvasWork={canvasWork}
-              onOpenTurma={(id) => setOpenTurmaId(id)}
-            />
-          </TabsContent>
-
-          <TabsContent value="disciplinas" className="mt-5">
-            <LazyTab>
-              <DisciplinasWorkspaceTab
-                classroomOn={classroomOn}
-                moodleOn={moodleOn}
-                canManageAcademic={canManageAcademic}
-                subjectsAvailable={subjectsAvailable}
-                subjects={subjects}
-                workspace={workspace}
-                teacherOptions={teacherOptions}
-                turmaAssignOptions={turmaAssignOptions}
-                subjectOptions={subjectOptions}
-                classGroups={classGroups}
-                teachers={teachers}
-                teacherNameById={teacherNameById}
-                teachingLevels={teachingLevels}
-                subjectTypes={subjectTypesQuery.data ?? []}
-                curriculumAreas={curriculumAreasQuery.data ?? []}
-                onRefresh={refreshAcademic}
-              />
-            </LazyTab>
-          </TabsContent>
-
-          <TabsContent value="notas" className="mt-5 space-y-6">
-            <Panel
-              title="Pauta de avaliação"
-              description="Modelo angolano: turma × disciplina × trimestre, com MAC, NPP, NPT e foto do aluno"
-              action={
-                <div className="flex flex-wrap gap-2">
-                  {gradesAvailable && enrollmentOptions.length > 0 && subjects.length > 0 ? (
-                    <Button size="sm" className="gap-1.5" onClick={() => setAssessmentOpen(true)}>
-                      <Sparkles className="size-3.5" /> Avaliação
-                    </Button>
-                  ) : null}
-                  {canLaunchGrades &&
-                  gradesAvailable &&
-                  enrollmentOptions.length > 0 &&
-                  subjects.length > 0 ? (
-                    <QuickFormModal
-                      title="Lançar nota avulsa"
-                      eyebrow="Avaliação"
-                      description="Ajuste pontual de um aluno. Para a turma inteira use a grelha da pauta."
-                      icon={<Plus className="size-5" />}
-                      submitLabel="Guardar nota"
-                      onSubmit={async (values) => {
-                        const enrollmentId = resolveOptionId(
-                          enrollmentSelectOptions,
-                          values["matricula"],
-                          enrollmentOptions.map((row) => row.id),
-                        );
-                        const subjectId = resolveOptionId(
-                          subjectOptions,
-                          values["disciplina"],
-                          subjects.map((row) => row.id),
-                        );
-                        const termMap = { "1º": 1, "2º": 2, "3º": 3 } as const;
-                        const term =
-                          termMap[(values["trimestre"] as keyof typeof termMap) ?? "1º"] ?? 1;
-                        if (!enrollmentId || !subjectId) {
-                          throw new Error("Seleccione matrícula e disciplina.");
-                        }
-                        await upsertTermGrade({
-                          data: {
-                            enrollmentId,
-                            subjectId,
-                            term,
-                            mac: Number(values["mac"]),
-                            npp: Number(values["npp"]),
-                            npt: Number(values["npt"]),
-                          },
-                        });
-                        await queryClient.invalidateQueries({
-                          queryKey: ["academic", "pedagogical-workspace"],
-                        });
-                      }}
-                      fields={[
-                        {
-                          name: "matricula",
-                          label: "Aluno / turma",
-                          type: "select",
-                          options: enrollmentSelectOptions,
-                          full: true,
-                        },
-                        {
-                          name: "disciplina",
-                          label: "Disciplina",
-                          type: "select",
-                          options: subjectOptions,
-                        },
-                        {
-                          name: "trimestre",
-                          label: "Trimestre",
-                          type: "select",
-                          options: ["1º", "2º", "3º"],
-                        },
-                        { name: "mac", label: "MAC", type: "number", placeholder: "0–20" },
-                        { name: "npp", label: "NPP", type: "number", placeholder: "0–20" },
-                        { name: "npt", label: "NPT", type: "number", placeholder: "0–20" },
-                      ]}
-                      trigger={(open) => (
-                        <Button size="sm" variant="outline" className="gap-1.5" onClick={open}>
-                          <Plus className="size-3.5" /> Avulsa
-                        </Button>
-                      )}
-                    />
-                  ) : null}
-                </div>
-              }
-            >
-              {!gradesAvailable ? (
-                <p className="text-sm text-muted-foreground">
-                  O módulo de notas SGA (<code className="font-mono">gradebooks</code> /{" "}
-                  <code className="font-mono">grade_scores</code>) não respondeu. Confirme
-                  permissões e schema no projecto.
-                </p>
-              ) : enrollmentOptions.length === 0 || subjects.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Precisa de matrículas activas e disciplinas no catálogo para abrir a pauta.
-                </p>
-              ) : (
-                <GradePautaSheet
-                  schoolName={school?.name ?? "Escola"}
-                  academicYear={activeYearLabel}
-                  classGroups={classGroups.filter((group) =>
-                    gradeMatchesTeachingLevels(String(group.grade_name ?? ""), teachingLevels),
-                  )}
+                <DisciplinasWorkspaceTab
+                  classroomOn={classroomOn}
+                  moodleOn={moodleOn}
+                  canManageAcademic={canManageAcademic}
+                  subjectsAvailable={subjectsAvailable}
                   subjects={subjects}
-                  enrollments={enrollmentOptions}
-                  termGrades={termGrades}
-                  passingGrade={passing}
-                  canLaunch={canLaunchGrades}
-                  canLockTerm={account.role === "Administrador"}
-                  closedTerms={school?.pedagogy?.closedTerms ?? []}
-                  evaluationPeriods={school?.evaluation_periods}
+                  workspace={workspace}
+                  teacherOptions={teacherOptions}
+                  turmaAssignOptions={turmaAssignOptions}
+                  subjectOptions={subjectOptions}
+                  classGroups={classGroups}
+                  teachers={teachers}
+                  teacherNameById={teacherNameById}
+                  teachingLevels={teachingLevels}
+                  subjectTypes={subjectTypesQuery.data ?? []}
+                  curriculumAreas={curriculumAreasQuery.data ?? []}
+                  onRefresh={refreshAcademic}
                 />
-              )}
-            </Panel>
+              </LazyTab>
+            </TabsContent>
 
-            <Panel
-              title="Histórico da pauta"
-              description={`${notasFiltradas.length} lançamentos filtrados · pesquisa e trimestre da barra de filtros`}
-            >
-              {notasFiltradas.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Sem notas lançadas para os filtros actuais.
-                </p>
+            <TabsContent value="notas" className="mt-5 space-y-6">
+              {isFamily ? (
+                <StudentGradesCard studentId={familyStudentId} />
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Aluno</TableHead>
-                        <TableHead>Turma</TableHead>
-                        <TableHead>Disciplina</TableHead>
-                        <TableHead>Trim.</TableHead>
-                        <TableHead className="text-right">MAC</TableHead>
-                        <TableHead className="text-right">NPP</TableHead>
-                        <TableHead className="text-right">NPT</TableHead>
-                        <TableHead className="text-right">Média</TableHead>
-                        <TableHead className="text-right">Situação</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {notasFiltradas.map((n) => (
-                        <TableRow key={n.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-2.5">
-                              <UserAvatar
-                                url={n.student_photo_url}
-                                initials={initialsFromName(n.student_name)}
-                                className="size-9 bg-primary-soft text-[11px] font-extrabold text-primary"
-                              />
-                              <span className="font-semibold">{n.student_name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{n.class_group_name}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {n.subject_name}
-                          </TableCell>
-                          <TableCell>{n.term_label}</TableCell>
-                          <TableCell className="text-right">{n.mac}</TableCell>
-                          <TableCell className="text-right">{n.npp}</TableCell>
-                          <TableCell className="text-right">{n.npt}</TableCell>
-                          <TableCell className="text-right font-bold">
-                            {n.average.toFixed(1)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span
-                              className={cn(
-                                badgeBase,
-                                n.average >= passing ? toneClass.success : toneClass.danger,
-                              )}
-                            >
-                              {n.average >= passing ? "Transita" : "Não transita"}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <>
+                  <Panel
+                    title="Pauta de avaliação"
+                    description="Modelo angolano: turma × disciplina × trimestre, com MAC, NPP, NPT e foto do aluno"
+                    action={
+                      <div className="flex flex-wrap gap-2">
+                        {gradesAvailable && enrollmentOptions.length > 0 && subjects.length > 0 ? (
+                          <Button
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() => setAssessmentOpen(true)}
+                          >
+                            <Sparkles className="size-3.5" /> Avaliação
+                          </Button>
+                        ) : null}
+                        {canLaunchGrades &&
+                        gradesAvailable &&
+                        enrollmentOptions.length > 0 &&
+                        subjects.length > 0 ? (
+                          <QuickFormModal
+                            title="Lançar nota avulsa"
+                            eyebrow="Avaliação"
+                            description="Ajuste pontual de um aluno. Para a turma inteira use a grelha da pauta."
+                            icon={<Plus className="size-5" />}
+                            submitLabel="Guardar nota"
+                            onSubmit={async (values) => {
+                              const enrollmentId = resolveOptionId(
+                                enrollmentSelectOptions,
+                                values["matricula"],
+                                enrollmentOptions.map((row) => row.id),
+                              );
+                              const subjectId = resolveOptionId(
+                                subjectOptions,
+                                values["disciplina"],
+                                subjects.map((row) => row.id),
+                              );
+                              const termMap = { "1º": 1, "2º": 2, "3º": 3 } as const;
+                              const term =
+                                termMap[(values["trimestre"] as keyof typeof termMap) ?? "1º"] ?? 1;
+                              if (!enrollmentId || !subjectId) {
+                                throw new Error("Seleccione matrícula e disciplina.");
+                              }
+                              await upsertTermGrade({
+                                data: {
+                                  enrollmentId,
+                                  subjectId,
+                                  term,
+                                  mac: Number(values["mac"]),
+                                  npp: Number(values["npp"]),
+                                  npt: Number(values["npt"]),
+                                },
+                              });
+                              await queryClient.invalidateQueries({
+                                queryKey: ["academic", "pedagogical-workspace"],
+                              });
+                            }}
+                            fields={[
+                              {
+                                name: "matricula",
+                                label: "Aluno / turma",
+                                type: "select",
+                                options: enrollmentSelectOptions,
+                                full: true,
+                              },
+                              {
+                                name: "disciplina",
+                                label: "Disciplina",
+                                type: "select",
+                                // Só as disciplinas da turma do aluno escolhido.
+                                optionsFor: (values) =>
+                                  avulsaSubjectOptions(
+                                    values["matricula"] ?? enrollmentSelectOptions[0],
+                                  ),
+                              },
+                              {
+                                name: "trimestre",
+                                label: "Trimestre",
+                                type: "select",
+                                options: ["1º", "2º", "3º"],
+                              },
+                              { name: "mac", label: "MAC", type: "number", placeholder: "0–20" },
+                              { name: "npp", label: "NPP", type: "number", placeholder: "0–20" },
+                              { name: "npt", label: "NPT", type: "number", placeholder: "0–20" },
+                            ]}
+                            trigger={(open) => (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5"
+                                onClick={open}
+                              >
+                                <Plus className="size-3.5" /> Avulsa
+                              </Button>
+                            )}
+                          />
+                        ) : null}
+                      </div>
+                    }
+                  >
+                    {!gradesAvailable ? (
+                      <p className="text-sm text-muted-foreground">
+                        O módulo de notas SGA (<code className="font-mono">gradebooks</code> /{" "}
+                        <code className="font-mono">grade_scores</code>) não respondeu. Confirme
+                        permissões e schema no projecto.
+                      </p>
+                    ) : enrollmentOptions.length === 0 || subjects.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Precisa de matrículas activas e disciplinas no catálogo para abrir a pauta.
+                      </p>
+                    ) : (
+                      <GradePautaSheet
+                        schoolName={school?.name ?? "Escola"}
+                        academicYear={activeYearLabel}
+                        classGroups={classGroups.filter((group) =>
+                          gradeMatchesTeachingLevels(
+                            String(group.grade_name ?? ""),
+                            teachingLevels,
+                          ),
+                        )}
+                        subjects={subjects}
+                        classSubjects={classSubjects}
+                        enrollments={enrollmentOptions}
+                        termGrades={termGrades}
+                        passingGrade={passing}
+                        canLaunch={canLaunchGrades}
+                        canLockTerm={account.role === "Administrador"}
+                        closedTerms={school?.pedagogy?.closedTerms ?? []}
+                        evaluationPeriods={school?.evaluation_periods}
+                      />
+                    )}
+                  </Panel>
+
+                  <Panel
+                    title="Histórico da pauta"
+                    description={`${notasFiltradas.length} lançamentos filtrados · pesquisa e trimestre da barra de filtros`}
+                  >
+                    {notasFiltradas.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Sem notas lançadas para os filtros actuais.
+                      </p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Aluno</TableHead>
+                              <TableHead>Turma</TableHead>
+                              <TableHead>Disciplina</TableHead>
+                              <TableHead>Trim.</TableHead>
+                              <TableHead className="text-right">MAC</TableHead>
+                              <TableHead className="text-right">NPP</TableHead>
+                              <TableHead className="text-right">NPT</TableHead>
+                              <TableHead className="text-right">Média</TableHead>
+                              <TableHead className="text-right">Situação</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {notasFiltradas.map((n) => (
+                              <TableRow key={n.id}>
+                                <TableCell>
+                                  <div className="flex items-center gap-2.5">
+                                    <UserAvatar
+                                      url={n.student_photo_url}
+                                      initials={initialsFromName(n.student_name)}
+                                      className="size-9 bg-primary-soft text-[11px] font-extrabold text-primary"
+                                    />
+                                    <span className="font-semibold">{n.student_name}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>{n.class_group_name}</TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {n.subject_name}
+                                </TableCell>
+                                <TableCell>{n.term_label}</TableCell>
+                                <TableCell className="text-right">{n.mac}</TableCell>
+                                <TableCell className="text-right">{n.npp}</TableCell>
+                                <TableCell className="text-right">{n.npt}</TableCell>
+                                <TableCell className="text-right font-bold">
+                                  {n.average.toFixed(1)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span
+                                    className={cn(
+                                      badgeBase,
+                                      n.average >= passing ? toneClass.success : toneClass.danger,
+                                    )}
+                                  >
+                                    {n.average >= passing ? "Transita" : "Não transita"}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </Panel>
+
+                  <Suspense
+                    fallback={
+                      <div className="grid gap-6 lg:grid-cols-2">
+                        <div className="h-[320px] animate-pulse rounded-2xl bg-muted/40" />
+                        <div className="h-[320px] animate-pulse rounded-2xl bg-muted/40" />
+                      </div>
+                    }
+                  >
+                    <PedagogicaNotasCharts
+                      aproveitamentoPorClasse={aproveitamentoPorClasse}
+                      mediaPorTrimestre={mediaPorTrimestre}
+                      hasTermGrades={termGrades.length > 0}
+                    />
+                  </Suspense>
+                </>
               )}
-            </Panel>
+            </TabsContent>
 
-            <Suspense
-              fallback={
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <div className="h-[320px] animate-pulse rounded-2xl bg-muted/40" />
-                  <div className="h-[320px] animate-pulse rounded-2xl bg-muted/40" />
-                </div>
-              }
-            >
-              <PedagogicaNotasCharts
-                aproveitamentoPorClasse={aproveitamentoPorClasse}
-                mediaPorTrimestre={mediaPorTrimestre}
-                hasTermGrades={termGrades.length > 0}
-              />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="salas" className="mt-5 space-y-6">
-            <LazyTab>
-              <SalasWorkspaceTab canManage={canManageAcademic} />
-            </LazyTab>
-          </TabsContent>
-
-          <TabsContent value="curriculo" className="mt-5 space-y-6">
-            <LazyTab>
-              <CurriculoWorkspaceTab
-                canManage={canManageAcademic}
-                activeYearId={selectedYearId ?? undefined}
-                courses={courses.map((c) => ({ id: c.id, name: c.name, code: c.code }))}
-                gradeLevels={visibleGradeLevels.map((g) => ({
-                  id: g.id,
-                  name: g.name,
-                  code: g.code,
-                }))}
-                subjects={subjects.map((s) => ({
-                  id: s.id,
-                  name: s.name,
-                  code: s.code,
-                  subject_type_id: s.subject_type_id,
-                }))}
-                teachers={teachers.map((t) => ({ id: t.id, name: t.full_name || "Docente" }))}
-              />
-            </LazyTab>
-          </TabsContent>
-
-          <TabsContent value="horarios" className="mt-5 space-y-6">
-            <LazyTab>
-              <SchoolNowWidget />
-              <ScheduleWorkspace
-                activeYearLabel={activeYearLabel}
-                activeYearId={selectedYearId ?? undefined}
-                canManage={canManageAcademic}
-                scheduleAvailable={scheduleAvailable}
-                classGroups={classGroups}
-                subjects={subjects}
-                classSubjects={classSubjects}
-                rooms={classrooms.map((r) => ({
-                  id: r.id,
-                  name: r.name,
-                  code: r.code || r.name,
-                  capacity: r.capacity,
-                  room_type: r.room_type || "standard",
-                }))}
-                teachers={teachers.map((t) => ({
-                  id: t.id,
-                  name: t.full_name || "Docente",
-                }))}
-                slots={scheduleSlots}
-                virtualRooms={[]}
-                onCreateSlot={async (data) => {
-                  const { warnings } = await createAdvancedScheduleSlot({ data });
-                  for (const warning of warnings) {
-                    toast.warning(warning.message);
-                  }
-                  await refreshAcademic();
-                }}
-                onUpdateSlot={async (data) => {
-                  const { warnings } = await updateAdvancedScheduleSlot({ data });
-                  for (const warning of warnings) {
-                    toast.warning(warning.message);
-                  }
-                  await refreshAcademic();
-                }}
-                onDeleteSlot={async (slotId) => {
-                  await deleteScheduleSlot({ data: { slotId } });
-                  await refreshAcademic();
-                }}
-                onPublishSchedule={async (classGroupId) => {
-                  if (!selectedYearId) {
-                    throw new Error("Seleccione o ano lectivo antes de publicar o horário.");
-                  }
-                  const result = await publishAcademicSchedule({
-                    data: {
-                      classGroupId,
-                      academicYearId: selectedYearId,
-                      syncToCalendar: true,
-                    },
-                  });
-                  await refreshAcademic();
-                  return { notified: result.notified };
-                }}
-              />
-            </LazyTab>
-          </TabsContent>
-
-          <TabsContent value="presencas" className="mt-5 space-y-6">
-            <LazyTab>
-              <AttendanceWorkspaceModule
-                initialClassGroupId={turmaFromSearch}
-                initialSubjectId={disciplinaFromSearch}
-                initialDate={diaFromSearch}
-              />
-            </LazyTab>
-          </TabsContent>
-
-          <TabsContent value="chamada" className="mt-5 space-y-6">
-            <LazyTab>
-              <AttendanceWorkspaceModule
-                initialClassGroupId={turmaFromSearch}
-                initialSubjectId={disciplinaFromSearch}
-                initialDate={diaFromSearch}
-              />
-            </LazyTab>
-          </TabsContent>
-
-          {canReadAcademic ? (
-            <TabsContent value="exames" className="mt-5">
+            <TabsContent value="salas" className="mt-5 space-y-6">
               <LazyTab>
-                <ExamsTab yearId={selectedYearId ?? null} />
+                <SalasWorkspaceTab canManage={canManageAcademic} />
               </LazyTab>
             </TabsContent>
-          ) : null}
-          {canReadAcademic ? (
-            <TabsContent value="competencias" className="mt-5">
+
+            <TabsContent value="curriculo" className="mt-5 space-y-6">
               <LazyTab>
-                <CompetenciesTab />
+                <CurriculoWorkspaceTab
+                  canManage={canManageAcademic}
+                  activeYearId={selectedYearId ?? undefined}
+                  courses={courses.map((c) => ({ id: c.id, name: c.name, code: c.code }))}
+                  gradeLevels={visibleGradeLevels.map((g) => ({
+                    id: g.id,
+                    name: g.name,
+                    code: g.code,
+                  }))}
+                  subjects={subjects.map((s) => ({
+                    id: s.id,
+                    name: s.name,
+                    code: s.code,
+                    subject_type_id: s.subject_type_id,
+                  }))}
+                  teachers={teachers.map((t) => ({ id: t.id, name: t.full_name || "Docente" }))}
+                />
               </LazyTab>
             </TabsContent>
-          ) : null}
 
-          <TabsContent value="pautas" className="mt-5 space-y-6">
-            <LazyTab>
-              {canManageAcademic ? <GradeChangeRequestsPanel /> : null}
-              {canReadAcademic ? (
-                <GradeSheetsBoard yearId={selectedYearId ?? null} canManage={canManageAcademic} />
-              ) : null}
-              <PautasWorkspaceModule workspace={workspace} />
-            </LazyTab>
-          </TabsContent>
+            <TabsContent value="horarios" className="mt-5 space-y-6">
+              {isFamily ? (
+                <StudentTimetableCard studentId={familyStudentId} />
+              ) : (
+                <LazyTab>
+                  <SchoolNowWidget />
+                  <ScheduleWorkspace
+                    initialClassGroupId={turmaFromSearch}
+                    initialTeacherId={professorFromSearch}
+                    activeYearLabel={activeYearLabel}
+                    activeYearId={selectedYearId ?? undefined}
+                    canManage={canManageAcademic}
+                    scheduleAvailable={scheduleAvailable}
+                    classGroups={classGroups}
+                    subjects={subjects}
+                    classSubjects={classSubjects}
+                    rooms={classrooms.map((r) => ({
+                      id: r.id,
+                      name: r.name,
+                      code: r.code || r.name,
+                      capacity: r.capacity,
+                      room_type: r.room_type || "standard",
+                    }))}
+                    teachers={teachers.map((t) => ({
+                      id: t.id,
+                      name: t.full_name || "Docente",
+                    }))}
+                    slots={scheduleSlots}
+                    virtualRooms={[]}
+                    onCreateSlot={async (data) => {
+                      const { warnings } = await createAdvancedScheduleSlot({ data });
+                      for (const warning of warnings) {
+                        toast.warning(warning.message);
+                      }
+                      await refreshAcademic();
+                    }}
+                    onUpdateSlot={async (data) => {
+                      const { warnings } = await updateAdvancedScheduleSlot({ data });
+                      for (const warning of warnings) {
+                        toast.warning(warning.message);
+                      }
+                      await refreshAcademic();
+                    }}
+                    onDeleteSlot={async (slotId) => {
+                      await deleteScheduleSlot({ data: { slotId } });
+                      await refreshAcademic();
+                    }}
+                    onPublishSchedule={async (classGroupId) => {
+                      if (!selectedYearId) {
+                        throw new Error("Seleccione o ano lectivo antes de publicar o horário.");
+                      }
+                      const result = await publishAcademicSchedule({
+                        data: {
+                          classGroupId,
+                          academicYearId: selectedYearId,
+                          syncToCalendar: true,
+                        },
+                      });
+                      await refreshAcademic();
+                      return { notified: result.notified };
+                    }}
+                  />
+                </LazyTab>
+              )}
+            </TabsContent>
+
+            <TabsContent value="presencas" className="mt-5 space-y-6">
+              {isFamily ? (
+                <StudentAttendanceCard
+                  studentId={
+                    account.role === "Aluno" ? account.linkedEntities.student_id : familyStudentId
+                  }
+                />
+              ) : (
+                <LazyTab>
+                  <AttendanceWorkspaceModule
+                    initialClassGroupId={turmaFromSearch}
+                    initialSubjectId={disciplinaFromSearch}
+                    initialDate={diaFromSearch}
+                    teacherId={professorFromSearch}
+                    teacherName={
+                      teachers.find((teacher) => teacher.id === professorFromSearch)?.full_name
+                    }
+                    classGroupName={classGroups.find((group) => group.id === turmaFromSearch)?.name}
+                  />
+                </LazyTab>
+              )}
+            </TabsContent>
+
+            <TabsContent value="chamada" className="mt-5 space-y-6">
+              <LazyTab>
+                <AttendanceWorkspaceModule
+                  initialClassGroupId={turmaFromSearch}
+                  initialSubjectId={disciplinaFromSearch}
+                  initialDate={diaFromSearch}
+                />
+              </LazyTab>
+            </TabsContent>
+
+            {canReadAcademic ? (
+              <TabsContent value="exames" className="mt-5">
+                <LazyTab>
+                  <ExamsTab yearId={selectedYearId ?? null} />
+                </LazyTab>
+              </TabsContent>
+            ) : null}
+            {canReadAcademic ? (
+              <TabsContent value="competencias" className="mt-5">
+                <LazyTab>
+                  <CompetenciesTab />
+                </LazyTab>
+              </TabsContent>
+            ) : null}
+
+            <TabsContent value="pautas" className="mt-5 space-y-6">
+              <LazyTab>
+                {canManageAcademic ? <GradeChangeRequestsPanel /> : null}
+                {canReadAcademic ? (
+                  <GradeSheetsBoard yearId={selectedYearId ?? null} canManage={canManageAcademic} />
+                ) : null}
+                <PautasWorkspaceModule workspace={workspace} />
+              </LazyTab>
+            </TabsContent>
+          </TabsPanels>
         </Tabs>
       </div>
       <Suspense fallback={null}>
@@ -1426,19 +1506,6 @@ function PedagogicaPage() {
           initialSubjectId={disciplinaFromSearch}
         />
       </Suspense>
-
-      <TurmaProfileModal
-        open={Boolean(openTurmaId)}
-        onOpenChange={(next) => {
-          if (!next) setOpenTurmaId(null);
-        }}
-        classGroupId={openTurmaId}
-        workspace={workspace}
-        teacherOptions={teacherOptions}
-        teacherIds={teachers.map((teacher) => teacher.id)}
-        salas={activeClassrooms}
-        onRefresh={refreshAcademic}
-      />
     </AppShell>
   );
 }
@@ -1448,9 +1515,14 @@ function TabStageLabel({ children }: { children: string }) {
   return (
     <span
       aria-hidden="true"
-      className="ml-2 shrink-0 self-center whitespace-nowrap border-l border-border pl-3 pr-1 text-[11px] text-muted-foreground first:ml-0 first:border-l-0 first:pl-1"
+      className="mt-3 px-3 pb-1 text-xs font-medium text-muted-foreground first:mt-1"
     >
       {children}
     </span>
   );
+}
+
+/** O separador activo usa o indicador lateral partilhado. */
+function AcademicTab({ className, ...props }: ComponentProps<typeof TabsTrigger>) {
+  return <TabsTrigger {...props} className={cn("font-medium text-muted-foreground", className)} />;
 }

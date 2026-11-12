@@ -1,4 +1,5 @@
-import { normalizeMoney, normalizeText } from "../engine/normalize";
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
+import { normalizeMoney, normalizeText, valueOf } from "../engine/normalize";
 import {
   invoiceYearForSchool,
   loadNextInvoiceSequence,
@@ -38,14 +39,6 @@ type HistoricoFinanceiroCache = ImportRefCache & {
   invoiceSequence: number;
 };
 
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
-
 export const historicoFinanceiroImporter: RowImporter = {
   module: "historico_financeiro",
 
@@ -57,7 +50,14 @@ export const historicoFinanceiroImporter: RowImporter = {
         loadEnrollmentFinanceRefs(ctx.db, ctx.schoolId),
         loadFeePlanRefs(ctx.db, ctx.schoolId),
         loadFeeItemRefs(ctx.db, ctx.schoolId),
-        ctx.db.from("finance_invoices").select("invoice_number").eq("school_id", ctx.schoolId),
+        readAllPages((from, to) =>
+          ctx.db
+            .from("finance_invoices")
+            .select("id, invoice_number")
+            .eq("school_id", ctx.schoolId)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ]);
 
     const existingInvoiceNumbers = new Set(
@@ -287,6 +287,8 @@ export const historicoFinanceiroImporter: RowImporter = {
           paidOn: dueDate,
           receivedBy: ctx.userId,
           receiptNumberHint: null,
+          // A fatura acabou de ser criada por esta linha: a chave é ela.
+          importKey: `historico:${created.id}`,
         });
         audits.push({
           table_name: "finance_receipts",

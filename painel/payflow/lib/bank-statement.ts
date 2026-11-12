@@ -21,6 +21,8 @@ const TRANSACTION_HEADERS = [
   "lote",
 ];
 const DATE_HEADERS = ["data", "data_valor", "booked_at", "data_movimento", "valor_em"];
+/** Natureza do movimento (D/C). Um débito com a referência PayFlow não paga nada. */
+const DIRECTION_HEADERS = ["natureza", "tipo", "dc", "d_c", "debito_credito", "sentido", "tipo_movimento"];
 const DESCRIPTION_HEADERS = ["descricao", "descrição", "historico", "histórico", "narrativa", "details"];
 
 export type BankStatementMovement = {
@@ -88,30 +90,52 @@ export function parseMinorUnits(raw: string): number | null {
   return asInteger;
 }
 
+/**
+ * Montante em unidades (Kz) → cêntimos. O separador decimal é o último `,` ou `.`
+ * seguido de 1 ou 2 algarismos; os outros separadores são de milhares, de um só tipo e
+ * em grupos de 3. «1.234» é mil duzentos e trinta e quatro kwanzas (era lido como 1,23),
+ * «1,234.56» e «1.234,56» são o mesmo valor, «1.500.000» lê-se. O que for ambíguo
+ * (separadores misturados nos milhares, grupos tortos, sinais) fica `null`.
+ */
 export function parseAmountToMinor(raw: string): number | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  const compact = trimmed.replace(/\s/g, "").replace(/aoa/i, "");
-  if (/^\d+$/.test(compact)) {
-    const major = Number(compact);
-    if (!Number.isSafeInteger(major) || major <= 0) return null;
-    return major * 100;
+  const compact = raw
+    .trim()
+    .replace(/\s/g, "")
+    .replace(/^(aoa|kz)|(aoa|kz)$/gi, "");
+  if (!compact || !/^\d[\d.,]*$/.test(compact)) return null;
+
+  let integerPart = compact;
+  let fraction = "";
+  const decimal = compact.match(/^(.*\d)([.,])(\d{1,2})$/);
+  if (decimal) {
+    integerPart = decimal[1];
+    fraction = decimal[3];
+    // O separador decimal não pode aparecer também nos milhares («1.234.56»).
+    if (integerPart.includes(decimal[2])) return null;
   }
-  let normalized = compact;
-  if (compact.includes(",") && compact.includes(".")) {
-    normalized = compact.replace(/\./g, "").replace(",", ".");
-  } else if (compact.includes(",")) {
-    normalized = compact.replace(",", ".");
+  if (!/^\d+$/.test(integerPart)) {
+    const separators = new Set(integerPart.match(/[.,]/g) ?? []);
+    if (separators.size !== 1 || !/^\d{1,3}([.,]\d{3})+$/.test(integerPart)) return null;
   }
-  const major = Number(normalized);
-  if (!Number.isFinite(major) || major <= 0) return null;
-  return Math.round(major * 100);
+  const major = Number(integerPart.replace(/[.,]/g, ""));
+  const minor = major * 100 + Number(fraction.padEnd(2, "0"));
+  if (!Number.isSafeInteger(minor) || minor <= 0) return null;
+  return minor;
 }
 
 export function extractTransferReference(value: string) {
   const upper = value.trim().toUpperCase();
   const direct = upper.match(PAYFLOW_TRANSFER_REFERENCE_PATTERN);
   return direct ? direct[0] : null;
+}
+
+/** Dia que existe no calendário: `Date.parse` aceitava 31/02 e passava-o a 3 de Março. */
+function calendarDay(year: number, month: number, day: number) {
+  const date = new Date(Date.UTC(year, month - 1, day, 12));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+    return null;
+  }
+  return date.toISOString();
 }
 
 function parseBookedAt(raw: string) {
@@ -122,12 +146,9 @@ function parseBookedAt(raw: string) {
     return Number.isNaN(time) ? null : new Date(time).toISOString();
   }
   const dayFirst = value.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-  if (dayFirst) {
-    const iso = `${dayFirst[3]}-${dayFirst[2].padStart(2, "0")}-${dayFirst[1].padStart(2, "0")}T12:00:00.000Z`;
-    return Number.isNaN(Date.parse(iso)) ? null : iso;
-  }
+  if (dayFirst) return calendarDay(Number(dayFirst[3]), Number(dayFirst[2]), Number(dayFirst[1]));
   const isoDay = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoDay) return `${isoDay[1]}-${isoDay[2]}-${isoDay[3]}T12:00:00.000Z`;
+  if (isoDay) return calendarDay(Number(isoDay[1]), Number(isoDay[2]), Number(isoDay[3]));
   const time = Date.parse(value);
   return Number.isNaN(time) ? null : new Date(time).toISOString();
 }
@@ -203,6 +224,9 @@ export function parseBankStatementCsv(csv: string, options?: { maxRows?: number 
     if (!amountMinor) parseErrors.push("invalid_amount");
     if (!/^[A-Z]{3}$/.test(currency)) parseErrors.push("invalid_currency");
     if (bankTransactionId.length < 3) parseErrors.push("missing_transaction_id");
+    if (/^(d|deb|débito|debito|debit)$/i.test(pick(row, DIRECTION_HEADERS))) {
+      parseErrors.push("debit_movement");
+    }
 
     movements.push({
       line: index + 1,

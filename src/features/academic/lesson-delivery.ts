@@ -7,6 +7,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendResendEmail, resolveSystemSender } from "@/features/integrations/resend-client";
 import { toSmsText } from "./lesson-messages";
+import { escapeHtml } from "@/lib/escape-html";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = SupabaseClient<any>;
@@ -93,6 +94,7 @@ export async function resolveClassAudience(
         ? await db
             .from("student_guardians")
             .select("student_id, guardian_person_id")
+            .is("valid_until", null)
             .eq("school_id", schoolId)
             .in("student_id", studentIds)
         : { data: [] };
@@ -191,13 +193,6 @@ export async function insertInAppNotifications(
     if (error) throw new Error(`Não foi possível gravar as notificações: ${error.message}`);
   }
   return valid.length;
-}
-
-function escapeHtml(value: string) {
-  return value.replace(
-    /[&<>"']/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
-  );
 }
 
 export async function sendLessonEmail(input: {

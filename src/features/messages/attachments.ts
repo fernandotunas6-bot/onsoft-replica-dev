@@ -42,7 +42,9 @@ export function canShareFileInMessage(
   senderId: string,
   senderRoles: readonly string[],
 ): boolean {
-  if (file.isFolder) return false;
+  // Anexo partilhado tem de existir no armazenamento da escola.
+  // IndexedDB fica apenas no dispositivo do autor.
+  if (file.isFolder || file.storageBackend !== "sga") return false;
   return senderRoles.some(
     (role) => canSeeRow(file, senderId, role) && canAccessFileContent(file, senderId, role),
   );

@@ -25,6 +25,17 @@ describe("integration actions", () => {
     expect(providerIdFromCapability("agt.einvoice")).toBe("agt");
   });
 
+  it("não apresenta o SIGA como emissor fiscal da AGT", () => {
+    // Copiava `AGT;NIF;Escola;data` como «linha de faturação electrónica» para
+    // o portal — um formato que a AGT não define, de um software não certificado.
+    expect(actionForCapability({ id: "agt.einvoice" })).toBe("open-agt-portal");
+    expect(Object.values(capabilityActionKind)).not.toContain("copy-einvoice");
+  });
+
+  it("o e-mail de fatura leva à linha da fatura, não à acção da AGT", () => {
+    expect(actionForCapability({ id: "resend.invoices" })).toBe("invoice-row-email");
+  });
+
   it("builds whatsapp links with optional prefilled text", () => {
     expect(whatsappHref("")).toBe("https://wa.me/");
     expect(whatsappHref("+244 923 000 111", "Olá")).toBe(

@@ -27,10 +27,15 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const OUT = resolve(root, "supabase/PRODUCTION_SNAPSHOT.json");
 
 function query(sql) {
-  const raw = execFileSync("npx", ["supabase", "db", "query", sql, "--linked"], {
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-  });
+  const cli = process.env.SIGA_SUPABASE_CLI;
+  const raw = execFileSync(
+    cli || "npx",
+    [...(cli ? [] : ["supabase"]), "db", "query", sql, "--linked"],
+    {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    },
+  );
   const start = raw.indexOf("{");
   return JSON.parse(raw.slice(start)).rows ?? [];
 }

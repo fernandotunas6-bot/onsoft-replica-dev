@@ -9,13 +9,13 @@ export interface StudentStatusBadgeProps extends HTMLAttributes<HTMLSpanElement>
 }
 
 const statusTones: Record<AcademicStatus, string> = {
-  active: "bg-success/15 text-success border border-success/25",
-  applicant: "bg-primary/15 text-primary border border-primary/25",
+  active: "bg-success/15 text-success-strong border border-success/25",
+  applicant: "bg-primary/15 text-primary-strong border border-primary/25",
   inactive: "bg-muted text-muted-foreground border border-border",
-  transferred: "bg-warning/15 text-warning border border-warning/25",
-  graduated: "bg-primary/15 text-primary border border-primary/25",
-  cancelled: "bg-destructive/15 text-destructive border border-destructive/25",
-  suspended: "bg-warning/15 text-warning border border-warning/25",
+  transferred: "bg-warning/15 text-warning-strong border border-warning/25",
+  graduated: "bg-primary/15 text-primary-strong border border-primary/25",
+  cancelled: "bg-destructive/15 text-destructive-strong border border-destructive/25",
+  suspended: "bg-warning/15 text-warning-strong border border-warning/25",
   locked: "bg-muted text-muted-foreground border border-border",
 };
 

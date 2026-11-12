@@ -61,6 +61,14 @@ function changedFilesFrom(ref) {
 
 const changedFiles = CHANGED_FROM ? changedFilesFrom(CHANGED_FROM) : null;
 
+// These two renderers emit the independent school site's static HTML, not React
+// administration UI. MediaFrame belongs to the SIGA shell and cannot render in
+// this HTML template. Keep checking their palette and every React editor normally.
+const SCHOOL_SITE_HTML_RENDERERS = new Set([
+  "src/features/school-website/blog-view.ts",
+  "src/features/school-website/render-site.ts",
+]);
+
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
@@ -102,7 +110,11 @@ for (const file of files) {
 
   // 2. imagens sem MediaFrame
   const rawImg = code.match(/<img\s/g);
-  if (rawImg && !/MediaFrame|MediaAvatar/.test(code)) {
+  if (
+    rawImg &&
+    !SCHOOL_SITE_HTML_RENDERERS.has(normalizePath(rel)) &&
+    !/MediaFrame|MediaAvatar/.test(code)
+  ) {
     reportIssue(rel, "<img> cru — usar MediaFrame/MediaAvatar");
   }
 

@@ -1,4 +1,5 @@
 import { SigaWordmark } from "./siga-logo";
+import { FeedbackIcon } from "@/components/ui/feedback-icon";
 import { cn } from "@/lib/utils";
 
 interface PageLoadingProps {
@@ -25,10 +26,7 @@ export function PageLoading({
         </div>
       ) : (
         <div role="status" className="max-w-full px-5 text-center">
-          <div
-            aria-hidden="true"
-            className="mx-auto size-[28px] rounded-full border-2 border-border border-t-primary motion-safe:animate-spin"
-          />
+          <FeedbackIcon state="processing" className="mx-auto size-[28px] text-primary" />
           {message ? (
             <p className="mt-3 break-words text-[13px] font-medium leading-[20px] text-muted-foreground">
               {message}

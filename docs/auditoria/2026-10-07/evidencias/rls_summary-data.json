@@ -1,0 +1,784 @@
+[
+  {
+    "audit": {
+      "public_views": null,
+      "tables_without_rls": null,
+      "write_policies_without_explicit_aal2": [
+        {
+          "cmd": "ALL",
+          "table": "import_jobs",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "grade_sheet_rows",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "import_audits",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_teacher_attendance_policies",
+          "policy": "HR creates teacher attendance policy in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_teacher_attendance_policies",
+          "policy": "HR updates teacher attendance policy in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_teacher_lesson_occurrences",
+          "policy": "HR creates teacher lesson occurrences in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_teacher_lesson_occurrences",
+          "policy": "HR updates teacher lesson occurrences in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "siga_access_logs",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "siga_access_cards",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "terms",
+          "policy": "Academic create terms",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "terms",
+          "policy": "Academic update terms",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "profiles",
+          "policy": "profiles_update_own",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "academic_years",
+          "policy": "Create academic_years in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "academic_years",
+          "policy": "Update academic_years in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "grade_levels",
+          "policy": "Create grade_levels in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "grade_levels",
+          "policy": "Update grade_levels in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "students",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "student_guardians",
+          "policy": "Create student_guardians in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "student_guardians",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "student_guardians",
+          "policy": "Update student_guardians in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "subscriptions",
+          "policy": "platform_admin_all_subscriptions",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "tenant_usage",
+          "policy": "platform_admin_all_tenant_usage",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "document_signatures",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "finance_invoices",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "tenant_domains",
+          "policy": "platform_admin_all_tenant_domains",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "saas_audit_logs",
+          "policy": "platform_admin_all_saas_audit_logs",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "attendance_records",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "attendance_session_roster",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "school_billing_settings",
+          "policy": "Finance roles can update billing settings",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "import_rows",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "notifications",
+          "policy": "notifications_update",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "DELETE",
+          "table": "staff_module_grants",
+          "policy": "staff_module_grants_delete",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "staff_module_grants",
+          "policy": "staff_module_grants_insert",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "staff_module_grants",
+          "policy": "staff_module_grants_update",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "siga_attendance_sessions",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "DELETE",
+          "table": "calendar_feed_tokens",
+          "policy": "Revoke own calendar feed token",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "siga_attendance_records",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "DELETE",
+          "table": "siga_assessment_scores",
+          "policy": "Manage assigned assessment scores (delete)",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "siga_assessment_scores",
+          "policy": "Manage assigned assessment scores (insert)",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "siga_assessment_scores",
+          "policy": "Manage assigned assessment scores (update)",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "siga_assessment_scores",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "person_documents",
+          "policy": "Create person_documents in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "person_documents",
+          "policy": "Update person_documents in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "grade_sheets",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "gradebooks",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "report_cards",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "document_requests",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "plans",
+          "policy": "platform_admin_all_plans",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "tenants",
+          "policy": "platform_admin_all_tenants",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "class_subjects",
+          "policy": "Academic create class subjects",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "class_subjects",
+          "policy": "Academic update class subjects",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "attendance_sessions",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "finance_receipts",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "program_subjects",
+          "policy": "Create program subjects in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "program_subjects",
+          "policy": "Update program subjects in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "finance_payment_plans",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "DELETE",
+          "table": "siga_files",
+          "policy": "siga_files_delete_admin",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "siga_files",
+          "policy": "siga_files_insert_scoped",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "siga_files",
+          "policy": "siga_files_update_scoped",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "DELETE",
+          "table": "siga_assessment_items",
+          "policy": "Manage assigned assessment items (delete)",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "siga_assessment_items",
+          "policy": "Manage assigned assessment items (insert)",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "siga_assessment_items",
+          "policy": "Manage assigned assessment items (update)",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "tenant_provisioning",
+          "policy": "platform_admin_all_provisioning",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "siga_attendance_justifications",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "announcements",
+          "policy": "announcements_insert",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "announcements",
+          "policy": "announcements_update",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "grade_items",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_absence_events",
+          "policy": "HR creates absence events in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_absence_events",
+          "policy": "HR updates absence events in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_teacher_qr_sessions",
+          "policy": "HR creates teacher QR sessions in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_teacher_qr_sessions",
+          "policy": "HR updates teacher QR sessions in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_departments",
+          "policy": "Create hr_departments in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_departments",
+          "policy": "Update hr_departments in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_positions",
+          "policy": "Create hr_positions in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_positions",
+          "policy": "Update hr_positions in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_employments",
+          "policy": "Create hr_employments finance role",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_employments",
+          "policy": "Update hr_employments finance role",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_contracts",
+          "policy": "Create hr_contracts finance role",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_contracts",
+          "policy": "Update hr_contracts finance role",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_compensation_events",
+          "policy": "Create hr_compensation_events finance role",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_compensation_events",
+          "policy": "Update hr_compensation_events finance role",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_payroll_runs",
+          "policy": "Create hr_payroll_runs finance role",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_payroll_runs",
+          "policy": "Update hr_payroll_runs finance role",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "DELETE",
+          "table": "reserved_subdomains",
+          "policy": "reserved_subdomains_admin_delete",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "reserved_subdomains",
+          "policy": "reserved_subdomains_admin_insert",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "reserved_subdomains",
+          "policy": "reserved_subdomains_admin_update",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_payroll_items",
+          "policy": "Create hr_payroll_items finance role",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_payroll_items",
+          "policy": "Update hr_payroll_items finance role",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_payroll_item_components",
+          "policy": "Create hr_payroll_item_components finance role",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "email_aliases",
+          "policy": "platform_admin_all_aliases",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "school_slug_history",
+          "policy": "platform_admin_all_slug_history",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "subscription_addons",
+          "policy": "platform_admin_all_addons",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_teacher_employment_links",
+          "policy": "HR creates teacher employment links in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_teacher_employment_links",
+          "policy": "HR updates teacher employment links in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "grade_scores",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "DELETE",
+          "table": "siga_lesson_meetings",
+          "policy": "Staff manage lesson meetings in own school (delete)",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "siga_lesson_meetings",
+          "policy": "Staff manage lesson meetings in own school (insert)",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "siga_lesson_meetings",
+          "policy": "Staff manage lesson meetings in own school (update)",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "hr_contract_remuneration_policies",
+          "policy": "HR creates remuneration policies in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "hr_contract_remuneration_policies",
+          "policy": "HR updates remuneration policies in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "hr_payment_settings",
+          "policy": "HR payment settings own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "hr_payment_destinations",
+          "policy": "HR payment destinations own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "hr_payroll_payment_batches",
+          "policy": "HR payment batches own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "hr_payroll_payment_items",
+          "policy": "HR payment items own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "rooms",
+          "policy": "Create rooms in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "rooms",
+          "policy": "Update rooms in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "siga_chat_members",
+          "policy": "Marca a pr\u00f3pria leitura",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "siga_chat_messages",
+          "policy": "Autor apaga a pr\u00f3pria mensagem",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "siga_chat_messages",
+          "policy": "Membros enviam mensagens",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "timetable_slots",
+          "policy": "Academic create timetable slots",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "timetable_slots",
+          "policy": "Academic update timetable slots",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "subject_types",
+          "policy": "Create subject_types in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "subject_types",
+          "policy": "Update subject_types in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "curriculum_areas",
+          "policy": "Create curriculum_areas in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "curriculum_areas",
+          "policy": "Update curriculum_areas in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "school_shifts",
+          "policy": "Create school_shifts in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "school_shifts",
+          "policy": "Update school_shifts in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "school_shift_slots",
+          "policy": "Create school_shift_slots in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "school_shift_slots",
+          "policy": "Update school_shift_slots in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "curricula",
+          "policy": "Create curricula in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "curricula",
+          "policy": "Update curricula in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "curriculum_subjects",
+          "policy": "Create curriculum_subjects in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "curriculum_subjects",
+          "policy": "Update curriculum_subjects in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "teacher_availability",
+          "policy": "Create teacher_availability in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "teacher_availability",
+          "policy": "Update teacher_availability in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "INSERT",
+          "table": "academic_schedules",
+          "policy": "Create academic_schedules in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "UPDATE",
+          "table": "academic_schedules",
+          "policy": "Update academic_schedules in own school",
+          "permissive": "PERMISSIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "finance_contracts",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        },
+        {
+          "cmd": "ALL",
+          "table": "issued_documents",
+          "policy": "School staff only",
+          "permissive": "RESTRICTIVE"
+        }
+      ]
+    }
+  }
+]

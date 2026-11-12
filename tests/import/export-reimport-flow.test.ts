@@ -7,6 +7,11 @@ function createMockTable(data: any[]) {
     select: vi.fn(() => query),
     eq: vi.fn(() => query),
     is: vi.fn(() => query),
+    order: vi.fn(() => query),
+    // A exportação lê por páginas (`range`).
+    range: vi.fn((from: number, to: number) => ({
+      then: (resolve: any) => resolve({ data: data.slice(from, to + 1), error: null }),
+    })),
     then: (resolve: any) => resolve({ data, error: null }),
   };
   return query;

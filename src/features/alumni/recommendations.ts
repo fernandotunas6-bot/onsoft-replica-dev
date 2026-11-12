@@ -6,7 +6,7 @@ import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase
 import { rankMentors } from "./matching";
 
 const recommendationInputSchema = z.object({
-  alumniId: z.string().uuid(),
+  alumniId: z.string().guid(),
   limit: z.number().int().min(1).max(25).default(10),
 });
 

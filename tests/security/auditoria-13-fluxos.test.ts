@@ -21,7 +21,13 @@ describe("matrícula pública só para escolas que podem trabalhar", () => {
       const body = fnBody(source, name);
       expect(body).toContain("schoolAcceptsPublicEnrollment(db");
     }
-    expect(source).toContain("getTenantAccessBlock(");
+    // A guarda vive num módulo partilhado com o website da escola (01/11/2026),
+    // para o site nunca anunciar uma campanha que o formulário recusa.
+    expect(source).toContain('import { schoolAcceptsPublicEnrollment } from "./public-acceptance"');
+    expect(read("src/features/enrollment/public-acceptance.ts")).toContain("getTenantAccessBlock(");
+    expect(read("src/features/school-website/admissions.ts")).toContain(
+      "schoolAcceptsPublicEnrollment(db",
+    );
   });
 
   it("aceitar uma candidatura conta para o limite de alunos do plano", () => {
@@ -35,9 +41,19 @@ describe("matrícula pública só para escolas que podem trabalhar", () => {
 
 describe("colocar um aluno em turma", () => {
   it("só procura a matrícula corrente do ano", () => {
-    const body = fnBody(read("src/features/students/server.ts"), "enrollStudentInClass");
-    const lookup = body.slice(0, body.indexOf(".maybeSingle()"));
-    expect(lookup).toContain('.in("status", ["pending", "active"])');
+    // Desde a auditoria 14 a colocação vive em enrollment-core (placeStudentInClass).
+    expect(fnBody(read("src/features/students/server.ts"), "enrollStudentInClass")).toContain(
+      "placeStudentInClass(db",
+    );
+    const core = read("src/features/students/enrollment-core.ts");
+    const place = core.slice(core.indexOf("export async function placeStudentInClass"));
+    const lookup = place.slice(place.indexOf('.from("enrollments")'));
+    expect(lookup.slice(0, lookup.indexOf(".maybeSingle()"))).toContain(
+      '.in("status", [...CURRENT_ENROLLMENT_STATUSES])',
+    );
+    expect(read("src/features/students/enrollment-sync.ts")).toContain(
+      'CURRENT_ENROLLMENT_STATUSES = ["pending", "active"] as const',
+    );
   });
 });
 
@@ -45,7 +61,8 @@ describe("notas e cotação da avaliação", () => {
   const legacy = read("src/features/academic/server-legacy.ts");
 
   it("nenhuma nota passa a cotação da avaliação", () => {
-    const body = fnBody(legacy, "upsertAssessmentScores");
+    const write = read("src/features/academic/assessment-score-write.ts");
+    const body = write.slice(write.indexOf("export async function writeAssessmentScores"));
     expect(body).toContain('.select("id, term, class_group_id, max_score")');
     expect(body.indexOf("row.score > maxScore")).toBeLessThan(
       body.indexOf('from("siga_assessment_scores")'),

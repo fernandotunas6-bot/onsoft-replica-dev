@@ -65,3 +65,34 @@ test("does not match a transfer absent from the school-scoped pending list", () 
   const matches = matchStatementMovements(movements, [], { schoolId: "school-a" });
   assert.equal(matches[0].outcome, "unknown_reference");
 });
+
+test("reads thousands separators without a decimal part and rejects ambiguous amounts", () => {
+  // Antes: «1.234» → 123 cêntimos, «1,234.56» → 123, «1.500.000» → null.
+  assert.equal(parseAmountToMinor("1.234"), 123_400);
+  assert.equal(parseAmountToMinor("1,234"), 123_400);
+  assert.equal(parseAmountToMinor("1,234.56"), 123_456);
+  assert.equal(parseAmountToMinor("1.234,56"), 123_456);
+  assert.equal(parseAmountToMinor("1.500.000"), 150_000_000);
+  assert.equal(parseAmountToMinor("12,345,678.90"), 1_234_567_890);
+  assert.equal(parseAmountToMinor("15 000,00 AOA"), 1_500_000);
+  assert.equal(parseAmountToMinor("12,5"), 1_250);
+  assert.equal(parseAmountToMinor("1.234.56"), null);
+  assert.equal(parseAmountToMinor("1.23,456"), null);
+  assert.equal(parseAmountToMinor("1,234.567"), null);
+  assert.equal(parseAmountToMinor("-500"), null);
+  assert.equal(parseAmountToMinor("0,00"), null);
+});
+
+test("impossible dates are not stored and debit rows never match", () => {
+  const csv = [
+    "data;referencia;valor;moeda;movimento;natureza",
+    "31/02/2026;PF-TF-20260905-ABC123DEAD;15.000,00;AOA;MOV-1;C",
+    "05/09/2026;PF-TF-20260905-ABC123DEAD;15.000,00;AOA;MOV-2;D",
+    "05/09/2026;PF-TF-20260905-ABC123DEAD;15.000,00;AOA;MOV-3;Crédito",
+  ].join("\n");
+  const [badDate, debit, credit] = parseBankStatementCsv(csv);
+  assert.equal(badDate.bookedAt, null);
+  assert.equal(debit.parseErrors.includes("debit_movement"), true);
+  assert.equal(credit.parseErrors.length, 0);
+  assert.equal(credit.bookedAt, "2026-09-05T12:00:00.000Z");
+});

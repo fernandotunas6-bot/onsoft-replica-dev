@@ -150,8 +150,8 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
 
               {state.message && state.step === "error" && (
                 <div className="flex gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
-                  <AlertCircle className="size-5 text-destructive flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-destructive">{state.message}</p>
+                  <AlertCircle className="size-5 text-destructive-strong flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-destructive-strong">{state.message}</p>
                 </div>
               )}
             </div>
@@ -185,11 +185,11 @@ export function PhoneChangeModal({ open, onOpenChange, currentPhone }: PhoneChan
 
               {state.message && state.step === "error" && (
                 <div className="flex gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
-                  <AlertCircle className="size-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="size-5 text-destructive-strong flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-destructive">{state.message}</p>
+                    <p className="text-sm font-medium text-destructive-strong">{state.message}</p>
                     {state.attemptsLeft !== undefined && (
-                      <p className="text-xs text-destructive/80 mt-1">
+                      <p className="text-xs text-destructive-strong mt-1">
                         Tentativas restantes: {state.attemptsLeft}
                       </p>
                     )}

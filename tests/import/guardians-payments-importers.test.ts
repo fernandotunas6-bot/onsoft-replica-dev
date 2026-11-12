@@ -35,7 +35,7 @@ describe("Guardians & Payments Importers", () => {
           {
             id: "s1",
             person_id: "p1",
-            student_number: "PROC-2026-042",
+            student_number: "1260042",
             national_id: "005432190LA048",
             status: "active",
           },
@@ -45,7 +45,7 @@ describe("Guardians & Payments Importers", () => {
       };
       const analysis = encarregadosImporter.analyzeRow(
         {
-          student_identifier: "PROC-2026-042",
+          student_identifier: "1260042",
           guardian_name: "Manuel Sebastião",
           phone: "924556677",
         },
@@ -74,7 +74,7 @@ describe("Guardians & Payments Importers", () => {
           {
             id: "s1",
             person_id: "p1",
-            student_number: "PROC-2026-042",
+            student_number: "1260042",
             national_id: "005432190LA048",
             status: "active",
           },
@@ -93,7 +93,7 @@ describe("Guardians & Payments Importers", () => {
       };
       const analysis = pagamentosImporter.analyzeRow(
         {
-          student_identifier: "PROC-2026-042",
+          student_identifier: "1260042",
           amount: 35000,
           payment_method: "Multicaixa",
           receipt_number: "REC-12345",
@@ -109,7 +109,7 @@ describe("Guardians & Payments Importers", () => {
           {
             id: "s1",
             person_id: "p1",
-            student_number: "PROC-2026-042",
+            student_number: "1260042",
             national_id: "005432190LA048",
             status: "active",
           },
@@ -128,7 +128,7 @@ describe("Guardians & Payments Importers", () => {
       };
       const analysis = pagamentosImporter.analyzeRow(
         {
-          student_identifier: "PROC-2026-042",
+          student_identifier: "1260042",
           amount: 35000,
           receipt_number: "REC-12345",
         },

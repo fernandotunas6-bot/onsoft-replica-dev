@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../models/subject.dart';
 import '../network/api_endpoints.dart';
+import '../sga/sga_config.dart';
 
 class SubjectRepository {
   final Dio _dio;
@@ -9,7 +10,7 @@ class SubjectRepository {
 
   Future<List<Subject>> getSubjects({String? classId}) async {
     final response = await _dio.get(
-      ApiEndpoints.subjects,
+      sgaMode ? ApiEndpoints.sgaSubjects : ApiEndpoints.subjects,
       queryParameters: {
         'class_id': ?classId,
       },

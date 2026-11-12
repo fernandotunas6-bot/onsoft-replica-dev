@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { AppEnv } from './app-env';
 import { apiRoutes, superAdminRoutes } from './routes';
+import sga from './api/sga';
 
 const app = new Hono<AppEnv>();
 
@@ -22,10 +23,12 @@ app.use('*', cors({
     return allowed.includes(origin) ? origin : '';
   },
   allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Super-Admin-Key'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Super-Admin-Key', 'X-School-Id'],
   maxAge: 86400,
 }));
 app.route('/api/super-admin', superAdminRoutes);
+// Antes de /api: estas rotas usam a conta Supabase do SIGA, não o Firebase.
+app.route('/api/sga', sga);
 app.route('/api', apiRoutes);
 
 app.get('/media/*', async (c) => {

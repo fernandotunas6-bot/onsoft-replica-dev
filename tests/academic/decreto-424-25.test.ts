@@ -125,15 +125,97 @@ describe("Exportação de pautas", () => {
     const rows = buildPautaExportRows(grades, ["mat"], 1);
     expect(rows.map((r) => r.student_name)).toEqual(["Ana", "Beatriz"]);
     expect(rows[1]!.scores["mat"]).toBe(9);
-    expect(rows[0]!.situation).toBe("Não transita");
+    // Num trimestre não se decide transição: isso é uma decisão anual. O rótulo é o
+    // mesmo que a tabela do ecrã de Relatórios Académicos usa.
+    expect(rows[0]!.situation).toBe("Em recuperação");
+    expect(rows[1]!.situation).toBe("Em recuperação");
   });
-  it("período anual usa a MFD", () => {
+  it("a pauta anual não inventa a MFD de um ano a meio", () => {
+    // Beatriz tem Matemática no 1.º e 2.º trimestre e Português só no 1.º: nenhuma das
+    // duas disciplinas tem os 3 períodos, por isso não há MFD nem veredicto.
     const rows = buildPautaExportRows(grades, ["mat", "por"], "anual");
     const beatriz = rows.find((r) => r.enrollment_id === "e1")!;
-    expect(beatriz.scores["mat"]).toBe(10);
+    expect(beatriz.scores["mat"]).toBeNull();
+    expect(beatriz.scores["por"]).toBeNull();
+    expect(beatriz.average).toBeNull();
+    expect(beatriz.situation).toBe("—");
+  });
+  it("com os 3 períodos lançados dá a MFD e o veredicto do motor", () => {
+    const completos = [
+      ...grades,
+      {
+        ...base,
+        enrollment_id: "e1",
+        student_name: "Beatriz",
+        subject_id: "mat",
+        subject_name: "Matemática",
+        term: 3,
+        average: 13,
+      },
+      {
+        ...base,
+        enrollment_id: "e1",
+        student_name: "Beatriz",
+        subject_id: "por",
+        subject_name: "Português",
+        term: 2,
+        average: 14,
+      },
+      {
+        ...base,
+        enrollment_id: "e1",
+        student_name: "Beatriz",
+        subject_id: "por",
+        subject_name: "Português",
+        term: 3,
+        average: 14,
+      },
+    ];
+    const rows = buildPautaExportRows(completos, ["mat", "por"], "anual");
+    const beatriz = rows.find((r) => r.enrollment_id === "e1")!;
+    expect(beatriz.scores["mat"]).toBe(11);
     expect(beatriz.scores["por"]).toBe(14);
-    expect(beatriz.average).toBe(12);
-    expect(beatriz.situation).toBe("Transita");
+    expect(beatriz.average).toBe(12.5);
+    expect(beatriz.situation).toBe("TRANSITA");
+  });
+  it("aplica o limite de disciplinas em falta do ciclo, e não a média sozinha", () => {
+    // Média 12 com 1 disciplina abaixo: transita no I Ciclo (tolera 2) e não no II (tolera 0).
+    const notas = ["a", "b", "c", "d"].flatMap((subject, i) =>
+      [1, 2, 3].map((term) => ({
+        ...base,
+        enrollment_id: "e9",
+        student_name: "Carlos",
+        subject_id: subject,
+        subject_name: subject.toUpperCase(),
+        term,
+        average: i === 0 ? 6 : 14,
+      })),
+    );
+    const ids = ["a", "b", "c", "d"];
+    expect(buildPautaExportRows(notas, ids, "anual", { cycle: "i_ciclo" })[0]!.situation).toBe(
+      "TRANSITA",
+    );
+    expect(buildPautaExportRows(notas, ids, "anual", { cycle: "ii_ciclo" })[0]!.situation).toBe(
+      "ADMITIDO A EXAME",
+    );
+  });
+  it("respeita a nota mínima da escola e o regime de 2 períodos", () => {
+    const doisPeriodos = [1, 2].map((term) => ({
+      ...base,
+      enrollment_id: "e5",
+      student_name: "Dina",
+      subject_id: "mat",
+      subject_name: "Matemática",
+      term,
+      average: 12,
+    }));
+    const rows = buildPautaExportRows(doisPeriodos, ["mat"], "anual", {
+      periodCount: 2,
+      passing: 14,
+    });
+    expect(rows[0]!.scores["mat"]).toBe(12);
+    // 12 chega para a escala angolana (10) e não para uma escola que exija 14.
+    expect(rows[0]!.situation).toBe("NÃO TRANSITA");
   });
 });
 

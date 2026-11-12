@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { cn } from "@/lib/utils";
 
 /**
- * Modal premium reutilizável: cabeçalho com gradiente, ícone em destaque,
+ * Modal institucional reutilizável: cabeçalho discreto, ícone contextual,
  * corpo com scroll e barra de acções fixa.
  */
 export function PremiumModal({
@@ -29,7 +29,7 @@ export function PremiumModal({
 }) {
   const width =
     size === "full"
-      ? "h-[96vh] w-[98vw] max-w-[98vw] sm:max-w-[98vw]"
+      ? "h-[calc(100dvh-2rem)] sm:h-[96dvh] sm:max-w-[98vw]"
       : size === "xl"
         ? "sm:max-w-6xl"
         : size === "lg"
@@ -41,19 +41,21 @@ export function PremiumModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn("overflow-hidden border-border/70 p-0 shadow-2xl sm:rounded-2xl", width)}
+        className={cn(
+          "flex max-h-[calc(100dvh-2rem)] min-h-0 flex-col overflow-hidden border-border/70 p-0 shadow-sm sm:rounded-2xl",
+          width,
+        )}
       >
-        <div className="relative overflow-hidden border-b border-border/70 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent bg-background/75 px-6 py-5 backdrop-blur-xl">
-          <span className="pointer-events-none absolute -right-10 -top-16 size-40 rounded-full bg-primary/15 blur-3xl" />
-          <div className="relative flex items-start gap-4">
+        <div className="relative shrink-0 overflow-hidden border-b border-border/70 bg-card px-4 py-4 sm:px-6 sm:py-5">
+          <div className="relative flex min-w-0 items-start gap-3 sm:gap-4">
             {icon ? (
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-foreground">
                 {icon}
               </span>
             ) : null}
             <div className="min-w-0">
               {eyebrow ? <p className="text-[11px] font-semibold text-primary">{eyebrow}</p> : null}
-              <DialogTitle className="font-display text-xl font-extrabold tracking-tight">
+              <DialogTitle className="break-words font-display text-lg font-semibold leading-snug tracking-tight sm:text-xl">
                 {title}
               </DialogTitle>
               {description ? (
@@ -63,21 +65,12 @@ export function PremiumModal({
           </div>
         </div>
 
-        <div
-          className={cn(
-            "overflow-y-auto px-6 py-5",
-            size === "full"
-              ? "max-h-[calc(96vh-10rem)]"
-              : size === "xl"
-                ? "max-h-[78vh]"
-                : "max-h-[60vh]",
-          )}
-        >
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
           {children}
         </div>
 
         {footer ? (
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/70 bg-secondary/40 px-6 py-4">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border/70 bg-card px-4 py-3 sm:px-6 sm:py-4">
             {footer}
           </div>
         ) : null}

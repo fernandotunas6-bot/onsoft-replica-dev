@@ -2,7 +2,7 @@ import {
   PersonalNotificationsList,
   usePersonalNotifications,
 } from "@/features/notifications/PersonalNotificationsList";
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useCallback, useMemo, useState, type ReactNode } from "react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 
@@ -21,6 +21,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { ActiveContextProvider } from "./ActiveContextProvider";
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
@@ -53,6 +54,8 @@ import { useNavigationMemory } from "@/features/auth/use-navigation-memory";
 import { useAppearance } from "@/lib/appearance";
 import { cn } from "@/lib/utils";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { getPortalNavigation } from "@/features/auth/portal-engine";
+import { getNavigationContext } from "@/features/auth/contextual-navigation";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { useTenant } from "@/features/saas/tenant-context";
 import { planIncludesPath, trialDaysRemaining } from "@/features/saas/plan-features";
@@ -73,7 +76,8 @@ import {
 } from "@/components/mobile";
 import type { SchoolAlert } from "@/features/dashboard/alerts";
 
-const COLLAPSE_KEY = "siga:sidebar-collapsed";
+import { workspacePresentation } from "@/lib/workspace-presentation";
+import { usePersistedSidebar } from "@/hooks/use-persisted-sidebar";
 const SettingsCenter = lazy(() =>
   import("@/components/modals/SettingsCenter").then(({ SettingsCenter }) => ({
     default: SettingsCenter,
@@ -86,14 +90,31 @@ const RightRail = lazy(() =>
 );
 
 export function AppShell({ children }: { children: ReactNode }) {
-  return <AuthenticatedAppShell>{children}</AuthenticatedAppShell>;
+  // O contexto da página (turma, disciplina, aluno) é resolvido uma vez aqui e
+  // lido pelo breadcrumb do PageHeader.
+  return (
+    <ActiveContextProvider>
+      <AuthenticatedAppShell>{children}</AuthenticatedAppShell>
+    </ActiveContextProvider>
+  );
 }
 
 function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const locationSearch = useRouterState({
+    select: (r) => r.location.search as Record<string, unknown>,
+  });
   const router = useRouter();
   const currentUser = useCurrentAccount();
   const { activePlan, activeTenant } = useTenant();
+  const navigationGroups = useMemo(
+    () =>
+      getPortalNavigation(currentUser.role, currentUser.grants, activePlan, {
+        enabledModules: currentUser.enabledModules,
+      }),
+    [currentUser.role, currentUser.grants, activePlan, currentUser.enabledModules],
+  );
+  const navigationContext = getNavigationContext(navigationGroups, pathname, locationSearch);
   const trialDaysLeft = trialDaysRemaining(activeTenant?.trial_ends_at);
   const studentCapacity = buildStudentCapacity(
     activeTenant?.active_students_count ?? 0,
@@ -101,11 +122,15 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     activePlan,
   );
   const { unread, unreadCount } = useInboxUnread();
-  const { alerts, alertCount } = useSchoolAlerts();
-  const personalNotifications = usePersonalNotifications();
+  const { alerts } = useSchoolAlerts();
+  const personalNotifications = usePersonalNotifications(
+    currentUser.id,
+    currentUser.schoolId ?? "",
+  );
   const personalUnread = personalNotifications.data?.unread ?? 0;
   const personalCount = personalNotifications.data?.items.length ?? 0;
-  const noticeCount = unreadCount + alertCount + personalUnread;
+  // Pendências financeiras/pedagógicas são acções por resolver, não mensagens não lidas.
+  const noticeCount = unreadCount + personalUnread;
   const {
     selectedYearLabel,
     selectedYearId,
@@ -120,18 +145,25 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   } = useSchoolSettings();
   const activeYearLabel = activeYear?.label ?? selectedYearLabel;
 
-  const [pinnedCollapsed, setPinnedCollapsed] = useState(false);
-  const [hoverOpen, setHoverOpen] = useState(false);
-  const hoverLeaveTimer = useRef<number>(0);
+  const presentation = workspacePresentation(school?.preferences);
+  const { collapsed, toggleCollapsed } = usePersistedSidebar(currentUser.id, school?.id);
   const { isDark, toggleDark } = useAppearance();
   const { favorited, toggleFavorite, current: navCurrent } = useNavigationMemory();
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsPanelId, setSettingsPanelId] = useState<string | undefined>(undefined);
-  const openSettings = (panelId?: string) => {
-    setSettingsPanelId(panelId);
-    setSettingsOpen(true);
-  };
+  const openSettings = useCallback(
+    (panelId?: string) => {
+      if (!canAccessPath("/configuracoes", currentUser.role, currentUser.grants)) return;
+      if (!presentation.settingsModal) {
+        void router.navigate({ to: "/configuracoes", search: { painel: panelId } });
+        return;
+      }
+      setSettingsPanelId(panelId);
+      setSettingsOpen(true);
+    },
+    [currentUser.role, currentUser.grants, presentation.settingsModal, router],
+  );
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [legalDoc, setLegalDoc] = useState<"politicas" | "termos" | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -144,37 +176,25 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const [contextOpen, setContextOpen] = useState(false);
 
   useEffect(() => {
-    // O sidebar deve sempre iniciar expandido
-    const stored = localStorage.getItem(COLLAPSE_KEY);
-    if (stored === "1") {
-      setPinnedCollapsed(true);
-    } else {
-      setPinnedCollapsed(false);
-    }
-    return () => window.clearTimeout(hoverLeaveTimer.current);
-  }, []);
-
-  useEffect(() => {
     const panelId = consumeSettingsOpen();
     if (
       panelId !== undefined &&
       canAccessPath("/configuracoes", currentUser.role, currentUser.grants)
     ) {
-      setSettingsPanelId(panelId);
-      setSettingsOpen(true);
+      openSettings(panelId);
     }
-  }, [currentUser.role, currentUser.grants]);
+  }, [currentUser.role, currentUser.grants, openSettings, school?.id]);
 
   useEffect(() => {
     const onOpenSettings = (event: Event) => {
       if (!canAccessPath("/configuracoes", currentUser.role, currentUser.grants)) return;
       const panelId = (event as CustomEvent<{ panelId?: string }>).detail?.panelId;
-      setSettingsPanelId(panelId);
-      setSettingsOpen(true);
+      openSettings(panelId);
+      event.preventDefault();
     };
     window.addEventListener(OPEN_SETTINGS_EVENT, onOpenSettings);
     return () => window.removeEventListener(OPEN_SETTINGS_EVENT, onOpenSettings);
-  }, [currentUser.role, currentUser.grants]);
+  }, [currentUser.role, currentUser.grants, openSettings, school?.id]);
 
   useEffect(() => {
     // As folhas mobile têm de fechar na navegação: um toque no hub "Mais"
@@ -187,7 +207,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     if (!activePlan || pathname === "/" || pathname.startsWith("/api/")) return;
     if (!planIncludesPath(pathname, activePlan)) {
       toast.error("Este módulo não está incluído no plano da sua escola.");
-      void router.navigate({ to: "/" });
+      void router.navigate({ to: "/portal" });
     }
   }, [pathname, activePlan, router]);
 
@@ -213,14 +233,6 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     });
   }, [router, currentUser.role, currentUser.grants]);
 
-  const collapsed = pinnedCollapsed && !hoverOpen;
-
-  const toggleCollapsed = () =>
-    setPinnedCollapsed((c) => {
-      localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1");
-      return !c;
-    });
-
   const selectYear = (yearId: string) => {
     if (yearId === "fallback") return;
     setSelectedYearId(yearId);
@@ -245,7 +257,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background lg:bg-sidebar">
       <OfflineBanner />
       <DesktopNotifications />
       <div className="flex flex-1 min-h-0">
@@ -253,16 +265,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           Saltar para o conteúdo principal
         </a>
 
-        <div
-          className="sticky top-0 z-40 hidden h-screen lg:block lg:py-2 lg:pl-2"
-          onMouseEnter={() => {
-            window.clearTimeout(hoverLeaveTimer.current);
-            setHoverOpen(true);
-          }}
-          onMouseLeave={() => {
-            hoverLeaveTimer.current = window.setTimeout(() => setHoverOpen(false), 220);
-          }}
-        >
+        <div className="sticky top-0 z-40 hidden h-screen lg:block">
           <AppSidebar
             collapsed={collapsed}
             className="h-full"
@@ -270,7 +273,8 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col lg:my-2 lg:mx-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
+        {/* A superfície principal desenha as curvas côncavas da sidebar na junção. */}
+        <div className="flex min-w-0 flex-1 flex-col bg-background lg:overflow-clip lg:rounded-l-2xl">
           {/*
               Header mobile (§10): substitui o header de computador abaixo de
               1024px. O de computador continua igual — os dez controlos do topo
@@ -278,6 +282,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           */}
           <MobileHeader
             title={navCurrent.label}
+            moduleLabel={navigationContext?.title}
             noticeCount={noticeCount}
             onOpenContext={() => setContextOpen(true)}
             onOpenSearch={() => requestOpenCommandPalette()}
@@ -285,13 +290,15 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             onOpenAccount={() => setAccountOpen(true)}
           />
 
-          <header className="sticky top-0 z-30 hidden h-14 items-center gap-2.5 border-b border-border/70 bg-card px-5 lg:flex">
+          <header className="sticky top-0 z-30 hidden h-16 min-w-0 items-center gap-1.5 border-b border-border/70 bg-card/95 px-3 supports-[backdrop-filter]:bg-card/90 supports-[backdrop-filter]:backdrop-blur-sm lg:flex xl:gap-2 xl:px-5">
             <Button
               variant="ghost"
               size="icon"
               className="header-icon-btn hidden lg:inline-flex"
               onClick={toggleCollapsed}
               aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+              aria-expanded={!collapsed}
+              aria-controls="siga-sidebar-navigation"
             >
               <Menu className="size-5" />
             </Button>
@@ -302,9 +309,9 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex min-w-0 max-w-[min(100%,18rem)] items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40"
+                  className="flex min-w-0 max-w-36 items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 2xl:max-w-56"
                 >
-                  <span className="hidden truncate text-muted-foreground sm:inline">
+                  <span className="hidden truncate text-muted-foreground min-[1800px]:inline">
                     {school?.name ? `${school.name} · ` : ""}
                   </span>
                   <span className="truncate whitespace-nowrap font-semibold">
@@ -333,7 +340,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="hidden min-w-0 items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 md:flex"
+                    className="hidden min-w-0 max-w-28 items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 md:flex 2xl:max-w-44"
                   >
                     <span className="truncate whitespace-nowrap">{selectedTermLabel}</span>
                     <ChevronDown className="size-3.5 shrink-0 opacity-60" />
@@ -355,12 +362,15 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => requestOpenCommandPalette()}
-              className="hidden sm:flex items-center gap-2.5 rounded-lg border border-border/80 bg-secondary/40 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary/70 hover:text-foreground md:w-56 lg:w-72"
+              aria-label="Pesquisar no SIGA"
+              className="hidden items-center justify-center gap-2.5 rounded-lg border border-border/80 bg-secondary/40 px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary/70 hover:text-foreground sm:flex lg:w-9 lg:shrink-0 xl:w-44 xl:justify-start xl:px-3 2xl:w-52"
               title="Pesquisa global e atalhos rápidos (Ctrl/⌘ K)"
             >
               <Search className="size-3.5 opacity-60 shrink-0" />
-              <span className="truncate flex-1 text-left">Pesquisar no SIGA…</span>
-              <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/70 px-1 font-mono text-[11px] font-medium text-muted-foreground shrink-0">
+              <span className="hidden min-w-0 flex-1 truncate text-left xl:block">
+                Pesquisar no SIGA…
+              </span>
+              <kbd className="pointer-events-none hidden h-4 shrink-0 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/70 px-1 font-mono text-[11px] font-medium text-muted-foreground min-[1800px]:inline-flex">
                 <span className="text-[11px]">⌘</span>K
               </kbd>
             </button>
@@ -394,6 +404,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 size="icon"
                 className="header-icon-btn"
                 aria-label={favorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                aria-pressed={favorited}
                 title={favorited ? "Remover dos favoritos" : "Favoritar página"}
                 onClick={() => {
                   toggleFavorite();
@@ -454,6 +465,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 className="header-icon-btn relative"
                 aria-label="Notificações"
                 aria-haspopup="dialog"
+                aria-expanded={notificationsOpen}
                 onClick={() => setNotificationsOpen(true)}
               >
                 <Bell className="size-5" />
@@ -493,11 +505,13 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   </span>
                 ) : null}
               </span>
-              <span className="hidden text-left leading-tight sm:block">
-                <span className="block text-sm font-semibold">{currentUser.name}</span>
-                <span className="block text-xs text-muted-foreground">{currentUser.role}</span>
+              <span className="hidden max-w-36 min-w-0 text-left leading-tight min-[1800px]:block">
+                <span className="block truncate text-sm font-semibold">{currentUser.name}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {currentUser.role}
+                </span>
               </span>
-              <ChevronDown className="hidden size-4 opacity-60 sm:block" />
+              <ChevronDown className="hidden size-4 opacity-60 min-[1800px]:block" />
             </button>
 
             <AccountDrawer
@@ -510,12 +524,26 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             />
 
             <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-              <SheetContent side="right" className="w-[320px] sm:w-[360px]">
+              <SheetContent
+                side="right"
+                className="flex h-dvh w-[320px] max-w-[100vw] flex-col overflow-hidden p-4 sm:w-[360px] sm:p-6"
+              >
                 <SheetHeader>
                   <SheetTitle>Notificações</SheetTitle>
                 </SheetHeader>
-                <div className="mt-6 space-y-3">
-                  <PersonalNotificationsList open={notificationsOpen} />
+                <div className="mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto [scrollbar-width:thin]">
+                  <PersonalNotificationsList
+                    open={notificationsOpen}
+                    onClose={() => setNotificationsOpen(false)}
+                    userId={currentUser.id}
+                    schoolId={currentUser.schoolId ?? ""}
+                    query={personalNotifications}
+                  />
+                  {alerts.length ? (
+                    <p className="pt-2 text-xs font-semibold text-muted-foreground">
+                      Pendências de gestão (permanecem até serem resolvidas)
+                    </p>
+                  ) : null}
                   {alerts.map((alert) => (
                     <SchoolAlertRow
                       key={alert.id}
@@ -527,6 +555,11 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                       }}
                     />
                   ))}
+                  {unread.length ? (
+                    <p className="pt-2 text-xs font-semibold text-muted-foreground">
+                      Mensagens por ler
+                    </p>
+                  ) : null}
                   {unread.map((row) => (
                     <button
                       key={row.conversationId}
@@ -552,7 +585,11 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                       </span>
                     </button>
                   ))}
-                  {!alerts.length && !unread.length && !personalCount ? (
+                  {!alerts.length &&
+                  !unread.length &&
+                  !personalCount &&
+                  !personalUnread &&
+                  !personalNotifications.isError ? (
                     <p className="rounded-2xl border border-border bg-secondary/40 px-4 py-5 text-sm text-muted-foreground">
                       Sem notificações novas. Candidaturas, documentos, faturas em atraso e
                       mensagens internas aparecem aqui.
@@ -584,7 +621,9 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               </DialogContent>
             </Dialog>
 
-            {settingsOpen && canAccessPath("/configuracoes", currentUser.role) ? (
+            {presentation.settingsModal &&
+            settingsOpen &&
+            canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
               <Suspense fallback={null}>
                 <SettingsCenter
                   open={settingsOpen}
@@ -598,14 +637,14 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           <main
             id="conteudo-principal"
             tabIndex={-1}
-            className="page-enter mx-auto w-full max-w-[1400px] flex-1 px-4 py-4 pb-bottom-nav md:px-5 md:pt-5 lg:px-6 lg:py-5 lg:pb-5 [content-visibility:auto]"
+            className="page-enter mx-auto w-full max-w-[1400px] flex-1 px-4 py-4 pb-bottom-nav md:px-5 md:pt-5 lg:px-6 lg:py-5 lg:pb-5"
           >
             {studentCapacity.nearLimit || studentCapacity.atLimit ? (
               <div
                 className={cn(
                   "mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border px-4 py-2.5 text-sm",
                   studentCapacity.atLimit
-                    ? "border-destructive/40 bg-destructive/10 text-destructive"
+                    ? "border-destructive/40 bg-destructive/10 text-destructive-strong"
                     : "border-warning/30 bg-warning/10 text-warning",
                 )}
               >

@@ -4,9 +4,11 @@ import { cleanup, screen, waitFor } from "@testing-library/react";
 import type { ComponentType } from "react";
 import {
   renderRoute,
+  resetCurrentAccount,
   resetPersistedFilters,
   resetRouteLocation,
   routeComponentOf,
+  setCurrentAccount,
 } from "./_harness";
 import type {
   getFinanceReporting,
@@ -39,6 +41,9 @@ vi.setConfig({ testTimeout: 20_000 });
 
 vi.mock("@tanstack/react-router", async () => (await import("./_harness")).reactRouterMock());
 vi.mock("@/components/layout/AppShell", async () => (await import("./_harness")).appShellMock());
+vi.mock("@/features/auth/use-current-account", async () =>
+  (await import("./_harness")).currentAccountMock(),
+);
 
 const listCashEntriesMock = vi.fn();
 const listInvoicesMock = vi.fn();
@@ -57,6 +62,14 @@ vi.mock("@/features/finance/server", () => ({
   recordCashExpense: vi.fn(),
   recordInvoicePayment: vi.fn(),
   reverseCashEntry: vi.fn(),
+  approveCashExpense: vi.fn(),
+}));
+
+vi.mock("@/features/finance/cash-session.functions", () => ({
+  getCashSessionState: async () => ({ available: false }),
+  openCashSession: vi.fn(),
+  closeCashSession: vi.fn(),
+  approveCashDifference: vi.fn(),
 }));
 
 vi.mock("@/features/arquivos/server", () => ({
@@ -83,6 +96,8 @@ const emptyReporting: Reporting = {
     cash_in: 0,
     cash_out: 0,
     cash_balance: 0,
+    drawer_balance: 0,
+    bank_balance: 0,
     truncated: false,
   },
   monthly: [],
@@ -115,12 +130,26 @@ beforeAll(async () => {
 
 afterEach(() => {
   cleanup();
+  resetCurrentAccount();
   vi.clearAllMocks();
   resetRouteLocation();
   resetPersistedFilters();
 });
 
 describe("/financeiro — render", () => {
+  it.each(["Aluno", "Encarregado"])(
+    "%s vê as propinas no PayFlow, sem o caixa da escola",
+    async (role) => {
+      setCurrentAccount({ role, roles: [role] });
+      seed();
+      renderRoute(Financeiro);
+      expect(await screen.findByRole("heading", { name: "Propinas e Pagamentos" })).toBeDefined();
+      expect(listCashEntriesMock).not.toHaveBeenCalled();
+      expect(listInvoicesMock).not.toHaveBeenCalled();
+      expect(getFinanceReportingMock).not.toHaveBeenCalled();
+    },
+  );
+
   it("atravessa a transição loading → carregado sem rebentar", async () => {
     seed();
 

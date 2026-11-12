@@ -15,6 +15,10 @@ O SIGA é onde a escola trabalha: alunos, pedagógica, tesouraria, documentos, a
 
 Ver também [Arquitetura do ecossistema](/arquitetura/).
 
+## Proposta institucional
+
+- [SIGA Plus para o ensino público angolano — PDF e Word](/institucional/ensino-publico)
+
 ## Onde começar
 
 - [Primeiros passos](/siga/primeiros-passos) — o que fazer depois de criar a escola

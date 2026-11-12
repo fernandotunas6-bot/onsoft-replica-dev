@@ -18,13 +18,13 @@ export function RouteAccessGate({ children }: { children: ReactNode }) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background px-5">
         <div className="max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-xl">
-          <ShieldAlert className="mx-auto size-10 text-destructive" />
+          <ShieldAlert className="mx-auto size-10 text-destructive-strong" />
           <h1 className="mt-4 font-display text-2xl font-extrabold">Perfil indisponível</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Não foi possível confirmar o seu papel na escola. Actualize a página ou volte a iniciar
             sessão.
           </p>
-          <p className="mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-left text-xs text-destructive">
+          <p className="mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-left text-xs text-destructive-strong">
             {account.profile.error instanceof Error
               ? account.profile.error.message
               : "Erro desconhecido ao carregar o perfil."}
@@ -61,7 +61,7 @@ export function RouteAccessGate({ children }: { children: ReactNode }) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background px-5">
         <div className="max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-xl">
-          <ShieldAlert className="mx-auto size-10 text-destructive" />
+          <ShieldAlert className="mx-auto size-10 text-destructive-strong" />
           <h1 className="mt-4 font-display text-2xl font-extrabold">Acesso não autorizado</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             O perfil <strong>{account.role}</strong> não tem permissão para{" "}

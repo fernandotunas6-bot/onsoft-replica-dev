@@ -1,5 +1,4 @@
 import * as React from "react";
-import { LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -57,12 +56,10 @@ export function ModalFooter({
             variant={submitVariant}
             size="sm"
             onClick={onSubmit}
-            disabled={disabled || isSubmitting}
+            disabled={disabled}
+            loading={isSubmitting}
             className="h-auto min-h-[44px] min-w-[90px] max-w-full gap-2 whitespace-normal break-words rounded-xl px-4 py-3 text-[13px] leading-[20px] lg:min-h-[44px]"
           >
-            {isSubmitting && (
-              <LoaderCircle className="size-[16px] shrink-0 animate-spin motion-reduce:animate-none" />
-            )}
             {submitLabel}
           </Button>
         )}

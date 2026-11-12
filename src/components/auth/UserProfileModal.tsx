@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabsPanels } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { IconChip } from "@/components/ui/icon-chip";
 import { CameraCaptureModal } from "@/components/modals/CameraCaptureModal";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
+import { canAccessPath } from "@/features/auth/access-policy";
 import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { PasswordChangeForm } from "@/features/auth/PasswordChangeForm";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -69,6 +70,9 @@ export function UserProfileModal({
   defaultTab?: "perfil" | "foto" | "seguranca" | "instituicoes";
 }) {
   const currentUser = useCurrentAccount();
+  // A biblioteca (Arquivos) é só da equipa: para alunos e encarregados o botão abria
+  // um seletor que o servidor recusa.
+  const canUseLibrary = canAccessPath("/arquivos", currentUser.role, currentUser.grants);
   const queryClient = useQueryClient();
   const { signOut, signingOut } = useSignOut();
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
@@ -212,7 +216,7 @@ export function UserProfileModal({
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive text-xs"
+                className="gap-1.5 text-destructive-strong hover:bg-destructive/10 hover:text-destructive-strong text-xs"
                 onClick={() => {
                   onOpenChange(false);
                   void signOut();
@@ -226,46 +230,37 @@ export function UserProfileModal({
           </div>
 
           {/* Navegação por Abas */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="border-b border-border/60 px-6 bg-background/50">
-              <TabsList className="no-scrollbar bg-transparent h-12 p-0 gap-6 max-w-full justify-start overflow-x-auto">
-                <TabsTrigger
-                  value="perfil"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none px-1 pb-3 text-xs font-semibold gap-2"
-                >
-                  <User className="size-4" />
-                  Perfil
-                </TabsTrigger>
-                <TabsTrigger
-                  value="foto"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none px-1 pb-3 text-xs font-semibold gap-2"
-                >
-                  <Camera className="size-4" />
-                  Fotografia
-                </TabsTrigger>
-                <TabsTrigger
-                  value="seguranca"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none px-1 pb-3 text-xs font-semibold gap-2"
-                >
-                  <ShieldCheck className="size-4" />
-                  Segurança
-                </TabsTrigger>
-                <TabsTrigger
-                  value="instituicoes"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none px-1 pb-3 text-xs font-semibold gap-2"
-                >
-                  <Building2 className="size-4" />
-                  Instituições
-                  {currentUser.schools.length > 0 ? (
-                    <Badge variant="secondary" className="px-1.5 py-0 text-[11px] ml-1">
-                      {currentUser.schools.length}
-                    </Badge>
-                  ) : null}
-                </TabsTrigger>
-              </TabsList>
-            </div>
+          <Tabs
+            layout="sidebar"
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full p-6"
+          >
+            <TabsList aria-label="Secções do perfil">
+              <TabsTrigger value="perfil" className="gap-2">
+                <User className="size-4" />
+                Perfil
+              </TabsTrigger>
+              <TabsTrigger value="foto" className="gap-2">
+                <Camera className="size-4" />
+                Fotografia
+              </TabsTrigger>
+              <TabsTrigger value="seguranca" className="gap-2">
+                <ShieldCheck className="size-4" />
+                Segurança
+              </TabsTrigger>
+              <TabsTrigger value="instituicoes" className="gap-2">
+                <Building2 className="size-4" />
+                Instituições
+                {currentUser.schools.length > 0 ? (
+                  <Badge variant="secondary" className="px-1.5 py-0 text-[11px] ml-1">
+                    {currentUser.schools.length}
+                  </Badge>
+                ) : null}
+              </TabsTrigger>
+            </TabsList>
 
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <TabsPanels className="max-h-[60vh] overflow-y-auto">
               {/* TAB 1: PERFIL */}
               <TabsContent value="perfil" className="m-0 space-y-5">
                 <form onSubmit={handleSaveProfile} className="space-y-4">
@@ -398,24 +393,29 @@ export function UserProfileModal({
                     Tirar Foto (Câmera)
                   </Button>
 
-                  <PickFileButton
-                    label="Escolher da Biblioteca SIGA"
-                    area="pessoal"
-                    acceptKinds={["png", "jpeg"]}
-                    variant="outline"
-                    size="sm"
-                    onPick={(file) => {
-                      void (async () => {
-                        try {
-                          const blob = await resolveFileBlob(file);
-                          const chosen = new File([blob], file.name, { type: blob.type });
-                          await uploadAvatar(chosen);
-                        } catch {
-                          toast.error("Não foi possível carregar a imagem da biblioteca.");
-                        }
-                      })();
-                    }}
-                  />
+                  {canUseLibrary && (
+                    <PickFileButton
+                      label="Escolher da Biblioteca SIGA"
+                      area="pessoal"
+                      acceptKinds={["png", "jpeg"]}
+                      variant="outline"
+                      size="sm"
+                      onPick={(file) => {
+                        void (async () => {
+                          try {
+                            const blob = await resolveFileBlob(file, {
+                              schoolId: currentUser.schoolId,
+                              ownerUserId: currentUser.id,
+                            });
+                            const chosen = new File([blob], file.name, { type: blob.type });
+                            await uploadAvatar(chosen);
+                          } catch {
+                            toast.error("Não foi possível carregar a imagem da biblioteca.");
+                          }
+                        })();
+                      }}
+                    />
+                  )}
                 </div>
               </TabsContent>
 
@@ -543,7 +543,7 @@ export function UserProfileModal({
                   )}
                 </div>
               </TabsContent>
-            </div>
+            </TabsPanels>
           </Tabs>
         </DialogContent>
       </Dialog>

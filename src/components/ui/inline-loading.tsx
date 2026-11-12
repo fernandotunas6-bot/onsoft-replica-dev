@@ -1,4 +1,4 @@
-import { LoaderCircle } from "lucide-react";
+import { FeedbackIcon } from "@/components/ui/feedback-icon";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,7 +18,7 @@ export function InlineLoading({
       aria-live="polite"
       className={cn("inline-flex items-center gap-1.5 text-xs text-muted-foreground", className)}
     >
-      <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
+      <FeedbackIcon state="processing" className="size-3.5" />
       {label}
     </span>
   );

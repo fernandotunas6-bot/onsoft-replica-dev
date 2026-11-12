@@ -15,6 +15,9 @@ import type {
 } from "@/features/saas/types";
 import { isMissingTableError, profileFromRow } from "@/features/saas/tenant-billing";
 import {
+  addMonthsClamped,
+  isInTrial,
+  trialExtensionError,
   isTrialExpired,
   monthlyRevenueOf,
   resolveStatusChange,
@@ -150,16 +153,19 @@ export async function fetchSaaSStats(): Promise<SaaSStats> {
   };
 
   for (const t of tenants ?? []) {
-    if (t.status === "active") stats.activeTenants += 1;
-    if (t.status === "trial") stats.trialTenants += 1;
+    const trialExpired = isTrialExpired(t, now);
+    const inTrial = isInTrial(t);
+    if (t.status === "active" && !inTrial && !t.billing_exempt) stats.activeTenants += 1;
+    if (inTrial && !trialExpired) stats.trialTenants += 1;
     if (t.status === "suspended") stats.suspendedTenants += 1;
     if (t.status === "past_due") stats.pastDueTenants += 1;
     if (t.billing_exempt) stats.exemptTenants += 1;
-    if (isTrialExpired(t, now)) stats.trialExpiredTenants += 1;
+    if (trialExpired) stats.trialExpiredTenants += 1;
     stats.totalStorageGb += t.max_storage_gb || 10;
     stats.mrrAoa += monthlyRevenueOf(
       {
         tenantStatus: String(t.status),
+        subscriptionStatus: t.subscription_status ?? null,
         billingExempt: Boolean(t.billing_exempt),
         profile: profiles.get(t.id) ?? null,
         plan:
@@ -247,11 +253,38 @@ export async function updateTenantSubscription(input: {
   const db = await loadSgaAdminClient();
   const { data: tenant, error: tenantErr } = await db
     .from("tenants")
-    .select("id, status, trial_ends_at, plan_id")
+    .select("id, status, subscription_status, trial_ends_at, plan_id")
     .eq("id", input.tenantId)
     .maybeSingle();
   if (tenantErr) throw publicDatabaseError(tenantErr, "Não foi possível carregar a escola.");
   if (!tenant) throw new Error("Escola não encontrada.");
+  if (input.extend_trial_days && !input.confirm_payment_months && !input.confirm_payment_billing) {
+    const refusal = trialExtensionError({
+      status: String(tenant.status),
+      subscription_status: tenant.subscription_status as string | null,
+    });
+    if (refusal) throw new Error(refusal);
+  }
+  const paying = input.confirm_payment_months ?? input.confirm_payment_billing;
+  if (paying && input.payment_reference?.trim()) {
+    // O mesmo pagamento registado duas vezes (repetição depois de um erro de rede)
+    // somava dois períodos pagos.
+    const { data: repeated, error: repeatedErr } = await db
+      .from("saas_audit_logs")
+      .select("id")
+      .eq("tenant_id", input.tenantId)
+      .eq("action", "TENANT_SUBSCRIPTION_UPDATED")
+      .eq("metadata->>payment_reference", input.payment_reference.trim())
+      .limit(1);
+    if (repeatedErr) {
+      throw publicDatabaseError(repeatedErr, "Não foi possível confirmar o pagamento.");
+    }
+    if (repeated?.length) {
+      throw new Error(
+        `O pagamento com a referência ${input.payment_reference.trim()} já foi registado.`,
+      );
+    }
+  }
 
   const patch: TablesUpdate<"tenants"> = { updated_at: new Date().toISOString() };
   const metadata: Record<string, unknown> = {};
@@ -304,15 +337,15 @@ export async function updateTenantSubscription(input: {
         ? new Date(current.current_period_end)
         : null;
     const base = currentEnd && currentEnd.getTime() > Date.now() ? currentEnd : new Date();
-    const end = new Date(base);
-    end.setMonth(end.getMonth() + paidMonths);
-    paidUntil = end.toISOString();
+    paidUntil = addMonthsClamped(base, paidMonths).toISOString();
     patch.subscription_status = "active";
     patch.status = "active";
     metadata.payment_confirmed = true;
     metadata.billing = paidMonths === 12 ? "yearly" : paidMonths === 1 ? "monthly" : undefined;
     metadata.months = paidMonths;
-    if (input.payment_reference) metadata.payment_reference = input.payment_reference;
+    if (input.payment_reference?.trim()) {
+      metadata.payment_reference = input.payment_reference.trim();
+    }
     metadata.paid_until = paidUntil;
   }
 

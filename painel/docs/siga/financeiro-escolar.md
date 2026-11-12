@@ -17,9 +17,20 @@ Quem usa: Administrador e Tesouraria. O aluno e o encarregado vêem as suas fact
 - **Valor da factura:** deixe o valor vazio para usar o preço do plano. Na propina é o preço da classe do aluno, se a escola o definiu.
 - **Receber:** regista um pagamento e emite o recibo. Um pagamento parcial deixa a factura parcialmente paga.
 - **Desconto e multa:** o valor a pagar é o total menos o desconto, mais a multa por atraso se a escola a definiu em Definições → Cobrança. A multa aplica-se uma vez, depois do vencimento e da tolerância, em todos os pagamentos ou só nos electrónicos.
-- **Bolsa ou desconto do aluno:** na ficha do aluno, o botão **Bolsa** define a percentagem descontada nas faturas emitidas a partir daí (bolsa de mérito, social, irmãos, funcionário…). Só a Direcção e a Tesouraria o alteram, com a verificação em dois passos e o motivo, que fica na auditoria. As faturas já emitidas não mudam.
+- **Desconto do contrato:** na ficha do aluno, o botão **Desconto** define a percentagem do contrato descontada nas faturas emitidas a partir daí (irmãos, funcionário, acordo…). As bolsas de estudo registam-se à parte (abaixo); numa fatura vale o maior dos dois. Só a Direcção e a Tesouraria o alteram, com a verificação em dois passos e o motivo, que fica na auditoria. As faturas já emitidas não mudam.
 - **Anular:** só é possível numa factura sem recibos.
 - **Estornar um recibo:** exige dois passos, recalcula o estado da factura e não permite estornar o mesmo recibo duas vezes.
+
+## Bolsas de estudo
+
+Na ficha do aluno, a Administração ou a Tesouraria carrega em **Conceder bolsa** e indica o tipo
+(mérito, social, filho de funcionário, protocolo institucional ou outra), a percentagem, se se
+aplica só às propinas ou a todas as taxas, a entidade financiadora (se houver), as datas e a
+prova (acta, despacho, protocolo). Conceder e revogar pede a verificação em duas etapas e fica
+registado. A Secretaria vê a bolsa mas não a altera.
+
+O desconto entra nas faturas emitidas a partir daí, enquanto a bolsa estiver em vigor. Se o
+aluno também tiver desconto no contrato (irmãos, acordo), fica o maior dos dois: não se somam.
 
 ## Caixa e despesas
 

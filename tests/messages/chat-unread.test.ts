@@ -64,9 +64,7 @@ describe("sino: não lidas vêm do chat", () => {
     }
     const hook = read("src/features/messages/use-inbox-unread.ts");
     expect(hook).toMatch(/table: "siga_chat_messages"/);
-    expect(hook).toMatch(
-      /table: "siga_chat_members",\s*filter: `user_id=eq\.\$\{currentUser\.id\}`/,
-    );
+    expect(hook).toMatch(/table: "siga_chat_members",\s*filter: `user_id=eq\.\$\{userId\}`/);
   });
 
   it("o sino abre a conversa pelo id (um grupo não tem pessoa)", () => {

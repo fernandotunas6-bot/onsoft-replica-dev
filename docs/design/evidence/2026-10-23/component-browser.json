@@ -1,0 +1,125 @@
+{
+  "scope": "Isolated shared settings component; controlled fixture, not authenticated product or physical device validation",
+  "results": [
+    {
+      "width": 390,
+      "mode": "before",
+      "overflow": false,
+      "dialogs": 1,
+      "scrollLocked": true,
+      "navWidth": 48,
+      "navMinTarget": 27,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "after",
+      "overflow": false,
+      "dialogs": 0,
+      "scrollLocked": false,
+      "navWidth": 48,
+      "navMinTarget": 44,
+      "errors": []
+    },
+    {
+      "width": 767,
+      "mode": "before",
+      "overflow": false,
+      "dialogs": 1,
+      "scrollLocked": true,
+      "navWidth": 192,
+      "navMinTarget": 32.140625,
+      "errors": []
+    },
+    {
+      "width": 767,
+      "mode": "after",
+      "overflow": false,
+      "dialogs": 0,
+      "scrollLocked": false,
+      "navWidth": 144,
+      "navMinTarget": 44,
+      "errors": []
+    },
+    {
+      "width": 768,
+      "mode": "before",
+      "overflow": false,
+      "dialogs": 1,
+      "scrollLocked": true,
+      "navWidth": 192,
+      "navMinTarget": 32.140625,
+      "errors": []
+    },
+    {
+      "width": 768,
+      "mode": "after",
+      "overflow": false,
+      "dialogs": 0,
+      "scrollLocked": false,
+      "navWidth": 144,
+      "navMinTarget": 44,
+      "errors": []
+    },
+    {
+      "width": 1023,
+      "mode": "before",
+      "overflow": false,
+      "dialogs": 1,
+      "scrollLocked": true,
+      "navWidth": 192,
+      "navMinTarget": 32.140625,
+      "errors": []
+    },
+    {
+      "width": 1023,
+      "mode": "after",
+      "overflow": false,
+      "dialogs": 0,
+      "scrollLocked": false,
+      "navWidth": 144,
+      "navMinTarget": 44,
+      "errors": []
+    },
+    {
+      "width": 1024,
+      "mode": "before",
+      "overflow": false,
+      "dialogs": 1,
+      "scrollLocked": true,
+      "navWidth": 176,
+      "navMinTarget": 30.890625,
+      "errors": []
+    },
+    {
+      "width": 1024,
+      "mode": "after",
+      "overflow": false,
+      "dialogs": 0,
+      "scrollLocked": false,
+      "navWidth": 132,
+      "navMinTarget": 44,
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "mode": "before",
+      "overflow": false,
+      "dialogs": 1,
+      "scrollLocked": true,
+      "navWidth": 176,
+      "navMinTarget": 30.890625,
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "mode": "after",
+      "overflow": false,
+      "dialogs": 0,
+      "scrollLocked": false,
+      "navWidth": 132,
+      "navMinTarget": 44,
+      "errors": []
+    }
+  ]
+}

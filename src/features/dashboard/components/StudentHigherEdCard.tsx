@@ -49,7 +49,9 @@ export function StudentHigherEdCard({ studentId }: { studentId?: string | null }
                 </dt>
                 <dd className="font-semibold tabular-nums">
                   {(() => {
-                    const final = progress.completed ? finalClassification(progress.average) : null;
+                    const final = progress.completed
+                      ? finalClassification(progress.averageExact)
+                      : null;
                     return final ? `${final.value} · ${final.mention}` : (progress.average ?? "—");
                   })()}
                 </dd>

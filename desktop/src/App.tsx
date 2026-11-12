@@ -59,23 +59,9 @@ function App() {
       mode: import.meta.env.MODE,
     })
 
-    // Installation remains in the school portal, which checks pending writes.
-    // The local shell only reports update availability.
-    const checkForUpdates = async () => {
-      try {
-        const result = await commands.desktopUpdateStatus()
-        if (result.status === 'ok' && result.data.available) {
-          logger.info('SIGA update available', { version: result.data.version })
-        }
-      } catch (error) {
-        logger.warn('Failed to check desktop updates', { error })
-      }
-    }
-    const updateTimer = setTimeout(checkForUpdates, 15000)
     return () => {
       disposed = true
       cleanupMenuListener?.()
-      clearTimeout(updateTimer)
     }
   }, [])
 

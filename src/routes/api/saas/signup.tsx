@@ -4,8 +4,20 @@ import { runPublicSchoolSignup } from "@/features/saas/public-signup";
 import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
 import { ECOSYSTEM_URLS } from "@/lib/ecosystem-urls";
 import { clientIpFromRequest } from "@/lib/request-ip";
+import { readJsonBodyLimited } from "@/lib/read-json-body";
 
 const WEB_APPS = ["web"] as const;
+// O wizard envia texto e metadados pequenos: um tecto alto evita payloads
+// abusivos sem limitar uploads (enviados por fluxos específicos separados).
+const MAX_SIGNUP_JSON_BYTES = 128 * 1024;
+const PUBLIC_SIGNUP_RESPONSE = { apps: [...WEB_APPS], noStore: true };
+
+/** Conserva o contrato de erros do registo (incluindo 429), sem expor cache. */
+export function publicSignupErrorResponse(request: Request, error: unknown): Response {
+  const message = error instanceof Error ? error.message : "Não foi possível criar a escola.";
+  const status = message.includes("Muitos pedidos") ? 429 : 400;
+  return jsonWithCors(request, { error: message }, { ...PUBLIC_SIGNUP_RESPONSE, status });
+}
 
 // style-check: route-exempt — API pública de signup comercial (WEB → SIGA).
 
@@ -14,22 +26,21 @@ export const Route = createFileRoute("/api/saas/signup")({
     handlers: {
       OPTIONS: async ({ request }) => corsPreflight(request, [...WEB_APPS]),
       POST: async ({ request }) => {
-        let body: unknown;
-        try {
-          body = await request.json();
-        } catch {
+        const body = await readJsonBodyLimited(request, MAX_SIGNUP_JSON_BYTES);
+        if (!body.ok) {
+          const tooLarge = body.reason === "too_large";
           return jsonWithCors(
             request,
-            { error: "Corpo JSON inválido." },
-            { status: 400, apps: [...WEB_APPS] },
+            { error: tooLarge ? "Pedido demasiado grande." : "Corpo JSON inválido." },
+            { ...PUBLIC_SIGNUP_RESPONSE, status: tooLarge ? 413 : 400 },
           );
         }
-        const parsed = publicSchoolSignupInputSchema.safeParse(body);
+        const parsed = publicSchoolSignupInputSchema.safeParse(body.value);
         if (!parsed.success) {
           return jsonWithCors(
             request,
             { error: "Pedido inválido.", issues: parsed.error.flatten().fieldErrors },
-            { status: 400, apps: [...WEB_APPS] },
+            { ...PUBLIC_SIGNUP_RESPONSE, status: 400 },
           );
         }
         try {
@@ -41,13 +52,10 @@ export const Route = createFileRoute("/api/saas/signup")({
               sigaUrl: ECOSYSTEM_URLS.siga,
               adminTenantsUrl: `${ECOSYSTEM_URLS.admin}/tenants`,
             },
-            { apps: [...WEB_APPS] },
+            PUBLIC_SIGNUP_RESPONSE,
           );
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Não foi possível criar a escola.";
-          const status = message.includes("Muitos pedidos") ? 429 : 400;
-          return jsonWithCors(request, { error: message }, { status, apps: [...WEB_APPS] });
+          return publicSignupErrorResponse(request, error);
         }
       },
     },

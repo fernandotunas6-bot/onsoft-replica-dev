@@ -2,7 +2,7 @@
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequest, setResponseHeaders } from "@tanstack/react-start/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "./types";
+import type { Database } from "@/integrations/supabase/types";
 import { assertPublishableSupabaseKey, isOpaqueSupabaseApiKey } from "./api-key";
 import { accessTokenAal, assertSessionMfa, isSessionMfaError } from "./session-mfa";
 

@@ -1,0 +1,20 @@
+[
+  {
+    "audit": {
+      "scores": 1,
+      "schools": 48,
+      "tenants": 48,
+      "invoices": 38,
+      "receipts": 31,
+      "students": 45,
+      "enrollments": 36,
+      "active_enrollments": 36,
+      "test_named_tenants": 43,
+      "receipt_school_mismatch": 0,
+      "enrollment_school_mismatch": 0,
+      "negative_financial_amounts": 0,
+      "duplicate_active_enrollments": 0,
+      "student_person_school_mismatch": 0
+    }
+  }
+]

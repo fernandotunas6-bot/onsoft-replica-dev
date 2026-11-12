@@ -298,7 +298,9 @@ export function AiSettingsPanel() {
           </label>
         ))}
         {!form.allowedProfiles.length ? (
-          <p className="text-xs text-destructive">Pelo menos um perfil tem de ficar autorizado.</p>
+          <p className="text-xs text-destructive-strong">
+            Pelo menos um perfil tem de ficar autorizado.
+          </p>
         ) : null}
       </fieldset>
 

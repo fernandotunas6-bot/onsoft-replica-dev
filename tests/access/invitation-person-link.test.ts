@@ -6,7 +6,7 @@ describe("aceitar convite: ligação à ficha da pessoa", () => {
   const accept = source.slice(source.indexOf("export const acceptSchoolInvitation"));
 
   it("escapa os curingas do ILIKE e exige o e-mail exacto", () => {
-    expect(accept).toContain("invitedEmail.replace(/[\\\\%_]/g, (c) => `\\\\${c}`)");
+    expect(accept).toContain("escapeLikePattern(invitedEmail)");
     expect(accept).toContain("=== invitedEmail");
   });
 

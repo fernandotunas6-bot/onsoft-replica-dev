@@ -4,6 +4,7 @@ import { formatMutationError } from "@/lib/format-error";
 import { isTechnicalMessage } from "@/lib/public-error";
 import { reportPossibleStepUp } from "@/lib/step-up";
 import { reportPossibleSessionError } from "@/lib/session-expiry";
+import { requestReferenceOf } from "@/lib/request-id";
 
 /**
  * Erro de uma acção (gravar, apagar, emitir…), com a correcção e o botão para
@@ -18,16 +19,18 @@ export function toastActionError(error: unknown, fallback: string) {
   // Sessão expirada: o ecrã de entrada já diz o que fazer.
   if (reportPossibleSessionError(error)) return;
   const { message, code } = errorParts(error);
+  // Referência do pedido (`request-id.ts`): o que a escola diz ao suporte.
+  const reference = requestReferenceOf(error);
   const text = message ? formatMutationError(new Error(message), fallback) : "";
   // Um erro só com código Postgres (sem texto útil) ainda tem regra própria.
   const byCode = !text && code ? guidanceFor({ code }) : null;
   if (byCode) {
-    toast.error(byCode.title ?? fallback, { description: byCode.fix });
+    toast.error(byCode.title ?? fallback, { description: byCode.fix, reference });
     return;
   }
   if (!text || (isTechnicalMessage(text) && !guidanceFor({ message: text, code }))) {
-    toast.error(fallback);
+    toast.error(fallback, { reference });
     return;
   }
-  toast.error(text);
+  toast.error(text, { reference });
 }

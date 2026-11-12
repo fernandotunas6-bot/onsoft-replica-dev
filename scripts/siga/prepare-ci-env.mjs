@@ -1,18 +1,23 @@
 #!/usr/bin/env node
 /**
  * Cria .env mínimo para E2E @live na CI a partir de variáveis de ambiente
- * (secrets GitHub). Sem output de valores. Skip silencioso se secret em falta.
+ * (secrets GitHub). Sem output de valores. Só permite skip fora de @live.
  */
 import { writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { assertSafeE2ETarget } from "./e2e-safety.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 const secret = process.env.SUPABASE_SECRET_KEY?.trim();
 if (!secret) {
-  console.log("prepare-ci-env: omitido (SUPABASE_SECRET_KEY não definido)");
+  if (process.env.SIGA_E2E_LIVE === "1" || process.env.SIGA_E2E_LIVE === "true") {
+    console.error("prepare-ci-env: staging incompleto — SUPABASE_SECRET_KEY obrigatório em @live.");
+    process.exit(1);
+  }
+  console.log("prepare-ci-env: omitido (SUPABASE_SECRET_KEY não definido; sem @live)");
   process.exit(0);
 }
 
@@ -27,7 +32,12 @@ if (!url || !publishable) {
   process.exit(1);
 }
 
+assertSafeE2ETarget(process.env);
+
 const lines = [
+  `SIGA_E2E_ALLOW_WRITES=${process.env.SIGA_E2E_ALLOW_WRITES}`,
+  `SIGA_E2E_PROJECT_REF=${process.env.SIGA_E2E_PROJECT_REF}`,
+  `SUPABASE_PROJECT_ID=${process.env.SIGA_E2E_PROJECT_REF}`,
   "# Gerado por scripts/siga/prepare-ci-env.mjs — não commitar",
   `SUPABASE_URL=${url}`,
   `VITE_SUPABASE_URL=${url}`,

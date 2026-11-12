@@ -1,21 +1,17 @@
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { findBestPersonMatch } from "../engine/dedupe";
-import { normalizeText } from "../engine/normalize";
+import { normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadExistingPeople, resolveOrCreatePerson, type PersonCandidate } from "./people-core";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
+import { schoolTodayIso } from "@/lib/school-date";
 
 type EncarregadosCache = ImportRefCache & {
   students: StudentRef[];
   existingGuardians: Set<string>; // key: `${student_id}:${guardian_person_id}`
+  /** Vínculos com vigência fechada, por chave: reabrem em vez de duplicar o par. */
+  closedGuardians?: Map<string, string>;
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 export const encarregadosImporter: RowImporter = {
   module: "encarregados",
@@ -24,10 +20,14 @@ export const encarregadosImporter: RowImporter = {
     const [existingPeople, students, guardianRows] = await Promise.all([
       loadExistingPeople(ctx.db, ctx.schoolId),
       loadStudentRefs(ctx.db, ctx.schoolId),
-      ctx.db
-        .from("student_guardians")
-        .select("student_id, guardian_person_id")
-        .eq("school_id", ctx.schoolId),
+      readAllPages((from, to) =>
+        ctx.db
+          .from("student_guardians")
+          .select("id, student_id, guardian_person_id, valid_until")
+          .eq("school_id", ctx.schoolId)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ]);
 
     if (guardianRows.error) {
@@ -36,9 +36,13 @@ export const encarregadosImporter: RowImporter = {
       );
     }
 
-    const existingGuardians = new Set(
-      (guardianRows.data ?? []).map((r) => `${r.student_id}:${r.guardian_person_id}`),
-    );
+    const existingGuardians = new Set<string>();
+    const closedGuardians = new Map<string, string>();
+    for (const r of guardianRows.data ?? []) {
+      const key = `${r.student_id}:${r.guardian_person_id}`;
+      if (r.valid_until == null) existingGuardians.add(key);
+      else closedGuardians.set(key, String(r.id));
+    }
 
     return {
       existingPeople,
@@ -46,6 +50,7 @@ export const encarregadosImporter: RowImporter = {
       studentByPersonId: new Map(),
       students,
       existingGuardians,
+      closedGuardians,
     } as EncarregadosCache;
   },
 
@@ -166,10 +171,7 @@ export const encarregadosImporter: RowImporter = {
       };
     }
 
-    const { error: relError } = await ctx.db.from("student_guardians").upsert({
-      school_id: ctx.schoolId,
-      student_id: student.id,
-      guardian_person_id: person.personId,
+    const relationFields = {
       relationship,
       is_primary: isFinancial,
       // A coluna é `is_pickup_authorized`; `authorized_pickup` não existe e fazia o
@@ -177,8 +179,22 @@ export const encarregadosImporter: RowImporter = {
       // tem coluna própria — estava só a alimentar `is_primary`.
       is_financially_responsible: isFinancial,
       is_pickup_authorized: true,
-      created_by: ctx.userId,
-    });
+    };
+    // O par aluno+pessoa é único: um vínculo que já terminou reabre-se.
+    const closedLinkId = cache.closedGuardians?.get(relKey);
+    const { error: relError } = closedLinkId
+      ? await ctx.db
+          .from("student_guardians")
+          .update({ ...relationFields, valid_from: schoolTodayIso(), valid_until: null })
+          .eq("id", closedLinkId)
+          .eq("school_id", ctx.schoolId)
+      : await ctx.db.from("student_guardians").upsert({
+          school_id: ctx.schoolId,
+          student_id: student.id,
+          guardian_person_id: person.personId,
+          ...relationFields,
+          created_by: ctx.userId,
+        });
 
     if (relError) {
       return {
@@ -189,6 +205,7 @@ export const encarregadosImporter: RowImporter = {
       };
     }
 
+    cache.closedGuardians?.delete(relKey);
     cache.existingGuardians.add(relKey);
     return {
       status: "imported",

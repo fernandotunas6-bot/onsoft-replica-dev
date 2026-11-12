@@ -2,14 +2,15 @@ import { describe, expect, it } from "vitest";
 import { NAV_DEPTH_CLASS, NAV_ROW_ACTIVE, NAV_SUB_LIST } from "@/components/layout/NavItem";
 
 describe("sidebar nav visual spec", () => {
-  it("keeps root items on rem-based type, not absolute px", () => {
-    expect(NAV_DEPTH_CLASS.root).toContain("text-xs");
+  it("uses the shared readable type scale for root items", () => {
+    expect(NAV_DEPTH_CLASS.root).toContain("text-sm");
     expect(NAV_DEPTH_CLASS.root).not.toContain("text-[12px]");
   });
 
-  it("makes sub-items compact and smaller than the root row", () => {
+  it("keeps sub-items compact without reducing their text below the readable scale", () => {
     expect(NAV_DEPTH_CLASS.sub).toContain("h-8");
-    expect(NAV_DEPTH_CLASS.sub).toContain("text-[0.6875rem]");
+    expect(NAV_DEPTH_CLASS.sub).toContain("text-sm");
+    expect(NAV_DEPTH_CLASS.sub).not.toContain("text-[0.6875rem]");
     expect(NAV_DEPTH_CLASS.sub).not.toContain("text-[12px]");
     expect(NAV_DEPTH_CLASS.sub).toContain("gap-2");
   });

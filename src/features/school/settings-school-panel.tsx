@@ -111,6 +111,18 @@ const institutionFields: {
 
 const preferences = [
   {
+    id: "expandedSidebar",
+    label: "Menu lateral expandido",
+    description: "Por omissão, o menu é compacto. Pode expandi-lo no cabeçalho.",
+    on: false,
+  },
+  {
+    id: "settingsModal",
+    label: "Abrir definições em modal",
+    description: "Por omissão, as definições abrem numa página.",
+    on: false,
+  },
+  {
     id: "sms",
     label: "SMS automático de mensalidade em atraso",
     description: "Preferência guardada na escola. Envio SMS externo ainda não está ligado no SGA.",
@@ -539,7 +551,10 @@ export function SchoolSettingsPanel() {
                   onPick={(file) => {
                     void (async () => {
                       try {
-                        const blob = await resolveFileBlob(file);
+                        const blob = await resolveFileBlob(file, {
+                          schoolId: currentUser.schoolId,
+                          ownerUserId: currentUser.id,
+                        });
                         const asFile = new File([blob], file.name, {
                           type: file.mime || blob.type,
                         });
@@ -569,7 +584,7 @@ export function SchoolSettingsPanel() {
                 className={errors[f.id] ? "border-destructive" : undefined}
               />
               {errors[f.id] ? (
-                <p className="flex items-center gap-1 text-xs font-medium text-destructive">
+                <p className="flex items-center gap-1 text-xs font-medium text-destructive-strong">
                   <AlertCircle className="size-3.5" /> {errors[f.id]}
                 </p>
               ) : f.hint ? (
@@ -754,7 +769,7 @@ export function SchoolSettingsPanel() {
       <Separator />
 
       <div className="space-y-1">
-        <h5 className="text-xs font-bold text-muted-foreground">Notificações</h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Preferências</h5>
         <ul className="space-y-1">
           {preferences.map((p) => (
             <li

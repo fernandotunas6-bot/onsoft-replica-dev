@@ -20,7 +20,7 @@ const CHANNELS = [
   },
   {
     title: "Contacto",
-    desc: "Pedido de demo ou informação",
+    desc: "Pedido de demonstração ou informação",
     href: "/mail",
     internal: true,
   },
@@ -35,7 +35,7 @@ export default function ChatPage() {
   return (
     <MarketingLayout
       title="Ajuda e canais"
-      description="Mesa de ajuda do portal — DOC e contacto reais, não chat demo."
+      description="Manuais, perguntas frequentes e contacto com a equipa SIGA Plus."
       eyebrow="Suporte"
     >
       <div className="container mx-auto max-w-2xl space-y-4 px-4 py-10 sm:px-6">

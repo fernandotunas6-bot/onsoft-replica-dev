@@ -5,6 +5,7 @@ import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/models/student.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 
 class StudentsFinanceListScreen extends ConsumerStatefulWidget {
   const StudentsFinanceListScreen({super.key});
@@ -17,7 +18,7 @@ class StudentsFinanceListScreen extends ConsumerStatefulWidget {
 class _StudentsFinanceListScreenState
     extends ConsumerState<StudentsFinanceListScreen> {
   String _filter = 'All';
-  String _classFilter = 'All Classes';
+  String _classFilter = 'Todas as turmas';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -28,19 +29,27 @@ class _StudentsFinanceListScreenState
   }
 
   String _statusOf(Student s) {
-    if (s.balance < 0) return 'Owing';
-    if (s.balance > 0) return 'Credit';
-    return 'Paid';
+    if (s.balance < 0) return 'Em dívida';
+    if (s.balance > 0) return 'Crédito';
+    return 'Regularizado';
   }
+
+  /// Os filtros guardam o valor em inglês; mostra-se em português.
+  static const _filterLabels = {
+    'All': 'Todos',
+    'Paid': 'Em dia',
+    'Credit': 'Com crédito',
+    'Owing': 'Em dívida',
+  };
 
   Color _statusColor(String status) {
     switch (status) {
-      case 'Owing':
+      case 'Em dívida':
         return AppColors.error;
       case 'Paid':
-        return Colors.green;
+        return AppColors.success;
       case 'Credit':
-        return Colors.blue.shade700;
+        return AppColors.primary;
       default:
         return AppColors.textSecondary;
     }
@@ -48,10 +57,10 @@ class _StudentsFinanceListScreenState
 
   String _balanceLine(Student student, String currency) {
     if (student.balance < 0) {
-      return '$currency ${student.balance.abs().toStringAsFixed(2)} owing';
+      return '${formatMoneyDisplay(currency, student.balance.abs())} em dívida';
     }
     if (student.balance > 0) {
-      return '$currency ${student.balance.toStringAsFixed(2)} credit';
+      return '${formatMoneyDisplay(currency, student.balance)} a favor';
     }
     return '$currency 0.00';
   }
@@ -67,7 +76,7 @@ class _StudentsFinanceListScreenState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'All Students Finance',
+          'Pagamentos dos alunos',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -80,13 +89,13 @@ class _StudentsFinanceListScreenState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Failed to load students',
+              Text('Não foi possível carregar os alunos',
                   style: TextStyle(color: AppColors.error)),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => ref.invalidate(
                     studentsProvider((classId: null, page: 1))),
-                child: const Text('Retry'),
+                child: const Text('Tentar de novo'),
               ),
             ],
           ),
@@ -100,16 +109,16 @@ class _StudentsFinanceListScreenState
 
           final filteredList = allStudents.where((s) {
             final status = _statusOf(s);
-            final matchesStatus = _filter == 'All' || _filter == status;
+            final matchesStatus = _filter == 'Todos' || _filter == status;
             final displayClass = s.className ?? classNames[s.classId] ?? '';
             final matchesClass =
-                _classFilter == 'All Classes' || displayClass == _classFilter;
+                _classFilter == 'Todas as turmas' || displayClass == _classFilter;
             final matchesSearch =
                 s.name.toLowerCase().contains(_searchQuery.toLowerCase());
             return matchesStatus && matchesClass && matchesSearch;
           }).toList();
 
-          final classSet = <String>{'All Classes'};
+          final classSet = <String>{'Todas as turmas'};
           for (final s in allStudents) {
             final cn = s.className ?? classNames[s.classId] ?? '';
             if (cn.isNotEmpty) classSet.add(cn);
@@ -127,7 +136,7 @@ class _StudentsFinanceListScreenState
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Search student...',
+                          hintText: 'Pesquisar aluno…',
                           prefixIcon: const Icon(Icons.search, size: 20),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -159,7 +168,7 @@ class _StudentsFinanceListScreenState
                       child: DropdownButton<String>(
                         value: classes.contains(_classFilter)
                             ? _classFilter
-                            : 'All Classes',
+                            : 'Todas as turmas',
                         items: classes.map((c) {
                           return DropdownMenuItem(value: c, child: Text(c));
                         }).toList(),
@@ -169,7 +178,7 @@ class _StudentsFinanceListScreenState
                           }
                         },
                         underline: const SizedBox(),
-                        icon: const Icon(Icons.arrow_drop_down,
+                        icon: Icon(Icons.arrow_drop_down,
                             color: AppColors.primary),
                       ),
                     ),
@@ -181,12 +190,12 @@ class _StudentsFinanceListScreenState
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Row(
-                  children: ['All', 'Paid', 'Credit', 'Owing'].map((filter) {
+                  children: ['Todos', 'Regularizado', 'Crédito', 'Em dívida'].map((filter) {
                     final isSelected = _filter == filter;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8.0),
                       child: ChoiceChip(
-                        label: Text(filter),
+                        label: Text(_filterLabels[filter] ?? filter),
                         selected: isSelected,
                         onSelected: (selected) {
                           if (selected) setState(() => _filter = filter);
@@ -194,7 +203,7 @@ class _StudentsFinanceListScreenState
                         selectedColor: AppColors.primary,
                         labelStyle: TextStyle(
                           color: isSelected
-                              ? Colors.white
+                              ? AppColors.onPrimary
                               : AppColors.textSecondary,
                           fontWeight: isSelected
                               ? FontWeight.w600
@@ -207,9 +216,9 @@ class _StudentsFinanceListScreenState
                 ),
               ),
               if (filteredList.isEmpty)
-                const Expanded(
+                Expanded(
                   child: Center(
-                    child: Text('No students found',
+                    child: Text('Nenhum aluno',
                         style: TextStyle(color: AppColors.textSecondary)),
                   ),
                 )
@@ -264,7 +273,7 @@ class _StudentsFinanceListScreenState
               backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               child: Text(
                 student.name.isNotEmpty ? student.name[0] : '?',
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.secondary, fontWeight: FontWeight.w600),
               ),
             ),
@@ -281,11 +290,15 @@ class _StudentsFinanceListScreenState
                 ],
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(displayAmount,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(displayAmount,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -294,14 +307,15 @@ class _StudentsFinanceListScreenState
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    status,
+                    _filterLabels[status] ?? status,
                     style: TextStyle(
                         color: statusColor,
                         fontSize: 11,
                         fontWeight: FontWeight.w600),
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -324,7 +338,7 @@ class _StudentsFinanceListScreenState
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
@@ -339,7 +353,7 @@ class _StudentsFinanceListScreenState
               children: [
                 Expanded(
                   child: Text(
-                    'Finance Details - ${student.name}',
+                    'Pagamentos · ${student.name}',
                     style: const TextStyle(
                         fontSize: 20, fontWeight: FontWeight.w600),
                   ),
@@ -352,7 +366,7 @@ class _StudentsFinanceListScreenState
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    status,
+                    _filterLabels[status] ?? status,
                     style: TextStyle(
                         color: statusColor,
                         fontWeight: FontWeight.w600,
@@ -362,16 +376,16 @@ class _StudentsFinanceListScreenState
               ],
             ),
             const SizedBox(height: 24),
-            _buildDetailRow('Class', displayClass),
+            _buildDetailRow('Turma', displayClass),
             const SizedBox(height: 16),
-            _buildDetailRow('Balance', displayAmount),
+            _buildDetailRow('Saldo', displayAmount),
             const SizedBox(height: 16),
             if (student.parentName != null) ...[
-              _buildDetailRow('Parent', student.parentName!),
+              _buildDetailRow('Encarregado', student.parentName!),
               const SizedBox(height: 16),
             ],
             if (student.parentPhone != null) ...[
-              _buildDetailRow('Parent Phone', student.parentPhone!),
+              _buildDetailRow('Telefone do encarregado', student.parentPhone!),
               const SizedBox(height: 16),
             ],
             const SizedBox(height: 16),
@@ -389,7 +403,7 @@ class _StudentsFinanceListScreenState
                     );
                   },
                   icon: const Icon(Icons.payment),
-                  label: const Text('Process Payment'),
+                  label: const Text('Registar pagamento'),
                 ),
               )
             else
@@ -401,7 +415,7 @@ class _StudentsFinanceListScreenState
                     student.balance > 0 ? Icons.savings : Icons.check_circle,
                   ),
                   label: Text(
-                    student.balance > 0 ? 'In credit' : 'All clear',
+                    student.balance > 0 ? 'Com crédito' : 'Em dia',
                   ),
                 ),
               ),
@@ -416,7 +430,7 @@ class _StudentsFinanceListScreenState
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label,
-            style: const TextStyle(
+            style: TextStyle(
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500)),
         Text(value,

@@ -1,4 +1,4 @@
-import { Fragment, useState, type ElementType, type ReactNode } from "react";
+import { Fragment, useId, useState, type ElementType, type ReactNode } from "react";
 import { MoreInfo } from "@/components/ui/more-info";
 import { splitDescription } from "@/lib/split-description";
 import { Link } from "@tanstack/react-router";
@@ -15,6 +15,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { crumbsAfterTitle, useActiveContext } from "@/features/intelligence/active-context";
 import { cn } from "@/lib/utils";
 
 export type PageCrumb = {
@@ -59,18 +60,33 @@ export function PageHeader({
     (logoUrl?.trim() ? (
       <LogoChip src={logoUrl.trim()} size="lg" label={title} />
     ) : icon ? (
-      <IconChip icon={icon} size="lg" label={title} />
+      <IconChip icon={icon} tone="muted" size="md" label={title} />
     ) : null);
 
+  const groupLabel = group.trim();
+  const showGroup =
+    Boolean(groupLabel) &&
+    groupLabel.localeCompare(title.trim(), "pt", { sensitivity: "accent" }) !== 0;
+  // Turma e disciplina da URL seguem o título («Área Pedagógica / 10.ª A /
+  // Matemática»); um breadcrumb explícito da página manda sobre o contexto.
+  const activeContext = useActiveContext();
+  const contextFrames =
+    !crumbs && activeContext ? crumbsAfterTitle(activeContext.crumbs, title) : [];
+  const page = contextFrames.length > 0 ? activeContext?.crumbs.page : null;
   const trail: PageCrumb[] =
     crumbs ??
-    ([{ label: "Início", to: "/" }, { label: group }, { label: title }] satisfies PageCrumb[]);
+    ([
+      { label: "Início", to: "/portal" },
+      ...(showGroup ? [{ label: groupLabel }] : []),
+      page ? { label: title, to: page.to, search: page.search } : { label: title },
+      ...contextFrames,
+    ] satisfies PageCrumb[]);
 
   return (
-    <div className="relative isolate space-y-2.5 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+    <div className="relative isolate space-y-2.5 has-[details[open]]:z-20 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
       {!hideBreadcrumb ? (
-        <Breadcrumb className="relative">
-          <BreadcrumbList className="text-[11px] sm:text-xs">
+        <Breadcrumb className="relative max-w-full overflow-x-auto [scrollbar-width:thin]">
+          <BreadcrumbList className="w-max min-w-full flex-nowrap whitespace-nowrap text-[11px] sm:w-auto sm:flex-wrap sm:whitespace-normal sm:text-xs">
             {trail.map((crumb, index) => {
               const isLast = index === trail.length - 1;
               // O separador é `<li>`: tem de ser irmão do item, não filho —
@@ -80,10 +96,10 @@ export function PageHeader({
                 <Fragment key={`${crumb.label}-${index}`}>
                   {index > 0 ? <BreadcrumbSeparator className="[&>svg]:size-3" /> : null}
                   <BreadcrumbItem className="gap-1.5">
-                    {isLast || !crumb.to ? (
-                      <BreadcrumbPage className={cn(!isLast && "text-muted-foreground")}>
-                        {crumb.label}
-                      </BreadcrumbPage>
+                    {isLast ? (
+                      <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                    ) : !crumb.to ? (
+                      <span className="text-muted-foreground">{crumb.label}</span>
                     ) : (
                       <BreadcrumbLink asChild>
                         <Link to={crumb.to} search={crumb.search}>
@@ -98,25 +114,31 @@ export function PageHeader({
           </BreadcrumbList>
         </Breadcrumb>
       ) : null}
-      <div className="relative flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="relative flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-3 sm:items-center">
+        <div className="flex w-full min-w-0 items-start gap-3 sm:w-auto sm:flex-1">
           {headerMark}
-          <div>
+          <div className="min-w-0 flex-1">
             {/* O grupo já aparece no caminho de navegação; repeti-lo em
                 maiúsculas por cima do título era ruído. */}
-            {hideBreadcrumb ? (
+            {hideBreadcrumb && showGroup ? (
               <p className="text-xs font-medium text-muted-foreground">{group}</p>
             ) : null}
-            <h1 className="font-display text-[20px] font-semibold leading-tight tracking-tight md:text-[24px]">
+            <h1 className="break-words font-display text-[20px] font-semibold leading-tight tracking-tight md:text-[24px]">
               {title}
             </h1>
-            <ShortDescription
-              text={description}
-              className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground"
-            />
+            {description.trim() ? (
+              <ShortDescription
+                text={description}
+                className="mt-1.5 max-w-2xl break-words text-sm leading-relaxed text-muted-foreground"
+              />
+            ) : null}
           </div>
         </div>
-        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+        {actions ? (
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+            {actions}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -139,6 +161,7 @@ export function StatGrid({
   collapsible?: boolean;
   storageKey?: string;
 }) {
+  const statsId = useId();
   const lsKey = collapsible && storageKey ? `siga:stats-${storageKey}` : null;
 
   const [visible, setVisible] = useState<boolean>(() => {
@@ -171,11 +194,11 @@ export function StatGrid({
   ) : items && items.length > 0 ? (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => {
-        const tone = item.tone ?? "primary";
+        const tone = item.tone ?? "muted";
         return (
           <div
             key={item.label}
-            className="group relative overflow-hidden rounded-xl border border-border/70 bg-card p-4 shadow-card"
+            className="group relative overflow-hidden rounded-xl border border-border/70 bg-card p-4"
           >
             <div className="flex items-start justify-between gap-2.5">
               <div className="min-w-0">
@@ -213,12 +236,14 @@ export function StatGrid({
           type="button"
           onClick={toggle}
           aria-expanded={visible}
+          aria-controls={statsId}
           aria-label={visible ? "Ocultar estatísticas" : "Ver estatísticas"}
           className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           <ChevronDown
+            aria-hidden="true"
             className={cn(
-              "size-3.5 transition-transform duration-200",
+              "size-3.5 transition-transform duration-200 motion-reduce:transition-none",
               visible ? "rotate-0" : "-rotate-90",
             )}
           />
@@ -226,9 +251,11 @@ export function StatGrid({
         </button>
       </div>
       <div
+        id={statsId}
         aria-hidden={!visible}
+        inert={!visible}
         className={cn(
-          "grid transition-all duration-200 ease-in-out",
+          "grid transition-all duration-200 ease-in-out motion-reduce:transition-none",
           visible ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none",
         )}
       >
@@ -256,14 +283,14 @@ export function Panel({
   children: ReactNode;
 }) {
   const panelMark = logoUrl?.trim() ? (
-    <LogoChip src={logoUrl.trim()} tone={tone ?? "primary"} size="sm" label={title} />
+    <LogoChip src={logoUrl.trim()} tone={tone ?? "muted"} size="sm" label={title} />
   ) : icon ? (
-    <IconChip icon={icon} tone={tone ?? "primary"} size="sm" label={title} />
+    <IconChip icon={icon} tone={tone ?? "muted"} size="sm" label={title} />
   ) : null;
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-card transition-shadow hover:shadow-soft">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-muted/30 px-4 py-3">
+    <section className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-4 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
           {panelMark}
           <div className="min-w-0">
@@ -295,7 +322,7 @@ export const badgeBase =
 export const toneClass = {
   success: "bg-success/15 text-success",
   warning: "bg-warning/20 text-warning-foreground",
-  danger: "bg-destructive/12 text-destructive",
+  danger: "bg-destructive/12 text-destructive-strong",
   info: "bg-info/10 text-info-strong",
   muted: "bg-muted text-muted-foreground",
   primary: "bg-primary-soft text-primary-strong",

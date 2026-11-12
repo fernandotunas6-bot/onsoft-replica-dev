@@ -4,6 +4,7 @@ import { requireAdminPermission } from "@/lib/admin-session";
 import { reportPayflowEvent } from "@/lib/ops-report";
 import { corsHeaders, jsonResponse } from "@/lib/payflow";
 import { executePaymentRefund } from "@/lib/payment-refund";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export async function POST(
 
   const { id } = await context.params;
   try {
-    const parsed = refundSchema.safeParse(await request.json());
+    const parsed = refundSchema.safeParse(await readJsonBody(request));
     if (!parsed.success) {
       return jsonResponse(
         {

@@ -134,6 +134,14 @@ describe("listTeacherAttendanceSessionsInputSchema and getAttendanceCallSheetInp
     expect(getAttendanceCallSheetInputSchema.safeParse({}).success).toBe(true);
   });
 
+  it("aceitam o professor das aulas só como UUID", () => {
+    const teacherId = "66666666-6666-4666-8666-666666666666";
+    expect(listTeacherAttendanceSessionsInputSchema.safeParse({ teacherId }).success).toBe(true);
+    expect(listTeacherAttendanceSessionsInputSchema.safeParse({ teacherId: "x" }).success).toBe(
+      false,
+    );
+  });
+
   it("still validate the shape of the fields that are provided", () => {
     expect(
       listTeacherAttendanceSessionsInputSchema.safeParse({ classGroupId: "not-a-uuid" }).success,

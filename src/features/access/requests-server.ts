@@ -9,6 +9,7 @@
  * Nunca cria matrícula, contrato ou cadastro novo. Nunca devolve ao requerente
  * dados do cadastro encontrado. Toda a decisão fica em `audit_logs`.
  */
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import type { Json, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -41,6 +42,7 @@ import {
   searchSchoolsForAccessInputSchema,
   submitAccessRequestInputSchema,
 } from "./request-schemas";
+import { escapeHtml } from "@/lib/escape-html";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -178,10 +180,13 @@ const REVIEWER_ROLE_CODES = ["owner", "admin", "administrador", "secretary", "se
  * o pedido já está gravado e aparece em Acessos na mesma.
  */
 async function notifyReviewers(
-  db: Db,
+  client: Db,
   schoolId: string,
   input: { title: string; body: string; requestId: string },
 ): Promise<number> {
+  // Por páginas e com os `.in(...)` em lotes: com centenas de contas, a lista de ids
+  // passava o tamanho do URL e ninguém era avisado do pedido.
+  const db = pagedReadClient(client);
   try {
     // Três leituras simples: entre member_roles e roles/school_memberships há
     // duas chaves estrangeiras cada, e um embed seria ambíguo (PGRST201).
@@ -237,14 +242,6 @@ async function notifyReviewers(
     console.error("[access-requests] in-app notify failed:", error);
     return 0;
   }
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 /** Mostra só o fim de um identificador sensível (B.I.) na lista da secretaria. */
@@ -350,6 +347,7 @@ async function findInstitutionalRecord(
     const { data: links } = await db
       .from("student_guardians")
       .select("student_id, guardian_person_id")
+      .is("valid_until", null)
       .eq("school_id", schoolId)
       .in("guardian_person_id", personIds);
     const guardianLinks = (links ?? []) as Array<{
@@ -986,8 +984,9 @@ export const reviewAccessRequest = createServerFn({ method: "POST" })
     } else {
       const decision = canGrantRole(membership.appRole, request.requested_profile, data.role);
       if (!decision.ok) throw new Error(decision.reason);
-      // Como nos convites: conceder administração ou tesouraria exige 2FA.
-      if (data.role === "Administrador" || data.role === "Tesouraria") {
+      // Pedidos de acesso nunca concedem Administrador (canGrantRole).
+      // Tesouraria continua a exigir AAL2.
+      if (data.role === "Tesouraria") {
         requireAal2(context.claims ?? {}, `Aprovar o acesso com cargo de ${data.role}`);
       }
 

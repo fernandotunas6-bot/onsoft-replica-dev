@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
-  requireSgaWriter,
+  requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -64,7 +64,11 @@ export const saveSpotlightOverrides = createServerFn({ method: "POST" })
   .validator((input: unknown) => spotlightOverridesSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
-    const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
+    // Como as outras definições da escola (school/server.ts): escola bloqueada e
+    // permissão «Leitura» na Gestão não gravam.
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     const db = await loadSgaAdminClient();
     await updateSettingsDomainValue(db, membership.schoolId, DOMAIN, () => data, context.userId);
     return applySpotlightOverrides(spotlightCatalog, data);

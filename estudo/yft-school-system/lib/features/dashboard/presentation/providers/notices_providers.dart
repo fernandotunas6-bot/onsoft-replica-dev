@@ -4,9 +4,11 @@ import 'package:yft_school_system/core/models/school_notice.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 
 final parentNoticesProvider = FutureProvider<List<SchoolNotice>>((ref) {
+  ref.watch(currentUidProvider);
   return ref.read(noticesRepositoryProvider).listNotices();
 });
 
 final unreadNoticesCountProvider = FutureProvider<int>((ref) {
+  ref.watch(currentUidProvider);
   return ref.read(noticesRepositoryProvider).getUnreadCount();
 });

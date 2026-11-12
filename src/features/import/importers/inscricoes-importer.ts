@@ -1,4 +1,4 @@
-import { normalizeText } from "../engine/normalize";
+import { normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadExistingPeople, personCandidateFromRow, resolveOrCreatePerson } from "./people-core";
 
@@ -8,14 +8,6 @@ type InscricoesCache = ImportRefCache & {
   /** Formulário de matrícula da escola: `enrollment_applications.form_id` é obrigatório. */
   formId: string | null;
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 export const inscricoesImporter: RowImporter = {
   module: "inscricoes",

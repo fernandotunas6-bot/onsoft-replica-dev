@@ -42,6 +42,7 @@ import { GlassTile, SigaMascot } from "@/components/brand/aurora"
 import { ANGOLA_PROVINCES, SCHOOL_TYPES, SECONDARY_COURSES, TEACHING_LEVELS } from "@/lib/angola"
 import { cn } from "@/lib/utils"
 import { ECOSYSTEM_URLS, PLATFORM_DOMAIN } from "@/lib/ecosystem-urls"
+import { schoolAddressUrls } from "@/lib/school-addresses"
 import {
   checkSlugAvailability,
   fetchSaasPlans,
@@ -64,6 +65,11 @@ const PAYMENT_BANK = String(import.meta.env["VITE_PAYMENT_BANK"] ?? "").trim()
 const PAYMENT_ACCOUNT_NAME = String(import.meta.env["VITE_PAYMENT_ACCOUNT_NAME"] ?? "").trim()
 const SUPPORT_WHATSAPP = String(import.meta.env["VITE_SUPPORT_WHATSAPP"] ?? "").replace(/\D/g, "")
 const SUPPORT_EMAIL = String(import.meta.env["VITE_SUPPORT_EMAIL"] ?? "").trim()
+
+// Estes endereços não recebem correio. Em builds públicos o utilizador deve
+// corrigir o endereço antes de chegar à verificação por código. O servidor
+// confirma, de forma independente, se um E2E isolado pode utilizá-los.
+const RESERVED_SIGNUP_TEST_EMAIL = /\.(test|example|invalid|localhost)$/i
 
 const schema = z.object({
   name: z.string().trim().min(2, "Nome da escola obrigatório"),
@@ -101,7 +107,14 @@ const schema = z.object({
   contact_email: z.string().trim().email("E-mail do responsável inválido"),
   plan_code: z.enum(["start", "professional", "business", "enterprise"]),
   admin_name: z.string().trim().min(2, "Nome do administrador obrigatório"),
-  admin_email: z.string().trim().email("E-mail do administrador inválido"),
+  admin_email: z
+    .string()
+    .trim()
+    .email("E-mail do administrador inválido")
+    .refine(
+      (email) => import.meta.env.DEV || !RESERVED_SIGNUP_TEST_EMAIL.test(email),
+      "Endereço reservado para testes. Indique um e-mail verdadeiro para criar a escola.",
+    ),
   // Espelha adminPasswordSchema no servidor. Se o formulário aceitasse o que o
   // servidor recusa, o cliente só via o erro depois de submeter tudo.
   admin_password: z
@@ -176,11 +189,22 @@ const FIELD_STEP = Object.fromEntries(
  * entrar; ambos abrem o SIGA da escola com a sessão do administrador.
  */
 // Mesmos ambientes e caminhos do SIGA (src/features/auth/environments.ts).
+/**
+ * Percurso depois de criar a escola: primeiro configurar no painel
+ * administrativo (assistente), depois entrar na escola. A primeira escolha é a
+ * recomendada e consome o link de entrada directa quando existe.
+ */
 const ENTRY_CHOICES = [
+  {
+    path: "/configuracoes/inicio",
+    title: "Assistente de configuração",
+    hint: "1.º Configurar a escola no painel administrativo",
+    icon: Settings2,
+  },
   {
     path: "/",
     title: "Painel Administrativo",
-    hint: "Gestão da escola",
+    hint: "2.º Entrar na escola: gestão diária",
     icon: LayoutDashboard,
   },
   {
@@ -188,12 +212,6 @@ const ENTRY_CHOICES = [
     title: "Portal Escolar",
     hint: "Gestão académica",
     icon: GraduationCap,
-  },
-  {
-    path: "/configuracoes/inicio",
-    title: "Assistente de configuração",
-    hint: "Preparar a instituição para começar a funcionar",
-    icon: Settings2,
   },
 ] as const
 
@@ -313,6 +331,7 @@ export function StartSchoolWizard() {
   )
   const [done, setDone] = useState<{
     hostname: string
+    slug: string
     sigaUrl: string
     adminTenantsUrl?: string
     adminInviteDelivered: boolean
@@ -453,9 +472,9 @@ export function StartSchoolWizard() {
   }, [slug])
 
   const adminEmail = (values.admin_email ?? "").trim().toLowerCase()
-  // Domínios reservados (.test, .example…) não recebem e-mail: o servidor
-  // dispensa-os da confirmação (testes E2E), e o assistente também.
-  const reservedTestEmail = /\.(test|example|invalid|localhost)$/i.test(adminEmail)
+  // O atalho de UI só existe no servidor de desenvolvimento. Mesmo aí, o
+  // servidor valida o projecto staging antes de dispensar qualquer código.
+  const reservedTestEmail = import.meta.env.DEV && RESERVED_SIGNUP_TEST_EMAIL.test(adminEmail)
   const emailVerified =
     reservedTestEmail || Boolean(verification && verification.email === adminEmail)
 
@@ -591,6 +610,7 @@ export function StartSchoolWizard() {
       }
       setDone({
         hostname: result.hostname || `${payload.slug}.${PLATFORM_DOMAIN}`,
+        slug: payload.slug,
         sigaUrl: result.sigaUrl || ECOSYSTEM_URLS.siga,
         adminTenantsUrl: result.adminTenantsUrl,
         adminInviteDelivered: result.adminInviteDelivered ?? false,
@@ -683,7 +703,11 @@ export function StartSchoolWizard() {
             </li>
 
             <li className="space-y-2 rounded-lg border p-4">
-              <h3 className="text-sm font-medium">3. Onde deseja começar?</h3>
+              <h3 className="text-sm font-medium">3. Configure a escola e depois entre</h3>
+              <p className="text-xs text-muted-foreground">
+                Comece pelo assistente de configuração; quando os passos essenciais estiverem
+                feitos, entre na escola.
+              </p>
               <div className="grid gap-2 sm:grid-cols-3">
                 {ENTRY_CHOICES.map((choice) => {
                   const Icon = choice.icon
@@ -706,6 +730,7 @@ export function StartSchoolWizard() {
                   )
                 })}
               </div>
+              <SchoolAddresses hostname={done.hostname} slug={done.slug} />
               {loginLinkUsed ? (
                 <p className="text-xs text-muted-foreground">
                   A entrada directa já foi usada. Para abrir outro ambiente, entre com{" "}
@@ -1394,6 +1419,22 @@ function entryUrl(sigaUrl: string, path: string, loginUrl: string | null) {
   } catch {
     return plain
   }
+}
+
+function SchoolAddresses({ hostname, slug }: { hostname: string; slug: string }) {
+  const urls = schoolAddressUrls(hostname, slug)
+  if (!urls) return null
+  return (
+    <div className="grid gap-1 border-t pt-2 text-xs text-muted-foreground">
+      <p>Endereços da escola, para partilhar depois de configurar:</p>
+      <a className="break-all text-primary underline" href={urls.websiteUrl} target="_blank" rel="noopener noreferrer">
+        Website da escola · {hostname}
+      </a>
+      <a className="break-all text-primary underline" href={urls.portalUrl} target="_blank" rel="noopener noreferrer">
+        Portal SIGA Plus · {hostname}/portal
+      </a>
+    </div>
+  )
 }
 
 /** Área do cliente no SIGA: plano, uso, pagamento e domínio (só Administrador). */

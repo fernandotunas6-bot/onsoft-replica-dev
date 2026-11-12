@@ -295,12 +295,3 @@ export function TeacherWorkspacePanel({
     </div>
   );
 }
-
-export function TeacherWorkspaceHint() {
-  return (
-    <p className="flex items-center gap-2 text-sm text-muted-foreground">
-      <GraduationCap className="size-4 text-primary" />
-      Espaço do docente: só módulos permitidos, turmas atribuídas e horário.
-    </p>
-  );
-}

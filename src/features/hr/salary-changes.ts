@@ -10,14 +10,14 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { requireAal2 } from "@/features/hr/require-aal2";
 
 const salaryRequestSchema = z.object({
-  contractId: z.string().uuid(),
-  requestedStepId: z.string().uuid().nullable().optional(),
+  contractId: z.string().guid(),
+  requestedStepId: z.string().guid().nullable().optional(),
   proposedBaseSalaryKz: z.number().finite().min(0).max(1_000_000_000),
   effectiveOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   reason: z.string().trim().min(10).max(1500),
 });
 const reviewSchema = z.object({
-  requestId: z.string().uuid(),
+  requestId: z.string().guid(),
   decision: z.enum(["approved", "rejected"]),
   reason: z.string().trim().min(10).max(1500),
 });

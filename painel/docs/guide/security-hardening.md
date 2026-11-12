@@ -1,112 +1,125 @@
-# Endurecimento de Segurança & Prevenção de Invasões
+# Endurecimento de segurança
 
-Diretrizes técnicas e normas de segurança da plataforma **SIGA Plus** para eliminação de vetores de ataque, proteção da infraestrutura, isolamento de dados e prevenção de acessos não autorizados.
+As defesas que o SIGA Plus tem hoje, tal como estão no código. Quem vê o quê, por cargo e
+por módulo, está em [Segurança de rotas e acessos](./route-security.md).
 
----
+## Entrar e manter a sessão
 
-## 1. Segurança de Servidor & Rede
+**Senhas.** Pelo menos 8 caracteres, com maiúsculas, minúsculas e números. É a mesma regra
+no ecrã e no serviço de autenticação. Ao escolher uma senha, o SIGA Plus avisa se ela
+aparece em fugas de dados conhecidas. A consulta ao HaveIBeenPwned é anónima: só saem do
+navegador os 5 primeiros caracteres do resumo SHA-1 da senha. É uma ajuda a quem escolhe,
+não uma barreira: se o serviço não responder, o formulário segue.
 
-Para evitar que a documentação ou a aplicação exponha portas abertas à rede externa sem proteção:
+**Tentativas.** O início de sessão por senha tem uma verificação anti-robô (hCaptcha). A
+entrada com o Nº de BI, o telefone ou o Nº de aluno passa pelo servidor do SIGA Plus, que
+aceita no máximo:
 
-### Configuração de Escuta Local
-Os servidores de desenvolvimento e documentação devem ser configurados para escutar exclusivamente na interface de loopback local (`127.0.0.1` ou `localhost`), prevenindo acessos indesejados pela rede local:
+| O quê                                     | Limite            |
+| ----------------------------------------- | ----------------- |
+| Entrada, por endereço IP                  | 10 por minuto     |
+| Entrada, por conta (de qualquer IP)       | 10 por 15 minutos |
+| Ligação de entrada por e-mail             | 5 por 15 minutos  |
+| Código de recuperação da senha, por IP    | 30 por hora       |
+| Código de recuperação da senha, por conta | 20 por dia        |
 
-```bash
-# Execução segura do servidor de documentação
-npm run dev -- --host 127.0.0.1
-```
+Os contadores vivem na base de dados e valem para todos os servidores; se a base de dados
+não responder, cada servidor aplica o seu próprio limite. Conta desconhecida e senha errada
+recebem a mesma resposta, para não revelar que contas existem.
 
-### Cabeçalhos de Segurança HTTP (Security Headers)
-Em ambientes de produção, os servidores Web (Nginx, Cloudflare, Vercel) devem aplicar rigorosamente os seguintes cabeçalhos de segurança:
+**Duração da sessão.** Sem verificação em dois passos (2FA), a sessão termina ao fim de
+30 minutos sem actividade. Depois de uma verificação 2FA, o navegador fica reconhecido
+durante 30 dias. A verificação volta a ser pedida quando passam os 30 dias, quando o
+navegador ou o sistema operativo mudam e quando a pessoa termina a sessão. Mudar a senha
+termina as sessões abertas noutros dispositivos.
 
-```http
-Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-X-Frame-Options: DENY
-X-Content-Type-Options: nosniff
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=()
-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://central-admin.siga.plus;
-```
+**Acções críticas.** Pedem uma nova confirmação de identidade, mesmo com a sessão aberta.
+Numa conta com 2FA, mudar a senha pede sempre o segundo factor.
 
----
+**Onde fica a sessão.** Num cookie do domínio da plataforma (`Secure`, `SameSite=Lax`): uma
+entrada vale em todos os subdomínios das escolas, e terminar a sessão termina-a em todos.
+O servidor não se guia por esse cookie, só pelo cabeçalho `Authorization` que a aplicação
+envia. Por isso, outro site não consegue fazer pedidos em nome de quem tem a sessão aberta
+(CSRF). O cookie é legível pela aplicação, como era o armazenamento local antes dele: a
+defesa contra o roubo da sessão é não deixar correr código alheio na página.
 
-## 2. Isolamento de Base de Dados (Multi-Tenant Row Level Security)
+## Código alheio na página (XSS)
 
-Para garantir que uma instituição cliente nunca aceda aos dados de outra, a base de dados PostgreSQL / Supabase impõe políticas estritas de **Row Level Security (RLS)** em todas as tabelas:
+- O React escapa todo o texto que mostra. Só um componente insere HTML directamente (os
+  estilos dos gráficos), a partir de valores fixos.
+- Os modelos de impressão que a escola personaliza são recusados se tiverem código activo
+  (scripts, atributos `on…`, ligações `javascript:`, iframes). A pré-visualização abre num
+  iframe isolado (`sandbox`).
+- Os dados que entram nos e-mails são escapados antes de irem para o HTML.
+- A política de conteúdo (CSP) do SIGA está em **modo de relatório**: o navegador não
+  bloqueia nada, só comunica o que bloquearia. Passa a obrigatória quando os relatórios
+  estiverem limpos.
 
-```sql
--- Ativar RLS na tabela de alunos
-ALTER TABLE public.alunos ENABLE ROW LEVEL SECURITY;
+## No servidor
 
--- Política de Leitura: O utilizador só acede a alunos da sua própria instituição
-CREATE POLICY "Leitura de alunos por instituicao" 
-ON public.alunos 
-FOR SELECT 
-USING (
-  instituicao_id = (SELECT instituicao_id FROM public.utilizadores WHERE id = auth.uid())
-);
+- Cada operação valida os dados recebidos com um esquema antes de os usar, e confirma a
+  sessão e o cargo antes de ler ou gravar. Um teste automático impede que se publique uma
+  operação nova sem guarda.
+- As consultas à base de dados passam pelo cliente do Supabase, com valores separados das
+  instruções. As pesquisas por texto limpam os caracteres que alterariam o filtro.
+- As operações públicas por natureza (matrícula online, criação de escola, verificação de
+  documentos, catracas) têm limites de pedidos.
+- As rotas HTTP da API (`/api/…`: app móvel, catracas, avisos de pagamentos, e-mail e SMS,
+  registo de escolas e consola) recusam corpos acima de um tamanho máximo, com o erro 413.
+  Os avisos dos fornecedores continuam a ser lidos byte a byte, para a assinatura valer.
 
--- Política de Modificação: Restrita a administradores e secretarias da instituição
-CREATE POLICY "Modificacao de alunos por perfil autorizado" 
-ON public.alunos 
-FOR ALL 
-USING (
-  instituicao_id = (SELECT instituicao_id FROM public.utilizadores WHERE id = auth.uid())
-  AND (SELECT role FROM public.utilizadores WHERE id = auth.uid()) IN ('ADMIN_INSTITUCIONAL', 'SECRETARIA')
-);
-```
+## Na base de dados
 
----
+- Segurança ao nível da linha (RLS) em todas as tabelas: 216 de 216 no retrato de produção
+  de 29/10/2026.
+- Ser membro da escola não basta para gravar nem para ler dados sensíveis, porque alunos e
+  encarregados também são membros. As escritas pedem o cargo certo.
+- As tabelas mais sensíveis (histórico académico, acompanhamento de alunos em risco, bolsas,
+  caixa, cobranças de pagamento, chaves das catracas, registo das acções da consola) só são
+  acessíveis pelo servidor, depois das verificações acima.
 
-## 3. Prevenção de Injeções (SQLi, XSS, CSRF)
+## Catracas e leitores de cartões
 
-### Prevenção de SQL Injection
-- Todas as consultas utilizam parâmetros tipados via cliente Supabase ou ORM.
-- Proibida a concatenação direta de strings em queries SQL.
+- Cada leitor identifica-se com a chave do seu dispositivo. Uma chave errada conta para um
+  limite de 20 tentativas por 15 minutos, por endereço IP.
+- Cada dispositivo aceita até 120 leituras por minuto. Mais do que isso é alguém a percorrer
+  números de cartão, porque a resposta traz o nome e a fotografia do aluno.
+- O servidor só deixa passar se o dispositivo não estiver em «Manutenção» nem «Offline», se
+  o cartão estiver activo e se o aluno estiver activo (ou for candidato). Um aluno
+  transferido, com o curso concluído, cancelado, suspenso ou bloqueado não passa.
+- Cada leitura fica registada, com o motivo quando a passagem é recusada.
 
-### Proteção Contra XSS (Cross-Site Scripting)
-- Validação e sanitização rigorosa de todas as entradas do utilizador com **Zod schemas** no servidor.
-- Sanitização de conteúdos ricos (Rich Text / HTML) utilizando sanitizadores contextuais antes de renderizar no DOM.
+## Cabeçalhos HTTP
 
-### Proteção Contra CSRF (Cross-Site Request Forgery)
-- Todos os cookies de sessão utilizam os atributos `HttpOnly`, `Secure` e `SameSite=Strict`.
-- Endpoints de mutação requerem validação de tokens anti-CSRF ou verificação de cabeçalhos de origem (`Origin` / `Referer`).
+Todas as aplicações enviam HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy` e
+`Permissions-Policy`, e protegem-se contra serem embebidas noutro site:
 
----
+| Aplicação                                         | Pode ser embebida                             |
+| ------------------------------------------------- | --------------------------------------------- |
+| SIGA, portal comercial (WEB) e documentação (DOC) | só dentro da própria aplicação (`SAMEORIGIN`) |
+| Consola da plataforma (ADMIN) e PayFlow           | nunca (`DENY`)                                |
 
-## 4. Proteção de Autenticação & Mitigação de Força Bruta
+A consola e as páginas do PayFlow, excepto a inicial, pedem aos motores de pesquisa que não
+as indexem.
 
-Para impedir ataques de dicionário ou tentativas automatizadas de quebra de senhas:
+O SIGA permite a câmara (fotografias) e a localização (presença dos professores) só a si
+próprio, e desliga o microfone, os pagamentos pelo navegador e o USB. As outras aplicações
+desligam todos estes acessos.
 
-- **Rate Limiting de Autenticação**: Bloqueio de IP / Conta após 5 tentativas falhadas num intervalo de 15 minutos.
-- **Políticas de Senha Fortes**: Comprimento mínimo de 10 caracteres, exigindo maiúsculas, números e caracteres especiais.
-- **Sessões Curta Duração**: Tokens JWT com expiração máxima de 1 hora e rotação de Refresh Tokens.
+## Segredos e dependências
 
----
+- Os ficheiros `.env` ficam fora do repositório; só os `.env.example`, sem valores reais,
+  são guardados.
+- O SIGA no navegador recusa-se a arrancar com uma chave secreta do Supabase: só aceita a
+  chave publicável. As chaves secretas vivem nos segredos da publicação.
+- A integração contínua falha quando uma dependência do SIGA, ou uma dependência de
+  produção dos painéis, tem uma vulnerabilidade alta ou crítica conhecida.
+- Se uma chave for exposta: revogá-la no fornecedor, criar outra e actualizar o segredo da
+  publicação.
 
-## 5. Comunicação Segura com Catracas & Pontes de Hardware
+## Desenvolvimento local
 
-A comunicação entre a aplicação e os dispositivos de controlo de acessos físicos (Catracas eletrónicas via ponte Python/Tauri 2) é protegida contra interceptações e falsificação de acessos:
-
-- **Assinatura de Pacotes (HMAC-SHA256)**: Cada evento de validação de cartão/biometria enviado pela catraca é assinado com uma chave secreta do dispositivo.
-- **Timestamp & Nonce Anti-Replay**: Cada requisição inclui um carimbo de data/hora e identificador único (nonce) para impedir a repetição maliciosa de autorizações de entrada.
-- **Validação Dupla**: O servidor valida se o aluno/funcionário tem a licença ativa e propinas em dia antes de responder com a instrução de liberação do relé da catraca.
-
----
-
-## 6. Saneamento de Segredos (Zero Secret Leakage)
-
-- **Ficheiros `.env`**: Nunca incluídos em controlo de versões (`.gitignore`).
-- **Exemplos de Código**: Todos os ficheiros de documentação e testes utilizam estritamente identificadores fictícios de demonstração (`https://your-instance.supabase.co`, `your-secret-token`).
-- **Rotação de Chaves**: Caso uma chave de acesso seja partilhada involuntariamente, a rotação deve ser efetuada imediatamente no painel de administração da infraestrutura.
-
----
-
-## Checklist de Segurança para Implantação
-
-- [x] Servidor de documentação configurado em escuta local restrita.
-- [x] Políticas RLS aplicadas em todas as tabelas no banco de dados.
-- [x] Cabeçalhos de segurança HTTP (CSP, HSTS, X-Frame-Options) ativos no servidor web.
-- [x] Middleware de verificação de licença e papéis (RBAC) ativo em todas as rotas restritas.
-- [x] Comunicação com catracas validada com assinatura de pacotes HMAC.
-- [x] Nenhum segredo ou credencial real exposto no código público.
+O servidor de desenvolvimento do SIGA escuta em todas as interfaces de rede, porque o Lovable
+precisa. Numa rede em que não confia, use a firewall do computador. A documentação
+(`vitepress dev`) e o portal comercial escutam só no próprio computador, a menos que se
+acrescente `--host`.

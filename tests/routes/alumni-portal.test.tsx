@@ -88,7 +88,7 @@ function buildPortal() {
 }
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/alumni.portal");
+  const mod = await import("@/routes/alumni_.portal");
   return routeComponentOf(mod);
 }
 

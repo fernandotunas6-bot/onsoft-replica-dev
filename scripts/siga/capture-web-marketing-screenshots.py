@@ -21,7 +21,8 @@ from playwright.async_api import async_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB_PUBLIC = ROOT / "painel" / "web" / "public"
-RAW_DIR = WEB_PUBLIC / ".screenshots-raw"
+# Capturas brutas fora de public/: tudo o que está em public/ é publicado no site.
+RAW_DIR = ROOT / "painel" / "web" / ".screenshots-raw"
 SIGA = os.environ.get("VITE_SIGA_URL", "http://localhost:3006")
 
 

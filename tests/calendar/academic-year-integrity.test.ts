@@ -14,9 +14,9 @@ describe("calendário lectivo", () => {
     expect(create).toContain('if (!ownYear) throw new Error("Ano lectivo não encontrado.")');
   });
 
-  it("se o novo ano falhar, o ano anterior volta a ficar activo", () => {
+  it("criação e activação usam a mesma operação transaccional", () => {
     const create = handler("createAcademicYear");
-    expect(create).toContain("const reopenPrevious = async () =>");
-    expect(create.match(/await reopenPrevious\(\)/g)?.length).toBe(2);
+    expect(create).toContain('"siga_save_active_academic_year"');
+    expect(create).not.toContain('.from("academic_years")');
   });
 });

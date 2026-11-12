@@ -1,0 +1,98 @@
+[
+  {
+    "role": "Aluno",
+    "width": 390,
+    "academicArea": true,
+    "attendanceAndGradesTogether": true,
+    "calendarDirect": true,
+    "noAdminDestination": true,
+    "navigation": {
+      "to": "/pedagogica",
+      "search": {
+        "tab": "presencas"
+      }
+    },
+    "drawerCloses": true,
+    "overflow": false
+  },
+  {
+    "role": "Aluno",
+    "width": 1440,
+    "academicArea": true,
+    "attendanceAndGradesTogether": true,
+    "calendarDirect": true,
+    "noAdminDestination": true,
+    "navigation": {
+      "to": "/pedagogica",
+      "search": {
+        "tab": "presencas"
+      }
+    },
+    "drawerCloses": false,
+    "overflow": false
+  },
+  {
+    "role": "Encarregado",
+    "width": 390,
+    "academicArea": true,
+    "attendanceAndGradesTogether": true,
+    "calendarDirect": true,
+    "noAdminDestination": true,
+    "navigation": {
+      "to": "/pedagogica",
+      "search": {
+        "tab": "presencas"
+      }
+    },
+    "drawerCloses": true,
+    "overflow": false
+  },
+  {
+    "role": "Encarregado",
+    "width": 1440,
+    "academicArea": true,
+    "attendanceAndGradesTogether": true,
+    "calendarDirect": true,
+    "noAdminDestination": true,
+    "navigation": {
+      "to": "/pedagogica",
+      "search": {
+        "tab": "presencas"
+      }
+    },
+    "drawerCloses": false,
+    "overflow": false
+  },
+  {
+    "role": "Professor",
+    "width": 390,
+    "academicArea": true,
+    "attendanceAndGradesTogether": true,
+    "calendarDirect": true,
+    "noAdminDestination": true,
+    "navigation": {
+      "to": "/pedagogica",
+      "search": {
+        "tab": "chamada"
+      }
+    },
+    "drawerCloses": true,
+    "overflow": false
+  },
+  {
+    "role": "Professor",
+    "width": 1440,
+    "academicArea": true,
+    "attendanceAndGradesTogether": true,
+    "calendarDirect": true,
+    "noAdminDestination": true,
+    "navigation": {
+      "to": "/pedagogica",
+      "search": {
+        "tab": "chamada"
+      }
+    },
+    "drawerCloses": false,
+    "overflow": false
+  }
+]

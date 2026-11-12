@@ -30,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
-import { getCreateSchoolUrl, getSaasApiUrl, getSigaSchoolUrl } from "@/lib/ecosystem-urls"
+import { getCreateSchoolUrl, getSaasApiUrl, getSchoolPortalUrl, getSchoolWebsiteUrl } from "@/lib/ecosystem-urls"
 import { setTenantStatus, syncSaasUsage } from "@/lib/saas-api"
 import {
   TenantSubscriptionDialog,
@@ -75,11 +75,19 @@ function trialExpired(tenant: TenantRow, now = Date.now()) {
   return Number.isFinite(end) && end < now
 }
 
+/** Ainda não paga: `trial`, ou `active` com a assinatura em `trialing` (mesma regra do servidor). */
+function inTrial(tenant: TenantRow) {
+  return (
+    tenant.status === "trial" ||
+    (tenant.status === "active" && tenant.subscription_status === "trialing")
+  )
+}
+
 type TenantFilter = "all" | "active" | "trial" | "trial_expired" | "past_due" | "suspended" | "exempt"
 
 const FILTERS: Array<{ id: TenantFilter; label: string }> = [
   { id: "all", label: "Todas" },
-  { id: "active", label: "Activas" },
+  { id: "active", label: "Activas (a pagar)" },
   { id: "trial", label: "Em trial" },
   { id: "trial_expired", label: "Trial expirado" },
   { id: "past_due", label: "Em atraso" },
@@ -91,8 +99,10 @@ function matchesFilter(tenant: TenantRow, filter: TenantFilter) {
   switch (filter) {
     case "all":
       return true
+    case "active":
+      return tenant.status === "active" && !inTrial(tenant) && !tenant.billing_exempt
     case "trial":
-      return tenant.status === "trial" && !trialExpired(tenant)
+      return inTrial(tenant) && !trialExpired(tenant)
     case "trial_expired":
       return trialExpired(tenant)
     case "exempt":
@@ -441,9 +451,16 @@ export default function TenantsPage() {
                                   Domínios
                                 </Link>
                               </DropdownMenuItem>
+                              {getSchoolWebsiteUrl(tenant.slug) ? (
+                                <DropdownMenuItem asChild>
+                                  <a href={getSchoolWebsiteUrl(tenant.slug) ?? undefined} target="_blank" rel="noopener noreferrer">
+                                    Website da escola <ExternalLink className="size-3" />
+                                  </a>
+                                </DropdownMenuItem>
+                              ) : null}
                               <DropdownMenuItem asChild>
-                                <a href={getSigaSchoolUrl(tenant.slug)}>
-                                  Abrir no SIGA <ExternalLink className="size-3" />
+                                <a href={getSchoolPortalUrl(tenant.slug)} target="_blank" rel="noopener noreferrer">
+                                  Portal SIGA Plus <ExternalLink className="size-3" />
                                 </a>
                               </DropdownMenuItem>
                               {tenant.status === "cancelled" || tenant.status === "archived" ? null : (

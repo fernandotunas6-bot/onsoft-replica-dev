@@ -108,7 +108,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         required: false,
         type: "text",
         description: "Número do processo escolar",
-        example: "PROC-2026-042",
+        example: "1260042",
       },
       {
         header: "Bilhete de Identidade / Cédula",
@@ -181,7 +181,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         required: true,
         type: "text",
         description: "Nº de Processo ou BI do educando",
-        example: "PROC-2026-042",
+        example: "1260042",
       },
       {
         header: "Nome do Encarregado",
@@ -660,7 +660,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         required: true,
         type: "text",
         description: "Nº de Processo ou BI do Aluno",
-        example: "PROC-2026-042",
+        example: "1260042",
       },
       {
         header: "Turma",
@@ -977,7 +977,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         required: true,
         type: "text",
         description: "Número do processo ou bilhete de identidade",
-        example: "PROC-2026-042",
+        example: "1260042",
       },
       {
         header: "Turma",
@@ -1050,7 +1050,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         required: true,
         type: "text",
         description: "Identificação do estudante",
-        example: "PROC-2026-042",
+        example: "1260042",
       },
       {
         header: "Turma",
@@ -1107,7 +1107,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         required: true,
         type: "text",
         description: "Aluno no SIGA",
-        example: "PROC-2026-042",
+        example: "1260042",
       },
       {
         header: "Ano Lectivo Anterior",
@@ -1224,7 +1224,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         required: true,
         type: "text",
         description: "Identificação do Aluno",
-        example: "PROC-2026-042",
+        example: "1260042",
       },
       {
         header: "Mês / Referência",
@@ -1281,7 +1281,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         required: true,
         type: "text",
         description: "Aluno devedor",
-        example: "PROC-2026-042",
+        example: "1260042",
       },
       {
         header: "Nº da Fatura / Guia",
@@ -1338,7 +1338,7 @@ export const OFFICIAL_TEMPLATES: Record<string, OfficialTemplateSpec> = {
         required: true,
         type: "text",
         description: "Identificação do estudante",
-        example: "PROC-2026-042",
+        example: "1260042",
       },
       {
         header: "Ano Lectivo",

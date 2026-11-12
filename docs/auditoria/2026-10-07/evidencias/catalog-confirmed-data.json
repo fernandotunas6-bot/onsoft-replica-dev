@@ -1,0 +1,73 @@
+[
+  {
+    "audit": {
+      "users": 64,
+      "tables": 189,
+      "policies": 359,
+      "postgres": "PostgreSQL 17.6 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+      "extensions": [
+        "plpgsql",
+        "pg_stat_statements",
+        "uuid-ossp",
+        "pgcrypto",
+        "supabase_vault"
+      ],
+      "captured_at": "2026-10-07T08:11:25.7077+00:00",
+      "cron_schema": null,
+      "rls_enabled": 189,
+      "mfa_verified": 3,
+      "storage_buckets": [
+        {
+          "name": "school-private",
+          "public": false,
+          "file_size_limit": 52428800,
+          "allowed_mime_types": null
+        },
+        {
+          "name": "school-exports",
+          "public": false,
+          "file_size_limit": 104857600,
+          "allowed_mime_types": null
+        },
+        {
+          "name": "billing-proofs",
+          "public": false,
+          "file_size_limit": 5242880,
+          "allowed_mime_types": [
+            "application/pdf",
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        },
+        {
+          "name": "school-logos",
+          "public": true,
+          "file_size_limit": 2097152,
+          "allowed_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp",
+            "image/svg+xml"
+          ]
+        },
+        {
+          "name": "avatars",
+          "public": false,
+          "file_size_limit": 5242880,
+          "allowed_mime_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        },
+        {
+          "name": "siga-files",
+          "public": false,
+          "file_size_limit": 52428800,
+          "allowed_mime_types": null
+        }
+      ]
+    }
+  }
+]

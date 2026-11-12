@@ -381,8 +381,19 @@ async function runLeadReminders(now: Date) {
 
 export async function runCommercialLifecycle(now = new Date()) {
   const db = await loadSgaAdminClient();
-  const billingPausesEnded = await endExpiredBillingPauses(db, now);
-  const overdueSuspended = await suspendOverdueTenants(db, now);
+  // Uma tarefa que falha fica reportada (e devolve null) sem impedir as outras.
+  const guarded = async (name: string, run: () => Promise<number>) => {
+    try {
+      return await run();
+    } catch (error) {
+      reportSigaError(`saas.lifecycle.${name}_failed`, error);
+      return null;
+    }
+  };
+  const billingPausesEnded = await guarded("billing_pauses", () =>
+    endExpiredBillingPauses(db, now),
+  );
+  const overdueSuspended = await guarded("overdue", () => suspendOverdueTenants(db, now));
   const trialReminders = await runTrialReminders(db, now);
   const signupReminders = await runLeadReminders(now);
   reportSigaEvent("saas.lifecycle.completed", { count: trialReminders + signupReminders });

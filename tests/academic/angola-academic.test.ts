@@ -35,6 +35,17 @@ describe("angola academic pauta", () => {
     expect(gradeMatchesTeachingLevels("Qualquer", [])).toBe(true);
   });
 
+  it("não confunde 11ª/12ª nem «II Ciclo» com níveis mais baixos (sem lookbehind)", () => {
+    expect(gradeMatchesTeachingLevels("1.ª Classe", ["primario"])).toBe(true);
+    expect(gradeMatchesTeachingLevels("11ª Classe", ["primario"])).toBe(false);
+    expect(gradeMatchesTeachingLevels("12.ª Classe", ["primario"])).toBe(false);
+    expect(gradeMatchesTeachingLevels("Turma 3ª A", ["primario"])).toBe(true);
+    expect(gradeMatchesTeachingLevels("I Ciclo", ["i_ciclo"])).toBe(true);
+    expect(gradeMatchesTeachingLevels("II Ciclo", ["i_ciclo"])).toBe(false);
+    expect(gradeMatchesTeachingLevels("17ª", ["i_ciclo"])).toBe(false);
+    expect(gradeMatchesTeachingLevels("9ª Classe", ["i_ciclo"])).toBe(true);
+  });
+
   it("gera iniciais para a foto da pauta", () => {
     expect(initialsFromName("Ana Silva Costa")).toBe("AS");
   });

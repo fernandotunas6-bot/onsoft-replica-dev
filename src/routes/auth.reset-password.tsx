@@ -1,6 +1,11 @@
 import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { publicErrorMessage } from "@/lib/public-error";
-import { PWNED_PASSWORD_MESSAGE, passwordPolicyMessage } from "@/lib/password-policy-error";
+import {
+  PWNED_PASSWORD_MESSAGE,
+  passwordChecksOf,
+  passwordMeetsPolicy,
+  passwordPolicyMessage,
+} from "@/lib/password-policy-error";
 import { passwordExposureCount } from "@/lib/pwned-password";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -23,6 +28,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTenant } from "@/features/saas/tenant-context";
 import { getSchoolInitials } from "@/features/auth/email-templates/reset-password.html";
+import {
+  factorsForSensitiveChange,
+  isInsufficientAalError,
+  type VerificationFactors,
+} from "@/features/auth/verification";
+import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { getAppName } from "@/lib/app-config";
 
 // style-check: route-exempt - formulário de redefinição de senha.
@@ -52,26 +63,22 @@ function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  // Segundo factor pedido antes de gravar a senha (contas com 2FA verificado).
+  const [mfaFactors, setMfaFactors] = useState<VerificationFactors | null>(null);
 
   const schoolName = activeTenant?.name || getAppName();
   const initials = useMemo(() => getSchoolInitials(schoolName), [schoolName]);
 
-  // Validação de requisitos de senha
-  const passwordChecks = useMemo(() => {
-    return {
-      length: password.length >= 8,
-      hasLetter: /[a-zA-Z]/.test(password),
-      hasNumber: /\d/.test(password),
-      hasSpecial: /[^a-zA-Z0-9]/.test(password),
+  // Os mesmos requisitos que o Supabase Auth aplica, de `password-policy-error`.
+  const passwordChecks = useMemo(
+    () => ({
+      ...passwordChecksOf(password),
       matches: password.length > 0 && password === confirmPassword,
-    };
-  }, [password, confirmPassword]);
+    }),
+    [password, confirmPassword],
+  );
 
-  const isFormValid =
-    passwordChecks.length &&
-    passwordChecks.hasLetter &&
-    passwordChecks.hasNumber &&
-    passwordChecks.matches;
+  const isFormValid = passwordMeetsPolicy(password) && passwordChecks.matches;
 
   useEffect(() => {
     let active = true;
@@ -186,6 +193,40 @@ function ResetPasswordPage() {
     };
   }, []);
 
+  const updateFailureMessage = (err: unknown) =>
+    passwordPolicyMessage(err) ??
+    publicErrorMessage(err, "Não foi possível atualizar a senha. Tente novamente.");
+
+  // Grava a nova senha. Numa conta com 2FA o Supabase só a aceita depois do
+  // segundo factor (o link de recuperação dá uma sessão aal1): nesse caso pede-se
+  // a confirmação e a senha escrita fica à espera, sem a perder.
+  const applyNewPassword = async (): Promise<"done" | "needs-mfa"> => {
+    const { error } = await supabase.auth.updateUser({
+      password: password.trim(),
+    });
+
+    if (error) {
+      if (isInsufficientAalError(error)) {
+        const factors = await factorsForSensitiveChange().catch(() => null);
+        if (factors) {
+          setMfaFactors(factors);
+          return "needs-mfa";
+        }
+      }
+      throw error;
+    }
+
+    setMfaFactors(null);
+    setSuccess(true);
+    toast.success("Senha atualizada com sucesso!");
+
+    // Redirecionamento amigável após 2.5s
+    setTimeout(() => {
+      void navigate({ to: "/" });
+    }, 2500);
+    return "done";
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -200,26 +241,16 @@ function ResetPasswordPage() {
         toast.error(PWNED_PASSWORD_MESSAGE);
         return;
       }
-      const { error } = await supabase.auth.updateUser({
-        password: password.trim(),
-      });
-
-      if (error) {
-        throw error;
+      // Pedir já o segundo factor quando a conta o tem, em vez de esperar pela
+      // recusa do servidor. Se a consulta falhar, o servidor continua a decidir.
+      const factors = await factorsForSensitiveChange().catch(() => null);
+      if (factors) {
+        setMfaFactors(factors);
+        return;
       }
-
-      setSuccess(true);
-      toast.success("Senha atualizada com sucesso!");
-
-      // Redirecionamento amigável após 2.5s
-      setTimeout(() => {
-        void navigate({ to: "/" });
-      }, 2500);
+      await applyNewPassword();
     } catch (err) {
-      const msg =
-        passwordPolicyMessage(err) ??
-        publicErrorMessage(err, "Não foi possível atualizar a senha. Tente novamente.");
-      toast.error(msg);
+      toast.error(updateFailureMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -258,7 +289,7 @@ function ResetPasswordPage() {
 
             {!checking && tokenError && !success && (
               <div className="space-y-4">
-                <div className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+                <div className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive-strong">
                   <AlertTriangle className="size-5 shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <p className="font-semibold">Não foi possível continuar</p>
@@ -299,7 +330,35 @@ function ResetPasswordPage() {
               </div>
             )}
 
-            {!checking && !tokenError && !success && hasValidSession && (
+            {!checking && !tokenError && !success && hasValidSession && mfaFactors && (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 rounded-xl border border-border/80 bg-muted/40 p-3.5 text-xs text-muted-foreground">
+                  <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <p>
+                    Esta conta tem verificação em dois passos. Para guardar a nova senha, confirme
+                    que é você.
+                  </p>
+                </div>
+                <MfaChallenge
+                  factors={mfaFactors}
+                  onVerified={async () => {
+                    let outcome: "done" | "needs-mfa";
+                    try {
+                      outcome = await applyNewPassword();
+                    } catch (err) {
+                      throw new Error(updateFailureMessage(err));
+                    }
+                    if (outcome === "needs-mfa") {
+                      throw new Error("A confirmação não foi aceite. Tente de novo.");
+                    }
+                  }}
+                  onCancel={() => setMfaFactors(null)}
+                  cancelLabel="Voltar à nova senha"
+                />
+              </div>
+            )}
+
+            {!checking && !tokenError && !success && hasValidSession && !mfaFactors && (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="new-password" className="text-xs font-medium">
@@ -366,18 +425,18 @@ function ResetPasswordPage() {
                       <span>Mínimo 8 caracteres</span>
                     </div>
                     <div
-                      className={`flex items-center gap-1.5 ${passwordChecks.hasLetter ? "text-success font-medium" : "text-muted-foreground"}`}
+                      className={`flex items-center gap-1.5 ${passwordChecks.lower && passwordChecks.upper ? "text-success font-medium" : "text-muted-foreground"}`}
                     >
                       <CheckCircle2
-                        className={`size-3.5 ${passwordChecks.hasLetter ? "opacity-100" : "opacity-40"}`}
+                        className={`size-3.5 ${passwordChecks.lower && passwordChecks.upper ? "opacity-100" : "opacity-40"}`}
                       />
-                      <span>Pelo menos 1 letra</span>
+                      <span>Maiúsculas e minúsculas</span>
                     </div>
                     <div
-                      className={`flex items-center gap-1.5 ${passwordChecks.hasNumber ? "text-success font-medium" : "text-muted-foreground"}`}
+                      className={`flex items-center gap-1.5 ${passwordChecks.number ? "text-success font-medium" : "text-muted-foreground"}`}
                     >
                       <CheckCircle2
-                        className={`size-3.5 ${passwordChecks.hasNumber ? "opacity-100" : "opacity-40"}`}
+                        className={`size-3.5 ${passwordChecks.number ? "opacity-100" : "opacity-40"}`}
                       />
                       <span>Pelo menos 1 número</span>
                     </div>

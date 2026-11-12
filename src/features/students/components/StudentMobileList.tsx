@@ -1,4 +1,13 @@
-import { Eye, FileText, GraduationCap, MessageCircle, Users } from "lucide-react";
+import {
+  FileText,
+  GraduationCap,
+  MessageCircle,
+  Users,
+  Wallet,
+  KeyRound,
+  Copy,
+  Printer,
+} from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -8,6 +17,8 @@ import { EntityListSkeleton } from "@/components/mobile/skeletons";
 import { MobileEmptyState, MobileErrorState } from "@/components/mobile/states";
 import { StudentStatusBadge } from "@/features/students/components/StudentStatusBadge";
 import { MoneyValue } from "@/components/ui/money-value";
+import { toast } from "@/lib/toast";
+import { exportPdfTable } from "@/lib/export-pdf-loader";
 
 /**
  * Lista de alunos no telemóvel (§19).
@@ -48,6 +59,9 @@ export function StudentMobileList({
   onToggleSelect,
   whatsappEnabled = false,
   whatsappHref,
+  financeAllowed = false,
+  academicAllowed = false,
+  studentAccountsAllowed = false,
 }: {
   students: StudentMobileRow[];
   loading?: boolean;
@@ -61,6 +75,10 @@ export function StudentMobileList({
   onToggleSelect?: (id: string) => void;
   whatsappEnabled?: boolean;
   whatsappHref?: (phone: string) => string;
+  financeAllowed?: boolean;
+  academicAllowed?: boolean;
+  /** Pessoas → Acessos dos alunos; ver `canOpenStudentAccounts`. */
+  studentAccountsAllowed?: boolean;
 }) {
   const navigate = useNavigate();
   const [actionsFor, setActionsFor] = useState<StudentMobileRow | null>(null);
@@ -92,7 +110,7 @@ export function StudentMobileList({
     // A dívida é o número que faz alguém agir nesta lista — por isso é a única
     // que sobe à linha de meta, e só quando existe.
     meta:
-      student.debt_amount && student.debt_amount > 0 ? (
+      financeAllowed && student.debt_amount && student.debt_amount > 0 ? (
         <span className="text-destructive-strong">
           <MoneyValue amount={student.debt_amount} tone="negative" size="sm" /> em dívida
           {student.overdue_count ? ` · ${student.overdue_count} fatura(s)` : ""}
@@ -108,16 +126,67 @@ export function StudentMobileList({
   const actions: SheetAction[] = actionsFor
     ? [
         {
-          label: "Ver resumo",
-          icon: Eye,
-          hint: "Painel rápido com estado, turma e finanças",
-          onSelect: () => onOpenStudent(actionsFor),
-        },
-        {
           label: "Abrir ficha completa",
           icon: FileText,
           onSelect: () =>
             void navigate({ to: "/alunos/$studentId", params: { studentId: actionsFor.id } }),
+        },
+        {
+          label: "Propinas e situação financeira",
+          icon: Wallet,
+          hidden: !financeAllowed,
+          onSelect: () =>
+            void navigate({
+              to: "/alunos/$studentId",
+              params: { studentId: actionsFor.id },
+              search: { secao: "financeiro" },
+            }),
+        },
+        {
+          label: "Ver notas e avaliações",
+          icon: GraduationCap,
+          hidden: !academicAllowed,
+          onSelect: () =>
+            void navigate({
+              to: "/alunos/$studentId",
+              params: { studentId: actionsFor.id },
+              search: { secao: "academico" },
+            }),
+        },
+        {
+          label: "Recuperar senha de aluno",
+          icon: KeyRound,
+          hidden: !studentAccountsAllowed,
+          onSelect: () => void navigate({ to: "/pessoas/acessos-alunos" }),
+        },
+        {
+          label: "Copiar número e nome",
+          icon: Copy,
+          onSelect: () => {
+            void navigator.clipboard
+              .writeText(`${actionsFor.registration_number} — ${actionsFor.full_name}`)
+              .then(() => toast.success("Número e nome copiados."))
+              .catch(() => toast.error("Não foi possível copiar."));
+          },
+        },
+        {
+          label: "Imprimir resumo do aluno",
+          icon: Printer,
+          onSelect: () => {
+            const student = actionsFor;
+            void Promise.resolve(
+              exportPdfTable(
+                `ficha-aluno-${student.registration_number}`,
+                "Resumo do aluno",
+                [
+                  { label: "Número", value: (row: StudentMobileRow) => row.registration_number },
+                  { label: "Aluno", value: (row: StudentMobileRow) => row.full_name },
+                  { label: "Turma", value: (row: StudentMobileRow) => row.class_name ?? "" },
+                ],
+                [student],
+              ),
+            ).catch(() => toast.error("Não foi possível imprimir o resumo."));
+          },
         },
         {
           label: "Ver turma",

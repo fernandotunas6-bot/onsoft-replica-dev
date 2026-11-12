@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:yft_school_system/core/sga/captcha_box.dart';
+import 'package:yft_school_system/core/sga/sga_auth.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yft_school_system/core/auth/auth_state.dart';
+import 'package:yft_school_system/core/schools/known_schools.dart';
+import 'package:yft_school_system/core/widgets/brand_mark.dart';
+import 'package:yft_school_system/features/auth/presentation/school_picker_sheet.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
@@ -16,13 +22,28 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  // Modo SIGA: o endereço da escola (ex.: «ispab»), só para o n.º de aluno.
+  final _schoolSlugController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  KnownSchool? _school;
+
+  /// Modo SIGA: token do hCaptcha (cada um serve uma vez) e a geração do
+  /// widget, para mostrar um desafio novo depois de cada tentativa.
+  String? _captchaToken;
+  int _captchaRound = 0;
+  static const _sga = SgaConfig.fromEnvironment;
+  bool get _captchaRequired => _sga.enabled && _sga.needsCaptcha;
+
+  /// N.º de aluno do SIGA: repete-se de escola para escola, por isso pede a escola.
+  bool get _usesStudentNumber =>
+      _sga.enabled && normalizeStudentNumber(_emailController.text) != null;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _schoolSlugController.dispose();
     super.dispose();
   }
 
@@ -32,10 +53,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Escreva o e-mail e a palavra-passe.',
-            style: TextStyle(fontWeight: FontWeight.w600),
+            _sga.enabled
+                ? 'Escreva o e-mail, B.I. ou n.º de aluno e a palavra-passe.'
+                : 'Escreva o e-mail e a palavra-passe.',
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: AppColors.error,
         ),
@@ -43,14 +66,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
+    if (_usesStudentNumber && _schoolSlugController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Com o n.º de aluno, escreva também o endereço da escola (ex.: ispab).',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (_captchaRequired && _captchaToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Confirme primeiro que não é um robô.')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    final error = await ref.read(authProvider.notifier).login(email, password);
+    final error = await ref
+        .read(authProvider.notifier)
+        .login(
+          email,
+          password,
+          captchaToken: _captchaToken,
+          school: _usesStudentNumber ? _schoolSlugController.text.trim() : null,
+        );
 
     if (!mounted) return;
-    setState(() => _isLoading = false);
+    setState(() {
+      _isLoading = false;
+      if (_captchaRequired) {
+        _captchaToken = null;
+        _captchaRound++;
+      }
+    });
 
     if (error == null) {
+      final session = ref.read(authProvider);
+      final picked = _school;
+      if (picked != null && session != null && session.schoolId != picked.id) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Esta conta pertence a ${session.schoolName ?? 'outra escola'}; '
+              'entrou nessa escola.',
+            ),
+          ),
+        );
+      }
       context.go('/dashboard');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -79,44 +145,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  border: Border(
-                    right: BorderSide(
-                      color: Colors.black.withValues(alpha: 0.05),
-                    ),
-                  ),
+                  border: Border(right: BorderSide(color: AppColors.border)),
                 ),
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          LucideIcons.graduationCap,
-                          size: 100,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 48),
-                      Text(
-                        'Sistema de Gestão Escolar',
-                        style: Theme.of(context).textTheme.displayLarge
-                            ?.copyWith(
-                              fontSize: 32,
-                              color: AppColors.secondary,
-                            ),
-                        textAlign: TextAlign.center,
-                      ),
+                      const BrandMark(size: 140),
+                      const SizedBox(height: 40),
+                      const BrandWordmark(fontSize: 40),
                       const SizedBox(height: 16),
                       Text(
-                        'Tecnologia ao serviço da educação.',
+                        'Educação que transforma, em qualquer lugar.',
                         style: Theme.of(
                           context,
-                        ).textTheme.bodyMedium?.copyWith(fontSize: 16),
+                        ).textTheme.bodyMedium?.copyWith(fontSize: 18),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -156,45 +199,133 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildLoginForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const SizedBox(height: 60),
+  Future<void> _pickSchool() async {
+    final school = await showSchoolPicker(context);
+    if (school != null && mounted) setState(() => _school = school);
+  }
 
-        // Logo/Brand
+  Widget _buildLoginForm() {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 48),
+        const Center(child: BrandWordmark(fontSize: 28)),
+        const SizedBox(height: 40),
         Text(
-          'Edu Manager',
-          style: Theme.of(context).textTheme.displayLarge?.copyWith(
-            fontSize: 36,
-            color: AppColors.secondary,
-          ),
+          'Aceda à sua conta',
+          style: textTheme.displayMedium?.copyWith(fontSize: 26),
         ),
         const SizedBox(height: 8),
-        Text('Bem-vindo de volta', style: Theme.of(context).textTheme.bodyMedium),
+        Text(
+          _sga.enabled
+              ? 'Entre com a conta do SIGA: o mesmo e-mail e palavra-passe '
+                    'do portal da escola.'
+              : 'Seleccione a sua escola e utilize as suas credenciais '
+                    'institucionais.',
+          style: textTheme.bodyMedium?.copyWith(height: 1.4),
+        ),
+        const SizedBox(height: 28),
 
-        const SizedBox(height: 60),
+        // Selector de escola: abre a folha com as escolas deste dispositivo.
+        // No modo SIGA a escola vem da própria conta.
+        if (!_sga.enabled) ...[
+          Material(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: _pickSchool,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 18,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      LucideIcons.school,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _school?.name ?? 'Seleccione a escola',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: _school == null
+                              ? AppColors.textSecondary
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      LucideIcons.chevronDown,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+        ],
 
         TextField(
           controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            hintText: 'Endereço de e-mail',
-            prefixIcon: Icon(LucideIcons.mail, size: 20),
+          keyboardType: _sga.enabled
+              ? TextInputType.text
+              : TextInputType.emailAddress,
+          autofillHints: const [AutofillHints.username],
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: _sga.enabled
+                ? 'E-mail, B.I. ou n.º de aluno'
+                : 'E-mail da conta escolar',
+            prefixIcon: Icon(
+              _sga.enabled ? LucideIcons.user : LucideIcons.mail,
+              size: 20,
+            ),
           ),
         ),
 
-        const SizedBox(height: 16),
+        if (_usesStudentNumber) ...[
+          const SizedBox(height: 14),
+          TextField(
+            controller: _schoolSlugController,
+            keyboardType: TextInputType.url,
+            autocorrect: false,
+            decoration: const InputDecoration(
+              hintText: 'Endereço da escola (ex.: ispab)',
+              helperText: 'É o início do endereço do portal: ispab.portal-siga.com',
+              prefixIcon: Icon(LucideIcons.school, size: 20),
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 14),
 
         TextField(
           controller: _passwordController,
           obscureText: !_isPasswordVisible,
+          autofillHints: const [AutofillHints.password],
+          onSubmitted: (_) => _handleLogin(),
           decoration: InputDecoration(
             hintText: 'Palavra-passe',
-            prefixIcon: const Icon(LucideIcons.lock, size: 20),
+            prefixIcon: const Icon(LucideIcons.keyRound, size: 20),
             suffixIcon: IconButton(
+              tooltip: _isPasswordVisible ? 'Esconder senha' : 'Mostrar senha',
               icon: Icon(
-                _isPasswordVisible ? LucideIcons.eye : LucideIcons.eyeOff,
+                _isPasswordVisible ? LucideIcons.eyeOff : LucideIcons.eye,
                 size: 20,
               ),
               onPressed: () =>
@@ -203,54 +334,72 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
 
-        const SizedBox(height: 12),
-
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () => context.push('/forgot-password'),
-            child: const Text('Esqueceu-se da palavra-passe?'),
+            child: Text(
+              'Esqueceu a palavra-passe?',
+              style: TextStyle(color: AppColors.primary),
+            ),
           ),
         ),
 
-        const SizedBox(height: 40),
+        const SizedBox(height: 16),
+
+        if (_captchaRequired) ...[
+          if (captchaSupported)
+            CaptchaBox(
+              key: ValueKey(_captchaRound),
+              siteKey: _sga.captchaSiteKey,
+              onToken: (t) => setState(() => _captchaToken = t),
+            )
+          else
+            Text(
+              'Para entrar com a conta do SIGA neste aparelho, use por agora a '
+              'versão web da app (o captcha do SIGA ainda não está aqui).',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+          const SizedBox(height: 16),
+        ],
 
         SizedBox(
-          width: double.infinity,
           height: 56,
           child: ElevatedButton(
             onPressed: _isLoading ? null : _handleLogin,
             child: _isLoading
-                ? const SizedBox(
+                ? SizedBox(
                     width: 24,
                     height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: AppColors.secondary,
+                      color: AppColors.onPrimary,
                     ),
                   )
                 : const Text('Entrar', style: TextStyle(fontSize: 16)),
           ),
         ),
 
-        const SizedBox(height: 40),
+        const SizedBox(height: 28),
 
         Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+            color: AppColors.primary.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
             children: [
               Icon(LucideIcons.info, size: 16, color: AppColors.primary),
-              const SizedBox(width: 8),
-              const Expanded(
+              const SizedBox(width: 10),
+              Expanded(
                 child: Text(
                   'A sua conta é criada pela administração da escola.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
             ],
@@ -261,5 +410,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ],
     );
   }
-
 }

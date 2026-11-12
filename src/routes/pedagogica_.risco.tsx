@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Sparkles } from "lucide-react";
@@ -18,7 +19,16 @@ import { saveRiskAnalysis } from "@/features/ai-assist/risk-followup.functions";
 import { RiskFollowup, riskCasesKey } from "@/features/ai-assist/RiskFollowup";
 import { EarlyWarningsPanel } from "@/features/academic/EarlyWarningsPanel";
 
+/**
+ * `?turma=<id>`: os alunos em risco de uma turma, abertos do menu da turma (SIGA
+ * Context Engine). A turma escolhida fica na URL; um id mal formado é ignorado.
+ */
+const riscoSearchSchema = z.object({
+  turma: z.string().guid().optional().catch(undefined),
+});
+
 export const Route = createFileRoute("/pedagogica_/risco")({
+  validateSearch: (search: Record<string, unknown>) => riscoSearchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Alunos em risco · SIGA Plus" },
@@ -40,7 +50,7 @@ export const Route = createFileRoute("/pedagogica_/risco")({
 });
 
 const riskTone: Record<string, string> = {
-  alto: "bg-destructive/10 text-destructive border-destructive/30",
+  alto: "bg-destructive/10 text-destructive-strong border-destructive/30",
   médio: "bg-warning/10 text-warning-foreground border-warning/40",
   baixo: "bg-muted text-muted-foreground border-border",
 };
@@ -60,9 +70,14 @@ function RiskPage() {
   });
   const workspace = workspaceQuery.data;
   const classGroups = workspace?.classGroups ?? [];
-  const [classId, setClassId] = useState("");
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [history, setHistory] = useState("");
-  const effectiveClass = classId || classGroups[0]?.id || "";
+  // A turma da URL, se a escola a devolveu; senão a primeira, como antes.
+  const effectiveClass =
+    (search.turma && classGroups.some((group) => group.id === search.turma)
+      ? search.turma
+      : classGroups[0]?.id) ?? "";
   const analyze = useServerFn(analyzeStudentRisk);
   const saveAnalysis = useServerFn(saveRiskAnalysis);
   const queryClient = useQueryClient();
@@ -170,7 +185,10 @@ function RiskPage() {
                 className={selectClass}
                 value={effectiveClass}
                 onChange={(e) => {
-                  setClassId(e.target.value);
+                  void navigate({
+                    search: (prev) => ({ ...prev, turma: e.target.value || undefined }),
+                    replace: true,
+                  });
                   mutation.reset();
                 }}
                 disabled={workspaceQuery.isLoading}
@@ -209,7 +227,7 @@ function RiskPage() {
               </Button>
             </div>
             {mutation.error ? (
-              <p className="flex items-center gap-2 text-sm text-destructive" role="alert">
+              <p className="flex items-center gap-2 text-sm text-destructive-strong" role="alert">
                 <AlertTriangle className="size-4" /> {mutation.error.message}
               </p>
             ) : null}

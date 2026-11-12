@@ -57,7 +57,7 @@ const withoutEmail: AudienceRow = {
 };
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/alumni.communications");
+  const mod = await import("@/routes/alumni_.communications");
   return routeComponentOf(mod);
 }
 

@@ -1,0 +1,84 @@
+{
+  "https://portal-siga.com/": {
+    "status": 200,
+    "url": "https://portal-siga.com/",
+    "elapsed_ms": 2395,
+    "bytes": 24862
+  },
+  "https://app.portal-siga.com/": {
+    "status": 200,
+    "url": "https://app.portal-siga.com/",
+    "elapsed_ms": 1945,
+    "bytes": 24862
+  },
+  "https://admin.portal-siga.com/": {
+    "status": 200,
+    "url": "https://admin.portal-siga.com/tenants",
+    "elapsed_ms": 1011,
+    "bytes": 14905
+  },
+  "https://docs.portal-siga.com/": {
+    "status": 200,
+    "url": "https://docs.portal-siga.com/",
+    "elapsed_ms": 779,
+    "bytes": 26464
+  },
+  "https://payflow.portal-siga.com/api/v1/health": {
+    "status": 200,
+    "url": "https://payflow.portal-siga.com/api/v1/health",
+    "elapsed_ms": 1831,
+    "body": {
+      "data": {
+        "service": "payflow",
+        "status": "ok",
+        "checks": {
+          "database": {
+            "status": "ok",
+            "latencyMs": 102
+          }
+        },
+        "runtime": {
+          "mode": "production",
+          "sandboxEnabled": false,
+          "demoDataEnabled": false,
+          "browserConfirmationEnabled": false,
+          "integrationConfigured": false,
+          "ssoConfigured": false,
+          "provider": "unconfigured",
+          "providerConfigured": false,
+          "emisHomologated": false,
+          "paymentInitiationEnabled": false,
+          "bankTransferSupported": true,
+          "bankConnectorConfigured": false,
+          "alertWebhookConfigured": false,
+          "sigaSettlementConfigured": false,
+          "sigaUrl": null
+        }
+      }
+    }
+  },
+  "https://app.portal-siga.com/api/saas/me": {
+    "status": 401,
+    "url": "https://app.portal-siga.com/api/saas/me",
+    "elapsed_ms": 847,
+    "body": {
+      "error": "Unauthorized"
+    }
+  },
+  "https://app.portal-siga.com/api/saas/tenants": {
+    "status": 401,
+    "url": "https://app.portal-siga.com/api/saas/tenants",
+    "elapsed_ms": 2250,
+    "body": {
+      "error": "Unauthorized"
+    }
+  },
+  "https://app.portal-siga.com/api/saas/stats": {
+    "status": 401,
+    "url": "https://app.portal-siga.com/api/saas/stats",
+    "elapsed_ms": 5166,
+    "body": {
+      "error": "Unauthorized"
+    }
+  }
+}

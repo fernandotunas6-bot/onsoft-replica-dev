@@ -64,14 +64,15 @@ describe("importador de matrículas: gravação", () => {
     });
   });
 
-  it("sem 2FA a linha falha com a explicação certa", async () => {
+  it("sem permissão a linha falha com a explicação certa", async () => {
     const rpc = vi.fn(async () => ({
       data: null,
       error: { code: "42501", message: "Sem autorização para matricular estudantes." },
     }));
     const result = await matriculasImporter.commitRow(row, context(rpc), cache());
     expect(result.status).toBe("error");
-    expect(result.errors[0]).toContain("2FA");
+    expect(result.errors[0]).toContain("permissões");
+    expect(result.errors[0]).not.toContain("2FA");
   });
 
   it("devolve o erro da base (ex.: turma cheia)", async () => {
@@ -84,5 +85,75 @@ describe("importador de matrículas: gravação", () => {
       status: "error",
       errors: ["A turma atingiu a capacidade configurada."],
     });
+  });
+});
+
+describe("importador de matrículas: só a matrícula corrente conta (auditoria 14)", () => {
+  it("uma matrícula anulada não fica no lugar da corrente", async () => {
+    const { memoryDb } = await import("../students/memory-db");
+    const store = memoryDb({
+      students: [
+        {
+          id: "s-1",
+          school_id: "school-1",
+          person_id: "p-1",
+          student_number: "P-001",
+          status: "active",
+        },
+      ],
+      people: [],
+      class_groups: [
+        { id: "g-10a", school_id: "school-1", code: "10A", name: "10A", academic_year_id: YEAR },
+      ],
+      enrollments: [
+        {
+          id: "anulada",
+          school_id: "school-1",
+          student_id: "s-1",
+          academic_year_id: YEAR,
+          class_group_id: "g-10a",
+          status: "cancelled",
+        },
+      ],
+    });
+    const refs = (await matriculasImporter.loadRefCache({
+      ...context(vi.fn()),
+      db: store.db,
+    })) as ReturnType<typeof cache>;
+    expect(refs.enrollmentByStudent.size).toBe(0);
+    expect(matriculasImporter.analyzeRow(row, refs).status).toBe("valid");
+  });
+
+  it("aluno suspenso sem matrícula: a linha diz porquê", () => {
+    const refs = cache();
+    refs.students[0]!.status = "suspended";
+    expect(matriculasImporter.analyzeRow(row, refs)).toMatchObject({
+      status: "error",
+      errors: [expect.stringMatching(/suspenso/)],
+    });
+  });
+
+  it("quem tinha saído é reaberto, matriculado e fica activo", async () => {
+    const { memoryDb } = await import("../students/memory-db");
+    const store = memoryDb({
+      students: [{ id: "s-1", school_id: "school-1", status: "inactive" }],
+      student_status_history: [],
+    });
+    const rpc = vi.fn(async () => {
+      expect(store.tables["students"]![0]!["status"]).toBe("applicant");
+      store.tables["students"]![0]!["status"] = "active";
+      return {
+        data: { enrollmentId: "e-2", enrollmentNumber: "MAT-000002", status: "active" },
+        error: null,
+      };
+    });
+    const refs = cache();
+    refs.students[0]!.status = "inactive";
+    const result = await matriculasImporter.commitRow(row, { ...context(rpc), db: store.db }, refs);
+    expect(result).toMatchObject({ status: "imported", target_record_id: "e-2" });
+    expect(store.tables["student_status_history"]).toEqual([
+      expect.objectContaining({ previous_status: "inactive", new_status: "active" }),
+    ]);
+    expect(refs.students[0]!.status).toBe("active");
   });
 });

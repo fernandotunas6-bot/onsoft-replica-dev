@@ -263,7 +263,7 @@ function RequestRow({
             <Button
               size="sm"
               variant="outline"
-              className="gap-1.5 text-destructive"
+              className="gap-1.5 text-destructive-strong"
               disabled={review.isPending || !noteReady}
               onClick={() =>
                 review.mutate({ action: "reject", requestId: item.id, note: note.trim() })
@@ -329,7 +329,7 @@ export function AccessRequestsPanel() {
           {requests.isPending ? (
             <InlineLoading label="A carregar pedidos…" />
           ) : requests.isError ? (
-            <p role="alert" className="text-xs text-destructive">
+            <p role="alert" className="text-xs text-destructive-strong">
               {publicErrorMessage(requests.error, "Não foi possível carregar os pedidos.")}
             </p>
           ) : requests.data?.items.length ? (

@@ -26,7 +26,8 @@ function EducationCatalogSearchPlaceholder() {
     <main className="mx-auto max-w-lg px-5 py-16 text-center">
       <h1 className="font-display text-lg font-extrabold">Pesquisa do catálogo educacional</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        GET ?type=subjects&stage=AO-ESG2&q=mat · type=courses · type=stages&country=AO
+        GET ?type=subjects&stage=AO-ESG2&q=mat · type=areas&stage=AO-ETP · type=courses ·
+        type=stages&country=AO
       </p>
     </main>
   );

@@ -14,12 +14,9 @@ import {
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { passwordGrant } from "@/features/access/bi-login";
+import { escapeHtml } from "@/lib/escape-html";
 
 const EMAIL_CHANGE_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 5 };
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-}
 
 export const requestEmailChangeInputSchema = z.object({
   newEmail: z.string().trim().email("Indique um endereço de e-mail válido."),

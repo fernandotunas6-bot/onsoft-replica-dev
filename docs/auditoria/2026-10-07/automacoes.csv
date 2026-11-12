@@ -1,0 +1,10 @@
+﻿ficheiro,cron,live,nota
+.github/workflows/academic-import-check.yml,,False,Execução remota não deduzida da existência do workflow.
+.github/workflows/ci.yml,0 4 * * 1,True,Execução remota não deduzida da existência do workflow.
+.github/workflows/deploy-production.yml,,False,Execução remota não deduzida da existência do workflow.
+.github/workflows/ecosystem-e2e-live.yml,0 3 * * 1,True,Execução remota não deduzida da existência do workflow.
+.github/workflows/gateway-failure-rate-check.yml,17 */6 * * *,False,Execução remota não deduzida da existência do workflow.
+.github/workflows/native-ci.yml,,False,Execução remota não deduzida da existência do workflow.
+.github/workflows/payflow.yml,,False,Execução remota não deduzida da existência do workflow.
+.github/workflows/release-desktop.yml,,False,Execução remota não deduzida da existência do workflow.
+.github/workflows/saas-lifecycle.yml,23 7 * * *,False,Execução remota não deduzida da existência do workflow.

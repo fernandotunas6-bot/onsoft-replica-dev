@@ -1,0 +1,14 @@
+[
+  {
+    "mode": "before",
+    "width": 390,
+    "detailAreaActive": false,
+    "overflow": false
+  },
+  {
+    "mode": "after",
+    "width": 390,
+    "detailAreaActive": true,
+    "overflow": false
+  }
+]

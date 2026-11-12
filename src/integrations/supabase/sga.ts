@@ -3,11 +3,15 @@ import type { Database } from "@/integrations/supabase/types";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 
 /**
- * Cliente do SGA com os tipos gerados da produção (`types.ts`, regenerado a partir
- * do esquema real). Até 29/09 devolvia `SupabaseClient<any>`: um nome de coluna
- * errado, uma coluna NOT NULL em falta ou um estado fora do CHECK passavam sem erro
- * e só falhavam na base — foi assim que Acessos, o estorno PayFlow e três
- * importadores ficaram partidos sem ninguém dar por isso.
+ * Cliente do SGA com os tipos gerados da produção: `types.sga.ts`, escrito por
+ * `npm run siga:gen-types` e verificado contra o retrato da base em
+ * `tests/security/types-vs-producao.test.ts`. O alias do `tsconfig` manda
+ * `@/integrations/supabase/types` para esse ficheiro — não há outro.
+ *
+ * Até 29/09 esta função devolvia `SupabaseClient<any>`: um nome de coluna errado,
+ * uma coluna NOT NULL em falta ou um estado fora do CHECK passavam sem erro e só
+ * falhavam na base — foi assim que Acessos, o estorno PayFlow e três importadores
+ * ficaram partidos sem ninguém dar por isso.
  */
 export function sgaClient(client: SupabaseClient) {
   return client as unknown as SupabaseClient<Database>;

@@ -21,5 +21,5 @@ export function consumeSettingsOpen() {
   const raw = sessionStorage.getItem(SETTINGS_OPEN_KEY);
   if (raw === null) return undefined;
   sessionStorage.removeItem(SETTINGS_OPEN_KEY);
-  return raw || undefined;
+  return raw;
 }

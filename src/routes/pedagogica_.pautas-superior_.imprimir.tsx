@@ -11,8 +11,8 @@ import { SEASON_LABEL, STATUS_LABEL } from "@/features/higher-ed/labels";
 import { getUnitSheet } from "@/features/higher-ed/server";
 
 const searchSchema = z.object({
-  programId: z.string().uuid(),
-  unitId: z.string().uuid(),
+  programId: z.string().guid(),
+  unitId: z.string().guid(),
 });
 
 export const Route = createFileRoute("/pedagogica_/pautas-superior_/imprimir")({
@@ -59,7 +59,7 @@ function UnitSheetPrintPage() {
         {sheet.isLoading ? (
           <p className="text-sm text-muted-foreground">A preparar a pauta…</p>
         ) : !data ? (
-          <p className="text-sm text-destructive">
+          <p className="text-sm text-destructive-strong">
             {sheet.error instanceof Error ? sheet.error.message : "Não foi possível abrir a pauta."}
           </p>
         ) : (

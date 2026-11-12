@@ -78,7 +78,7 @@ const menteeAlumni = {
 };
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/alumni.pipeline");
+  const mod = await import("@/routes/alumni_.pipeline");
   return routeComponentOf(mod);
 }
 

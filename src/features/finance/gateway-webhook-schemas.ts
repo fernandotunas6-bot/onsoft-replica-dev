@@ -9,8 +9,8 @@ import { normalizePaymentReference } from "@/features/finance/emiss-multicaixa";
 export const gatewayConfirmInputSchema = z.object({
   reference: z.string().trim().min(5).max(160),
   amount: z.number().positive(),
-  invoiceId: z.string().uuid().optional(),
-  planId: z.string().uuid().optional(),
+  invoiceId: z.string().guid().optional(),
+  planId: z.string().guid().optional(),
   entity: z.string().trim().max(20).optional(),
   channel: z
     .enum(["multicaixa", "express", "multicaixa_express", "unitel_money"])

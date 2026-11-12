@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { resolveEnabledModules } from "@/features/auth/module-availability";
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useAuthSession } from "@/components/auth/AuthGate";
 import { getCurrentAccountContext } from "@/features/auth/server";
 import type { ApplicationRole } from "@/features/auth/access-policy";
@@ -8,9 +9,12 @@ import {
   ACTIVE_SCHOOL_CHANGED_EVENT,
   hostSchoolSlug,
   isActiveSchoolUnavailable,
+  isActiveSchoolStorageEvent,
   navigateToSchoolHost,
   readStoredActiveSchool,
   rememberActiveSchool,
+  serverActiveSchool,
+  subscribeActiveSchool,
 } from "@/features/auth/active-school";
 
 /**
@@ -23,23 +27,65 @@ import {
  */
 const NO_GRANTS: Record<string, string> = Object.freeze({});
 
+/**
+ * As mesmas armadilhas que o `NO_GRANTS` fechou, nos outros dois valores que
+ * este hook devolve a partir de `profile.data`.
+ *
+ * `profile.data?.schools ?? []` e `profile.data?.linkedEntities ?? {…}`
+ * criavam um array/objecto novo em CADA render enquanto a query de conta não
+ * resolvesse. Quem os passe como dependência de `useMemo`/`useEffect` vê a
+ * dependência mudar sempre — é o ciclo de render que dá
+ * «Maximum update depth exceeded» (React #185).
+ */
+const NO_SCHOOLS: UserSchoolMembershipItem[] = Object.freeze(
+  [],
+) as unknown as UserSchoolMembershipItem[];
+const NO_LINKED_ENTITIES = Object.freeze({
+  person_id: null,
+  student_id: null,
+  teacher_id: null,
+  guardian_person_id: null,
+  linked_students: Object.freeze([]) as unknown as [],
+});
+
 const ACTIVE_ROLE_KEY = "siga:active-role";
 const ACTIVE_STUDENT_KEY = "siga:active-student-id";
+// Um evento entre abas só invalida cada cache uma vez, mesmo com muitos consumidores.
+const handledSchoolStorageEvents = new WeakMap<QueryClient, StorageEvent>();
 
 export function useCurrentAccount() {
   const session = useAuthSession();
   const userId = session?.user.id;
   const queryClient = useQueryClient();
 
-  const [activeSchoolIdState, setActiveSchoolIdState] = useState<string | null>(() =>
-    readStoredActiveSchool(),
+  const activeSchoolIdState = useSyncExternalStore(
+    subscribeActiveSchool,
+    readStoredActiveSchool,
+    serverActiveSchool,
   );
 
   // O cookie é a fonte que o servidor lê; garante-se que reflecte o que ficou
-  // guardado, mesmo em sessões abertas antes de o cookie existir.
+  // guardado, mesmo em sessões abertas antes de o cookie existir. Na hidratação
+  // o snapshot SSR ainda é null: não o gravar por cima da selecção do browser.
   useEffect(() => {
-    rememberActiveSchool(activeSchoolIdState);
-  }, [activeSchoolIdState]);
+    rememberActiveSchool(readStoredActiveSchool());
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (
+        !isActiveSchoolStorageEvent(event) ||
+        handledSchoolStorageEvents.get(queryClient) === event
+      )
+        return;
+      handledSchoolStorageEvents.set(queryClient, event);
+      rememberActiveSchool(readStoredActiveSchool());
+      void queryClient.resetQueries({ predicate: (query) => query.queryKey[0] !== "auth" });
+      window.dispatchEvent(new Event(ACTIVE_SCHOOL_CHANGED_EVENT));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [queryClient]);
 
   const profile = useQuery({
     queryKey: ["auth", "account-context", userId ?? "anon", activeSchoolIdState ?? "default"],
@@ -52,9 +98,12 @@ export function useCurrentAccount() {
       } catch (error) {
         // A escola guardada deixou de pertencer ao utilizador: limpa a selecção
         // em vez de o deixar preso num erro, e deixa o servidor voltar a decidir.
-        if (isActiveSchoolUnavailable(error) && activeSchoolIdState) {
+        if (
+          isActiveSchoolUnavailable(error) &&
+          activeSchoolIdState &&
+          readStoredActiveSchool() === activeSchoolIdState
+        ) {
           rememberActiveSchool(null);
-          setActiveSchoolIdState(null);
           return await getCurrentAccountContext({ data: { preferredSchoolId: undefined } });
         }
         console.error("[useCurrentAccount]", error);
@@ -62,6 +111,9 @@ export function useCurrentAccount() {
       }
     },
     staleTime: 5 * 60_000,
+    // O router usa keepPreviousData nas listas, mas a identidade/grants de A
+    // nunca podem ser apresentados como contexto provisório de B (ou de outra conta).
+    placeholderData: undefined,
     retry: 2,
     retryDelay: (attempt) => 400 * (attempt + 1),
   });
@@ -81,7 +133,7 @@ export function useCurrentAccount() {
     [profile.data?.roles, primaryRole],
   );
 
-  const schools: UserSchoolMembershipItem[] = profile.data?.schools ?? [];
+  const schools: UserSchoolMembershipItem[] = profile.data?.schools ?? NO_SCHOOLS;
   const currentSchoolId = profile.data?.school_id ?? null;
   const currentSchoolName = profile.data?.school_name ?? null;
   const currentSchoolSlug = profile.data?.school_slug ?? null;
@@ -108,7 +160,8 @@ export function useCurrentAccount() {
     }
   }, [availableRoles, activeRoleState, primaryRole]);
 
-  const activeRole = activeRoleState || primaryRole;
+  const activeRole =
+    activeRoleState && availableRoles.includes(activeRoleState) ? activeRoleState : primaryRole;
 
   const setActiveRole = (newRole: ApplicationRole) => {
     setActiveRoleState(newRole);
@@ -128,7 +181,6 @@ export function useCurrentAccount() {
       return;
     }
     const changed = newSchoolId !== (activeSchoolIdState ?? currentSchoolId);
-    setActiveSchoolIdState(newSchoolId);
     // Grava o cookie antes de recarregar: os pedidos que se seguem já têm de
     // sair com a escola nova, senão recarregavam dados da escola anterior.
     rememberActiveSchool(newSchoolId);
@@ -156,13 +208,7 @@ export function useCurrentAccount() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando a escola resolvida muda
   }, [hostSchoolId, currentSchoolId]);
 
-  const linkedEntities = profile.data?.linkedEntities ?? {
-    person_id: null,
-    student_id: null,
-    teacher_id: null,
-    guardian_person_id: null,
-    linked_students: [],
-  };
+  const linkedEntities = profile.data?.linkedEntities ?? NO_LINKED_ENTITIES;
 
   const activeStudentId =
     activeStudentIdState &&
@@ -190,6 +236,11 @@ export function useCurrentAccount() {
       .map((part) => part[0]?.toUpperCase())
       .join("") || "U";
 
+  const enabledModules = useMemo(
+    () => resolveEnabledModules(profile.data?.module_overrides ?? {}),
+    [profile.data?.module_overrides],
+  );
+
   return {
     id: userId ?? "",
     email,
@@ -211,6 +262,14 @@ export function useCurrentAccount() {
     activeSchool,
     setActiveSchoolId,
     linkedEntities,
+    /** Tem processo Alumni nesta escola (vê o «Meu Portal Alumni»). */
+    isAlumni: Boolean(profile.data?.is_alumni),
+    /**
+     * Os módulos ligados nesta escola. Enquanto o contexto não chega — primeiro
+     * render, ou uma consulta que falhou — vale a omissão do produto, e não um
+     * conjunto vazio: nunca se fica sem navegação por não se saber ainda.
+     */
+    enabledModules,
     activeStudentId,
     activeStudent,
     setActiveStudentId,

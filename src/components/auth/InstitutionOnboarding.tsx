@@ -164,7 +164,7 @@ function RequestCard({ request }: { request: MyAccessRequest }) {
       {isOpenAccessRequest(request.status) ? (
         <button
           type="button"
-          className="mt-3 text-xs font-medium text-muted-foreground hover:text-destructive disabled:opacity-60"
+          className="mt-3 text-xs font-medium text-muted-foreground hover:text-destructive-strong disabled:opacity-60"
           disabled={action.isPending}
           onClick={() => action.mutate({ action: "cancel", requestId: request.id })}
         >
@@ -451,7 +451,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
                   aria-invalid={identifyAttempted && draft.fullName.trim().length < 3}
                 />
                 {identifyAttempted && draft.fullName.trim().length < 3 ? (
-                  <p className="text-[11px] text-destructive">Escreva o nome completo.</p>
+                  <p className="text-[11px] text-destructive-strong">Escreva o nome completo.</p>
                 ) : null}
               </div>
               <div className="space-y-1.5">
@@ -485,7 +485,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
                   aria-describedby="req-number-hint"
                 />
                 {identifyAttempted && numberRequired && !draft.institutionalNumber.trim() ? (
-                  <p id="req-number-hint" className="text-[11px] text-destructive">
+                  <p id="req-number-hint" className="text-[11px] text-destructive-strong">
                     Obrigatório: a secretaria usa-o para encontrar o seu cadastro.
                   </p>
                 ) : null}
@@ -717,7 +717,7 @@ export function InstitutionOnboarding({ displayName }: { displayName: string }) 
         {linkState.isError ? (
           <p
             role="alert"
-            className="rounded-2xl bg-destructive/10 px-4 py-3 text-xs text-destructive"
+            className="rounded-2xl bg-destructive/10 px-4 py-3 text-xs text-destructive-strong"
           >
             {errorText(linkState.error, "Não foi possível carregar o estado da conta.")}
           </p>

@@ -19,6 +19,7 @@ import {
   type CompetencyClassRate,
   type StudentMastery,
 } from "./competency-mastery";
+import { ownTeacherId } from "./own-teacher";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -36,16 +37,6 @@ function competencyDbError(error: { message?: string; code?: string }, fallback:
     return new Error(MISSING);
   }
   return publicDatabaseError(error, fallback);
-}
-
-async function ownTeacherId(db: Db, schoolId: string, userId: string) {
-  const { data } = await db
-    .from("teachers")
-    .select("id")
-    .eq("school_id", schoolId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  return data?.id ? String(data.id) : null;
 }
 
 const isManager = (roles: string[]) =>
@@ -80,8 +71,8 @@ export type CompetencyBoard = {
 };
 
 const boardInput = z.object({
-  classGroupId: z.string().uuid().optional(),
-  subjectId: z.string().uuid().optional(),
+  classGroupId: z.string().guid().optional(),
+  subjectId: z.string().guid().optional(),
 });
 
 export const getCompetencyBoard = createServerFn({ method: "GET" })
@@ -284,9 +275,9 @@ export const getCompetencyBoard = createServerFn({ method: "GET" })
   });
 
 const saveInput = z.object({
-  id: z.string().uuid().optional(),
-  subjectId: z.string().uuid(),
-  gradeLevelId: z.string().uuid().nullable(),
+  id: z.string().guid().optional(),
+  subjectId: z.string().guid(),
+  gradeLevelId: z.string().guid().nullable(),
   code: z.string().trim().min(1).max(20),
   description: z.string().trim().min(3).max(500),
 });
@@ -330,7 +321,7 @@ export const saveCompetency = createServerFn({ method: "POST" })
 
 export const archiveCompetency = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ id: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireSgaWriterForWrite(
       "pedagogica",
@@ -349,8 +340,8 @@ export const archiveCompetency = createServerFn({ method: "POST" })
   });
 
 const linkInput = z.object({
-  itemId: z.string().uuid(),
-  competencyIds: z.array(z.string().uuid()).max(50),
+  itemId: z.string().guid(),
+  competencyIds: z.array(z.string().guid()).max(50),
 });
 
 /** Define as competências que uma avaliação avalia (substitui as anteriores). */

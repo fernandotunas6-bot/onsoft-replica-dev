@@ -35,6 +35,6 @@ describe("activar o portal Alumni", () => {
   });
 
   it("procura o e-mail sem curingas", () => {
-    expect(claim.replace(/\s+/g, " ")).toMatch(/\.ilike\( "email", email\.replace\(/);
+    expect(claim.replace(/\s+/g, " ")).toMatch(/\.ilike\( ?"email", escapeLikePattern\(email\)/);
   });
 });

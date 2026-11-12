@@ -7,6 +7,7 @@ import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 
 class ClassListScreen extends ConsumerWidget {
   const ClassListScreen({super.key});
@@ -20,7 +21,7 @@ class ClassListScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Academic Classes',
+          'Turmas',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -28,15 +29,17 @@ class ClassListScreen extends ConsumerWidget {
         foregroundColor: AppColors.secondary,
         actions: [
           IconButton(
+            tooltip: 'Disciplinas',
             icon: const Icon(LucideIcons.book),
             onPressed: () => context.push('/subjects'),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: 'Nova turma',
         onPressed: () => context.push('/class-setup'),
         backgroundColor: AppColors.primary,
-        child: const Icon(LucideIcons.plus, color: AppColors.secondary),
+        child: Icon(LucideIcons.plus, color: AppColors.onPrimary),
       ),
       body: classesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -47,13 +50,13 @@ class ClassListScreen extends ConsumerWidget {
               Icon(LucideIcons.alertTriangle, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
               Text(
-                'Failed to load classes',
+                'Não foi possível carregar as turmas',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.invalidate(classesProvider),
-                child: const Text('Retry'),
+                child: const Text('Tentar de novo'),
               ),
             ],
           ),
@@ -70,8 +73,8 @@ class ClassListScreen extends ConsumerWidget {
                         color: AppColors.textSecondary.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'No classes yet. Tap + to create one.',
+                      Text(
+                        'Ainda não há turmas. Toque em + para criar a primeira.',
                         style: TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 14,
@@ -117,7 +120,7 @@ class ClassListScreen extends ConsumerWidget {
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   LucideIcons.graduationCap,
                                   color: AppColors.secondary,
                                 ),
@@ -136,16 +139,16 @@ class ClassListScreen extends ConsumerWidget {
                                     ),
                                     if (cls.level != null)
                                       Text(
-                                        'Level ${cls.level}',
-                                        style: const TextStyle(
+                                        'Nível ${cls.level}',
+                                        style: TextStyle(
                                           color: AppColors.textSecondary,
                                           fontSize: 14,
                                         ),
                                       ),
                                     if (cls.hasFeeStructure)
                                       Text(
-                                        'Fee: $currency ${cls.feeAmount.toStringAsFixed(2)} / ${cls.feeCollectionCycle == 'year' ? 'year' : 'term'}',
-                                        style: const TextStyle(
+                                        'Propina: ${formatMoneyDisplay(currency, cls.feeAmount)} / ${cls.feeCollectionCycle == 'year' ? 'ano' : 'período'}',
+                                        style: TextStyle(
                                           color: AppColors.textSecondary,
                                           fontSize: 13,
                                         ),
@@ -154,6 +157,7 @@ class ClassListScreen extends ConsumerWidget {
                                 ),
                               ),
                               IconButton(
+                                tooltip: 'Apagar turma',
                                 icon: Icon(
                                   LucideIcons.trash2,
                                   color: AppColors.error,
@@ -162,7 +166,7 @@ class ClassListScreen extends ConsumerWidget {
                                 onPressed: () =>
                                     _showDeleteConfirm(context, ref, cls),
                               ),
-                              const Icon(
+                              Icon(
                                 LucideIcons.chevronRight,
                                 color: AppColors.textSecondary,
                               ),
@@ -190,7 +194,7 @@ class ClassListScreen extends ConsumerWidget {
         bool isDeleting = false;
         return StatefulBuilder(
           builder: (ctx, setSheetState) => Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
             ),
@@ -210,15 +214,15 @@ class ClassListScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Delete "${cls.className}"?',
+                  'Apagar "${cls.className}"?',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'This will also remove all subject assignments for this class.',
+                Text(
+                  'Também remove as disciplinas atribuídas a esta turma.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
@@ -228,7 +232,7 @@ class ClassListScreen extends ConsumerWidget {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel'),
+                        child: const Text('Cancelar'),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -269,7 +273,7 @@ class ClassListScreen extends ConsumerWidget {
                                 ),
                               )
                             : const Text(
-                                'Delete',
+                                'Apagar',
                                 style: TextStyle(color: Colors.white),
                               ),
                       ),

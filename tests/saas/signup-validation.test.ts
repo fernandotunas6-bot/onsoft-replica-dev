@@ -11,6 +11,10 @@ import {
  * `z.string().optional()` — qualquer texto passava — e a senha do administrador
  * bastava ter 8 caracteres, o que deixava entrar "12345678".
  *
+ * Desde 25/10/2026 a senha segue também os grupos que o Supabase Auth passou a
+ * exigir (minúsculas, maiúsculas e dígitos), para a recusa vir com a mensagem
+ * deste esquema e não com a do Auth. Ver `tests/security/politica-de-senhas`.
+ *
  * O projecto já tinha `validateSchoolNif` e `validateAngolaPhone`, usadas na
  * matrícula, na autenticação e no módulo de pessoas. Só o registo de escola não
  * as usava.
@@ -23,7 +27,7 @@ const base = {
   contact_email: "ana@colegio.ao",
   admin_email: "admin@colegio.ao",
   admin_name: "Ana Silva",
-  admin_password: "escola2026segura",
+  admin_password: "Escola2026segura",
   plan_code: "start" as const,
   slug: "colegio-teste",
 };
@@ -76,7 +80,7 @@ describe("telefones", () => {
 describe("senha do administrador", () => {
   it("aceita uma senha razoável", () => {
     expect(() =>
-      createSchoolWizardInputSchema.parse({ ...base, admin_password: "colegio2026ao" }),
+      createSchoolWizardInputSchema.parse({ ...base, admin_password: "Colegio2026ao" }),
     ).not.toThrow();
   });
 
@@ -91,17 +95,23 @@ describe("senha do administrador", () => {
     }
   });
 
-  it("exige letras e números", () => {
-    expect(() =>
-      createSchoolWizardInputSchema.parse({ ...base, admin_password: "abcdefghijkl" }),
-    ).toThrow(/letras e números/i);
+  it("exige maiúsculas, minúsculas e números — os grupos que o Auth exige", () => {
+    // Desde 25/10/2026 o Supabase Auth exige os três grupos. Antes este esquema
+    // bastava-se com `/[a-zA-Z]/`, e por isso "abcdefghij1" passava aqui e era
+    // recusada pelo Auth, com a mensagem dele em vez da nossa.
+    for (const senha of ["abcdefghijkl", "abcdefghij1", "ABCDEFGHIJ1", "Abcdefghijkl"]) {
+      expect(
+        () => createSchoolWizardInputSchema.parse({ ...base, admin_password: senha }),
+        senha,
+      ).toThrow(/maiúsculas, minúsculas e números/i);
+    }
   });
 
   it("aceita senhas que apenas começam por uma palavra comum", () => {
     // A primeira versão desta regra comparava por prefixo e rejeitava
     // "senha-forte-123" — uma senha legítima. Apanhado pelos testes que já
     // existiam no projecto. A regra passou a comparar o valor inteiro.
-    for (const senha of ["senha-forte-123", "senhaDaEscola2026", "passwordDoColegio1"]) {
+    for (const senha of ["Senha-forte-123", "senhaDaEscola2026", "passwordDoColegio1"]) {
       expect(
         () => createSchoolWizardInputSchema.parse({ ...base, admin_password: senha }),
         senha,

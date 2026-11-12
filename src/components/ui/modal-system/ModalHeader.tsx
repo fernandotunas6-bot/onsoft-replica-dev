@@ -7,6 +7,7 @@ export interface ModalHeaderProps {
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   onClose?: () => void;
+  closeDisabled?: boolean;
   onHelp?: () => void;
   badge?: React.ReactNode;
   className?: string;
@@ -17,6 +18,7 @@ export function ModalHeader({
   title,
   subtitle,
   onClose,
+  closeDisabled = false,
   onHelp,
   badge,
   className,
@@ -65,9 +67,10 @@ export function ModalHeader({
           <button
             type="button"
             onClick={onClose}
+            disabled={closeDisabled}
             title="Fechar (Esc)"
             aria-label="Fechar"
-            className="flex size-[44px] min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="disabled:cursor-not-allowed disabled:opacity-50 flex size-[44px] min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="size-[18px]" />
           </button>

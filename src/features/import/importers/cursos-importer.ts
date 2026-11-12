@@ -1,4 +1,4 @@
-import { normalizeText } from "../engine/normalize";
+import { normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { linkNewProgramsToCatalog } from "@/features/education-catalog/catalog-link";
 import { courseCatalogKey, levelScope } from "@/features/education-catalog/normalize";
@@ -17,14 +17,6 @@ const KIND_OPTIONS = [
   "undergraduate",
   "postgraduate",
 ] as const;
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 /** "Técnico Médio" → technical, "Ensino Secundário Geral" → general, etc. Sem correspondência, general. */
 function resolveKind(value: unknown): (typeof KIND_OPTIONS)[number] {

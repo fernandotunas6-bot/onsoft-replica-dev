@@ -103,7 +103,7 @@ export type ImportJsonValue =
   string | number | boolean | null | ImportJsonValue[] | { [key: string]: ImportJsonValue };
 
 export const createImportJobSchema = z.object({
-  academic_year_id: z.string().uuid().optional().nullable(),
+  academic_year_id: z.string().guid().optional().nullable(),
   module: z.enum(importModuleOptions),
   file_name: z.string().min(1),
   total_rows: z.number().int().nonnegative().default(0),
@@ -129,7 +129,7 @@ export const analyzeImportFileInputSchema = z.object({
 export type AnalyzeImportFileInput = z.infer<typeof analyzeImportFileInputSchema>;
 
 export const stageImportRowsInputSchema = z.object({
-  job_id: z.string().uuid(),
+  job_id: z.string().guid(),
   sheet_name: z.string().min(1),
   rows: z.array(z.record(z.string(), z.unknown())),
   column_mapping: z.record(z.string(), z.string()),
@@ -143,7 +143,7 @@ export type StageImportRowsInput = z.infer<typeof stageImportRowsInputSchema>;
  * e continua a aceitar no máximo 500, mantendo compatibilidade com clientes já publicados.
  */
 export const commitImportBatchSchema = z.object({
-  job_id: z.string().uuid(),
+  job_id: z.string().guid(),
   batch_size: z
     .number()
     .int()
@@ -160,7 +160,7 @@ export const commitImportBatchSchema = z.object({
 export type CommitImportBatchInput = z.infer<typeof commitImportBatchSchema>;
 
 export const saveColumnMappingSchema = z.object({
-  job_id: z.string().uuid(),
+  job_id: z.string().guid(),
   module: z.enum(importModuleOptions),
   mappings: z.record(z.string(), z.string()),
   save_template_name: z.string().optional(),
@@ -169,7 +169,7 @@ export const saveColumnMappingSchema = z.object({
 export type SaveColumnMappingInput = z.infer<typeof saveColumnMappingSchema>;
 
 export const updateStagingRowSchema = z.object({
-  row_id: z.string().uuid(),
+  row_id: z.string().guid(),
   field_name: z.string(),
   new_value: z.any(),
 });
@@ -177,7 +177,7 @@ export const updateStagingRowSchema = z.object({
 export type UpdateStagingRowInput = z.infer<typeof updateStagingRowSchema>;
 
 export const rollbackImportJobSchema = z.object({
-  job_id: z.string().uuid(),
+  job_id: z.string().guid(),
   reason: z.string().optional(),
 });
 
@@ -240,8 +240,8 @@ export const downloadOfficialTemplateSchema = z.object({
 export type DownloadOfficialTemplateInput = z.infer<typeof downloadOfficialTemplateSchema>;
 
 export const exportSchoolDataSchema = z.object({
-  academic_year_id: z.string().uuid().optional().nullable(),
-  class_group_id: z.string().uuid().optional().nullable(),
+  academic_year_id: z.string().guid().optional().nullable(),
+  class_group_id: z.string().guid().optional().nullable(),
   modules: z.array(z.enum(importModuleOptions)).min(1),
   mode: z.enum(importExchangeModeOptions),
 });

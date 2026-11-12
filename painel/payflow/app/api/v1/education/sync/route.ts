@@ -8,6 +8,7 @@ import { foreignSchoolRecord, foreignStudentRecord } from "@/lib/education-isola
 import { logPayflowEvent } from "@/lib/ops-log";
 import { isIntegrationAuthorized, jsonResponse, corsHeaders } from "@/lib/payflow";
 import { hashPaymentPin } from "@/lib/identifiers";
+import { readJsonBody } from "@/lib/json-body";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = syncSchema.safeParse(await request.json());
+    const parsed = syncSchema.safeParse(await readJsonBody(request, 1024 * 1024));
     if (!parsed.success) {
       return jsonResponse(
         {

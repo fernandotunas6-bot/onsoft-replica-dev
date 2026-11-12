@@ -9,7 +9,7 @@ import { corsPreflight } from "@/lib/ecosystem-cors";
 
 const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("save"), faq: faqInputSchema }),
-  z.object({ action: z.literal("delete"), id: z.string().uuid() }),
+  z.object({ action: z.literal("delete"), id: z.string().guid() }),
 ]);
 
 export const Route = createFileRoute("/api/saas/site/faqs")({

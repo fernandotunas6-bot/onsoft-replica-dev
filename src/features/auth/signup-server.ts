@@ -1,18 +1,25 @@
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestIP } from "@tanstack/react-start/server";
+import { serverFnClientIp } from "@/lib/server-fn-ip";
 import { getAppName, getAppUrl, getAuthMagicLinkUrl } from "@/lib/app-config";
 import { renderSignupConfirmationEmail } from "./email-templates/signup-confirm.html";
 import { resolveSystemSender, sendResendEmail } from "@/features/integrations/resend-client";
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 
+import { PASSWORD_POLICY_HINT, passwordMeetsPolicy } from "@/lib/password-policy-error";
+
 const SIGNUP_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 5 };
 
 export const requestSignupInputSchema = z.object({
   fullName: z.string().trim().min(3).max(160),
   email: z.string().trim().email("Indique um endereço de e-mail válido."),
-  password: z.string().min(8).max(128),
+  password: z
+    .string()
+    .min(8)
+    .max(128)
+    // O Auth recusaria de qualquer forma; validar aqui dá a mensagem em português.
+    .refine(passwordMeetsPolicy, { message: PASSWORD_POLICY_HINT }),
 });
 export type RequestSignupInput = z.infer<typeof requestSignupInputSchema>;
 
@@ -42,7 +49,7 @@ export const requestSignupFn = createServerFn({ method: "POST" })
     if (!apiKey) return { handled: false, reason: "resend_not_configured" };
 
     const email = data.email.toLowerCase().trim();
-    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const ip = serverFnClientIp();
     const keys = [`signup:ip:${ip}`, `signup:email:${email}`];
     if (!isRateLimitBypassed(...keys) && !(await consumeRateLimit(keys, SIGNUP_RATE_LIMIT))) {
       return { handled: true, message: NEUTRAL_MESSAGE };

@@ -13,6 +13,8 @@ type AngolaIdentityFieldProps = {
   disabled?: boolean;
   className?: string;
   placeholder?: string;
+  ariaInvalid?: boolean;
+  errorId?: string;
 };
 
 /** Campo BI/NIF com validação de formato (Lei n.º 3/21). */
@@ -25,6 +27,8 @@ export function AngolaIdentityField({
   disabled,
   className,
   placeholder = "BI ou NIF (9–10 dígitos / 14 caracteres)",
+  ariaInvalid,
+  errorId,
 }: AngolaIdentityFieldProps) {
   const [hint, setHint] = useState<string | null>(null);
 
@@ -64,6 +68,8 @@ export function AngolaIdentityField({
         defaultValue={defaultValue}
         onChange={onChange ? (event) => onChange(event.target.value) : undefined}
         disabled={disabled}
+        aria-invalid={ariaInvalid}
+        aria-describedby={errorId}
         className={className}
         placeholder={placeholder}
       />

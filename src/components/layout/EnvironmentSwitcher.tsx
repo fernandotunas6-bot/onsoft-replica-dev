@@ -80,7 +80,7 @@ export function EnvironmentSwitcher() {
           title="Mudar de ambiente"
         >
           <CurrentIcon className="size-3.5 shrink-0 text-primary" aria-hidden />
-          <span className="hidden truncate whitespace-nowrap xl:inline">
+          <span className="hidden truncate whitespace-nowrap min-[1800px]:inline">
             {isSchoolAdmin ? currentEnv.title : "Ambientes"}
           </span>
           <ChevronDown className="size-3.5 shrink-0 opacity-60" aria-hidden />

@@ -1,0 +1,57 @@
+[
+  {
+    "image": "gestao",
+    "jpegBytes": 121516,
+    "webpBytes": 72016
+  },
+  {
+    "image": "community",
+    "jpegBytes": 204988,
+    "webpBytes": 127370
+  },
+  {
+    "image": "criatividade",
+    "jpegBytes": 300270,
+    "webpBytes": 223764
+  },
+  {
+    "image": "tecnologia",
+    "jpegBytes": 182091,
+    "webpBytes": 149572
+  },
+  {
+    "image": "campus",
+    "jpegBytes": 366604,
+    "webpBytes": 294244
+  },
+  {
+    "image": "student",
+    "jpegBytes": 203468,
+    "webpBytes": 139536
+  },
+  {
+    "image": "hero",
+    "jpegBytes": 174301,
+    "webpBytes": 100884
+  },
+  {
+    "image": "teacher",
+    "jpegBytes": 166389,
+    "webpBytes": 91704
+  },
+  {
+    "image": "educacao",
+    "jpegBytes": 77430,
+    "webpBytes": 40422
+  },
+  {
+    "image": "engenharia",
+    "jpegBytes": 94117,
+    "webpBytes": 60884
+  },
+  {
+    "image": "saude",
+    "jpegBytes": 97879,
+    "webpBytes": 60780
+  }
+]

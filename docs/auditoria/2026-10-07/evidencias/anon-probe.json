@@ -1,0 +1,86 @@
+[
+  {
+    "table": "hr_payroll_items",
+    "code": "42501",
+    "row_count": 0,
+    "status": "recusado",
+    "elapsed_ms": 1124
+  },
+  {
+    "table": "hr_payroll_runs",
+    "code": "42501",
+    "row_count": 0,
+    "status": "recusado",
+    "elapsed_ms": 527
+  },
+  {
+    "table": "hr_contracts",
+    "code": "42501",
+    "row_count": 0,
+    "status": "recusado",
+    "elapsed_ms": 522
+  },
+  {
+    "table": "hr_employments",
+    "code": "42501",
+    "row_count": 0,
+    "status": "recusado",
+    "elapsed_ms": 214
+  },
+  {
+    "table": "finance_invoices",
+    "code": "42501",
+    "row_count": 0,
+    "status": "recusado",
+    "elapsed_ms": 897
+  },
+  {
+    "table": "finance_receipts",
+    "code": "42501",
+    "row_count": 0,
+    "status": "recusado",
+    "elapsed_ms": 215
+  },
+  {
+    "table": "school_integration_secrets",
+    "code": "42501",
+    "row_count": 0,
+    "status": "recusado",
+    "elapsed_ms": 2606
+  },
+  {
+    "table": "students",
+    "code": "42501",
+    "row_count": 0,
+    "status": "recusado",
+    "elapsed_ms": 217
+  },
+  {
+    "table": "people",
+    "code": "42501",
+    "row_count": 0,
+    "status": "recusado",
+    "elapsed_ms": 255
+  },
+  {
+    "table": "siga_assessment_scores",
+    "code": "42501",
+    "row_count": 0,
+    "status": "recusado",
+    "elapsed_ms": 4278
+  },
+  {
+    "table": "school_memberships",
+    "code": "42501",
+    "row_count": 0,
+    "status": "recusado",
+    "elapsed_ms": 362
+  },
+  {
+    "table": "profiles",
+    "code": "42501",
+    "row_count": 0,
+    "status": "recusado",
+    "elapsed_ms": 256
+  }
+]

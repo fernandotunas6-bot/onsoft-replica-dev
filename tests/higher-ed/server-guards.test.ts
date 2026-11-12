@@ -66,9 +66,19 @@ describe("Ensino Superior no servidor", () => {
     expect(fn("getMyEnrollmentOffer")).toContain("regulation.student_self_enrollment");
   });
 
+  it("turnos: só a coordenação muda o turno, para uma turma que dá a cadeira, com auditoria", () => {
+    const body = fn("setUnitShift");
+    expect(body).toContain('officeMembership(context, "write")');
+    expect(body).toContain("Essa turma não dá esta cadeira");
+    expect(body).toContain("await audit(");
+  });
+
   it("resultados: só professor da cadeira ou coordenação, época validada, auditoria", () => {
     const body = fn("recordUnitResult");
-    expect(body).toContain("canLaunchUnit(");
+    expect(body).toContain("launchScope(");
+    expect(body).toContain("canLaunchAny(scope)");
+    // Turnos: o professor só lança os estudantes dos seus turnos (ou sem turno).
+    expect(body).toContain("shiftVisible(scope, latestRow.shift)");
     expect(body).toContain("seasonEligibility(");
     expect(body).toContain("Lance primeiro a frequência");
     expect(body).toContain("await audit(");
@@ -89,9 +99,10 @@ describe("Ensino Superior no servidor", () => {
     expect(list).toContain("isOfficeRole(membership)");
     expect(list).toContain("teacherUnitKeys(");
     const sheet = fn("getUnitSheet");
-    expect(sheet.indexOf("canLaunchUnit(")).toBeLessThan(
+    expect(sheet.indexOf("canLaunchAny(scope)")).toBeLessThan(
       sheet.indexOf('.from("course_unit_enrollments")'),
     );
+    expect(sheet).toContain("shiftVisible(scope, row.shift)");
     expect(sheet).toContain("seasonEligibility(");
   });
 
@@ -257,6 +268,20 @@ describe("Ensino Superior no servidor", () => {
     expect(body).toMatch(
       /\.from\("finance_contracts"\)[\s\S]*?\.eq\("school_id", schoolId\)\s*\.eq\("status", "active"\)\s*\.gt\("discount_percentage", 0\)/,
     );
+  });
+
+  it("exportação SISIES: graduados sem uma consulta por curso", () => {
+    const body = fn("exportSisiesWorkbook");
+    // Antes eram 4 consultas por curso: `loadPlan` (3) mais as inscrições em
+    // cadeiras. Com 30 cursos, 120 idas à base para montar uma folha de Excel.
+    expect(body).not.toContain("loadPlan(");
+    expect(body).toContain("loadPlanUnitsByProgram(db, schoolId, programIds)");
+    // E o tecto de 50 000 por curso cortava em silêncio uma escola grande:
+    // agora pagina até a página vir curta, com ordem fixa.
+    // `\.limit`: só a chamada conta, que o comentário acima dela fala do tecto antigo.
+    expect(body).not.toMatch(/\.limit\(50000\)/);
+    expect(body).toMatch(/\.from\("course_unit_enrollments"\)[\s\S]*?\.range\(/);
+    expect(body).toMatch(/\.from\("course_unit_enrollments"\)[\s\S]*?\.order\("id"\)/);
   });
 
   it("decisão do júri: só doutoramento, 2FA, inscrição em curso, auditoria", () => {

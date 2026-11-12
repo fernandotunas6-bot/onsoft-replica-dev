@@ -1,4 +1,5 @@
-import { normalizeDate, normalizeMoney, normalizeText } from "../engine/normalize";
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
+import { normalizeDate, normalizeMoney, normalizeText, valueOf } from "../engine/normalize";
 import {
   invoiceYearForSchool,
   loadNextInvoiceSequence,
@@ -32,14 +33,6 @@ type DividasCache = ImportRefCache & {
   invoiceSequence: number;
 };
 
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
-
 export const dividasImporter: RowImporter = {
   module: "dividas",
 
@@ -49,7 +42,14 @@ export const dividasImporter: RowImporter = {
       loadEnrollmentFinanceRefs(ctx.db, ctx.schoolId),
       loadFeePlanRefs(ctx.db, ctx.schoolId),
       loadFeeItemRefs(ctx.db, ctx.schoolId),
-      ctx.db.from("finance_invoices").select("invoice_number").eq("school_id", ctx.schoolId),
+      readAllPages((from, to) =>
+        ctx.db
+          .from("finance_invoices")
+          .select("id, invoice_number")
+          .eq("school_id", ctx.schoolId)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ]);
 
     if (invoiceRows.error) {

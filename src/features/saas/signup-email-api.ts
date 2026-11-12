@@ -12,7 +12,7 @@ import { markLeadEmailVerified, recordSignupProgress } from "./commercial-lifecy
 import { planCodeSchema } from "./schemas";
 
 const email = z.string().trim().toLowerCase().email("Indique um e-mail válido.");
-const sessionId = z.string().uuid().optional();
+const sessionId = z.string().guid().optional();
 
 export const signupEmailCodeInputSchema = z.object({ email, session_id: sessionId });
 
@@ -30,7 +30,7 @@ export const signupEmailVerifyInputSchema = z.object({
 });
 
 export const signupProgressInputSchema = z.object({
-  session_id: z.string().uuid(),
+  session_id: z.string().guid(),
   step: z.number().int().min(1).max(7),
   plan_code: planCodeSchema.optional(),
   school_name: z.string().trim().max(160).optional(),

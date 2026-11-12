@@ -49,7 +49,7 @@ export const personDocumentInputSchema = z
     document_number: z.string().trim().min(1, "Número do documento é obrigatório"),
     issued_at: optionalText,
     expires_at: optionalText,
-    file_id: z.string().uuid().optional(),
+    file_id: z.string().guid().optional(),
     file_name: optionalText,
   })
   .superRefine((value, ctx) => {
@@ -65,7 +65,7 @@ export const personDocumentInputSchema = z
   });
 
 export const personRelationshipInputSchema = z.object({
-  related_person_id: z.string().uuid(),
+  related_person_id: z.string().guid(),
   relationship_type: z.enum(personRelationshipTypeOptions),
   priority: z.number().int().optional(),
   authorized: z.boolean().default(true),
@@ -170,6 +170,13 @@ export const searchPeopleInputSchema = z.object({
 });
 export type SearchPeopleInput = z.infer<typeof searchPeopleInputSchema>;
 
+export const searchPeoplePageInputSchema = searchPeopleInputSchema.omit({ limit: true }).extend({
+  status: z.enum(["todos", "active", "inactive"]).default("todos"),
+  page: z.number().int().min(1).max(10_000).default(1),
+  pageSize: z.number().int().min(1).max(100).default(25),
+});
+export type SearchPeoplePageInput = z.infer<typeof searchPeoplePageInputSchema>;
+
 export const findPersonDuplicatesInputSchema = z.object({
   fullName: z.string().trim().min(2),
   birthDate: optionalText,
@@ -180,11 +187,11 @@ export const findPersonDuplicatesInputSchema = z.object({
 });
 export type FindPersonDuplicatesInput = z.infer<typeof findPersonDuplicatesInputSchema>;
 
-export const getPersonInputSchema = z.object({ id: z.string().uuid() });
+export const getPersonInputSchema = z.object({ id: z.string().guid() });
 
 export const mergePeopleInputSchema = z.object({
-  survivorId: z.string().uuid(),
-  duplicateId: z.string().uuid(),
+  survivorId: z.string().guid(),
+  duplicateId: z.string().guid(),
   reason: z.string().trim().min(3, "Indica o motivo da mesclagem"),
 });
 export type MergePeopleInput = z.infer<typeof mergePeopleInputSchema>;
@@ -192,20 +199,22 @@ export type MergePeopleInput = z.infer<typeof mergePeopleInputSchema>;
 export const staffRoleOptions = ["professor", "funcionario", "diretor", "coordenador"] as const;
 
 export const updatePersonStatusInputSchema = z.object({
-  personId: z.string().uuid(),
+  personId: z.string().guid(),
   status: z.enum(["active", "inactive"]),
 });
 export type UpdatePersonStatusInput = z.infer<typeof updatePersonStatusInputSchema>;
 
 export const setPersonInstitutionRolesInputSchema = z.object({
-  personId: z.string().uuid(),
+  personId: z.string().guid(),
   roles: z.array(z.enum(personInstitutionRoleOptions)).max(personInstitutionRoleOptions.length),
 });
 export type SetPersonInstitutionRolesInput = z.infer<typeof setPersonInstitutionRolesInputSchema>;
 
 export const updatePersonInputSchema = z
   .object({
-    personId: z.string().uuid(),
+    personId: z.string().guid(),
+    /** Bloqueia gravações baseadas numa ficha desactualizada sem alterar o contrato legado. */
+    expectedUpdatedAt: z.string().min(1).max(100).optional(),
     fullName: z.string().trim().min(2).max(160),
     email: z.union([z.literal(""), z.string().trim().email()]).optional(),
     phone: optionalText,
@@ -214,6 +223,12 @@ export const updatePersonInputSchema = z
     municipality: optionalText,
     commune: optionalText,
     address: optionalText,
+    /**
+     * O formulário mostra a morada: os quatro campos gravam-se tal como vêm, vazios
+     * incluídos. Sem isto, apagar a morada não fazia nada (o vazio chega como «não
+     * enviado»); quem não mostra a morada (edição rápida da lista) não a toca.
+     */
+    includesGeography: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
     if (!value.nif) return;
@@ -229,7 +244,7 @@ export const updatePersonInputSchema = z
 export type UpdatePersonInput = z.infer<typeof updatePersonInputSchema>;
 
 export const setPersonPhotoUrlInputSchema = z.object({
-  personId: z.string().uuid(),
+  personId: z.string().guid(),
   photoUrl: z
     .union([
       z.string().trim().url().startsWith("https://"),
@@ -240,7 +255,7 @@ export const setPersonPhotoUrlInputSchema = z.object({
 export type SetPersonPhotoUrlInput = z.infer<typeof setPersonPhotoUrlInputSchema>;
 
 export const addPersonDocumentInputSchema = z.object({
-  personId: z.string().uuid(),
+  personId: z.string().guid(),
   document: personDocumentInputSchema,
 });
 export type AddPersonDocumentInput = z.infer<typeof addPersonDocumentInputSchema>;
@@ -255,16 +270,19 @@ export const createTeacherInputSchema = z.object({
 export type CreateTeacherInput = z.infer<typeof createTeacherInputSchema>;
 
 export const updateTeacherInputSchema = z.object({
-  teacherId: z.string().uuid(),
+  teacherId: z.string().guid(),
   fullName: z.string().trim().min(2).max(160),
   email: z.union([z.literal(""), z.string().trim().email()]).optional(),
   phone: optionalText,
   status: z.enum(["active", "inactive"]).default("active"),
+  /** Carimbos lidos pelo ecrã (professor e ficha): conflito em vez de sobrescrever. */
+  expectedUpdatedAt: z.string().trim().min(10).max(64).optional(),
+  expectedPersonUpdatedAt: z.string().trim().min(10).max(64).optional(),
 });
 export type UpdateTeacherInput = z.infer<typeof updateTeacherInputSchema>;
 
 export const deleteTeacherInputSchema = z.object({
-  teacherId: z.string().uuid(),
+  teacherId: z.string().guid(),
 });
 export type DeleteTeacherInput = z.infer<typeof deleteTeacherInputSchema>;
 
@@ -274,3 +292,9 @@ export const listTeachersInputSchema = z.object({
   limit: z.number().int().min(1).max(200).default(100),
 });
 export type ListTeachersInput = z.infer<typeof listTeachersInputSchema>;
+
+export const listTeachersPageInputSchema = listTeachersInputSchema.omit({ limit: true }).extend({
+  page: z.number().int().min(1).max(10_000).default(1),
+  pageSize: z.number().int().min(1).max(100).default(25),
+});
+export type ListTeachersPageInput = z.infer<typeof listTeachersPageInputSchema>;

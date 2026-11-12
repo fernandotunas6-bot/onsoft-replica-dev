@@ -26,32 +26,33 @@ injustificadas às aulas dadas no semestre.
 
 ## Cobertura no SIGA
 
-| Requisito                                                                                         | Estado                                                                                                               |
-| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Cursos de licenciatura e pós-graduação, anos curriculares                                         | ✅                                                                                                                   |
-| Plano curricular por semestre com créditos (1–20 por UC) e precedências                           | ✅                                                                                                                   |
-| Regulamento configurável (créditos/ano e semestre, pesos, admissão, dispensa, faltas, tentativas) | ✅                                                                                                                   |
-| Épocas normal, recurso, especial, melhoria                                                        | ✅                                                                                                                   |
-| Exame extraordinário e de equivalência                                                            | ➖ equivalência coberta por «Creditar»; extraordinário não                                                           |
-| Ano lectivo por semestres                                                                         | ✅ (gravação um a um; gravação conjunta exige migração)                                                              |
-| Inscrição por cadeira (individual e em lote), anulação                                            | ✅                                                                                                                   |
-| Pautas por cadeira, lançamento pelo docente, impressão                                            | ✅                                                                                                                   |
-| Histórico académico, certificado de conclusão                                                     | ✅ certificado com n.º de registo (série CE) e QR para /verificar                                                    |
-| Classificação final inteira 10–20 com menção (257/25)                                             | ✅                                                                                                                   |
-| Emolumentos (recurso, especial, melhoria, certidão)                                               | ✅                                                                                                                   |
-| Candidatura com curso pretendido                                                                  | ✅                                                                                                                   |
-| Doutoramento: decisão do júri (Aprovado / com distinção / com distinção e louvor)                 | ✅ com acta, 2FA e auditoria                                                                                         |
-| Modalidade (presencial/semipresencial/distância) e regime (regular/pós-laboral) por curso         | ✅                                                                                                                   |
-| Vagas por curso e exame de acesso (nota, seriação)                                                | ✅ separador «Acesso»                                                                                                |
-| Estatuto trabalhador-estudante (faltas, época especial)                                           | ✅ com prova, datas e 2FA                                                                                            |
-| Exportação para o SISIES/GEPE (Vagas, Acesso, Matrículas, Graduados, Bolsas)                      | ✅ Excel                                                                                                             |
-| Diploma / carta de curso registado com QR                                                         | ✅ certificado de conclusão emitido com 2FA, uma vez por curso                                                       |
-| Bolsas                                                                                            | ✅ desconto do contrato por aluno (Tesouraria/Direcção, 2FA, motivo na auditoria); também na base «Bolsas» do SISIES |
-| Grau do curso: bacharelato, licenciatura, mestrado, doutoramento, especialização                  | ✅ (o bacharelato, como a licenciatura, fica `undergraduate` na base: sem migração)                                  |
+| Requisito                                                                                         | Estado                                                                                                                              |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Cursos de licenciatura e pós-graduação, anos curriculares                                         | ✅                                                                                                                                  |
+| Plano curricular por semestre com créditos (1–20 por UC) e precedências                           | ✅                                                                                                                                  |
+| Regulamento configurável (créditos/ano e semestre, pesos, admissão, dispensa, faltas, tentativas) | ✅                                                                                                                                  |
+| Épocas normal, recurso, especial, melhoria                                                        | ✅                                                                                                                                  |
+| Exame extraordinário e de equivalência                                                            | ➖ equivalência coberta por «Creditar»; extraordinário não                                                                          |
+| Ano lectivo por semestres                                                                         | ✅ (gravação um a um; gravação conjunta exige migração)                                                                             |
+| Inscrição por cadeira (individual e em lote), anulação                                            | ✅                                                                                                                                  |
+| Pautas por cadeira, lançamento pelo docente, impressão                                            | ✅                                                                                                                                  |
+| Histórico académico, certificado de conclusão                                                     | ✅ certificado com n.º de registo (série CE) e QR para /verificar                                                                   |
+| Classificação final inteira 10–20 com menção (257/25)                                             | ✅                                                                                                                                  |
+| Emolumentos (recurso, especial, melhoria, certidão)                                               | ✅                                                                                                                                  |
+| Candidatura com curso pretendido                                                                  | ✅                                                                                                                                  |
+| Doutoramento: decisão do júri (Aprovado / com distinção / com distinção e louvor)                 | ✅ com acta, 2FA e auditoria                                                                                                        |
+| Modalidade (presencial/semipresencial/distância) e regime (regular/pós-laboral) por curso         | ✅                                                                                                                                  |
+| Vagas por curso e exame de acesso (nota, seriação)                                                | ✅ separador «Acesso»                                                                                                               |
+| Estatuto trabalhador-estudante (faltas, época especial)                                           | ✅ com prova, datas e 2FA                                                                                                           |
+| Exportação para o SISIES/GEPE (Vagas, Acesso, Matrículas, Graduados, Bolsas)                      | ✅ Excel                                                                                                                            |
+| Diploma / carta de curso registado com QR                                                         | ✅ certificado de conclusão emitido com 2FA, uma vez por curso                                                                      |
+| Bolsas                                                                                            | ✅ desconto do contrato por aluno e bolsa de estudo (tipo, entidade, datas, prova); vale o maior; também na base «Bolsas» do SISIES |
+| Lista de espera por turma                                                                         | ✅ turma cheia na aceitação → fila; a secretaria coloca pela ordem                                                                  |
+| Grau do curso: bacharelato, licenciatura, mestrado, doutoramento, especialização                  | ✅ (o bacharelato, como a licenciatura, fica `undergraduate` na base: sem migração)                                                 |
 
 ## Pendente (precisa de migração ou de decisão)
 
-- Turnos/vagas por turma com lista de espera.
+- Nada de estrutural: faltam as bases Pós-graduados e Recursos Humanos do SISIES.
 
 ## Comparação com outros sistemas académicos
 
@@ -67,7 +68,7 @@ injustificadas às aulas dadas no semestre.
 | Fluxo de correcção de notas                                | Banner (grade change workflow)                             | ✅ «Corrigir nota»: secretaria, 2FA, motivo, auditoria                                                                    |
 | Holds: dívida bloqueia inscrição/documentos                | Banner (registration holds)                                | ✅ inscrição e certificado de conclusão: duas opções do regulamento (desligadas por omissão); as declarações gerais — não |
 | Estatuto trabalhador-estudante (faltas, prescrição a 50 %) | SIGARRA                                                    | ✅ faltas, época especial e prescrição (regulamento)                                                                      |
-| Turnos/vagas por turma e lista de espera                   | FenixEdu (turnos), Banner (capacity, waitlist)             | ❌                                                                                                                        |
+| Turnos/vagas por turma e lista de espera                   | FenixEdu (turnos), Banner (capacity, waitlist)             | ✅ vagas e lista de espera por turma; turno por cadeira (professor lança só os seus)                                      |
 | Calendário de inscrições e épocas                          | FenixEdu (curricular calendars), SIGAA                     | ✅ datas de abertura e fecho no regulamento; janelas por época — não                                                      |
 | Sistemas angolanos (SIGU, SkyGnova, SIGA.ao)               | candidatura → certificado num só sistema                   | ✅ mesmo ciclo                                                                                                            |
 

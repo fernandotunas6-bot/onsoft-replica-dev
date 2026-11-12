@@ -14,8 +14,8 @@ import { toastActionError } from "@/lib/action-error-toast";
 import { gradeInWords } from "@/lib/grade-words";
 
 const searchSchema = z.object({
-  programId: z.string().uuid(),
-  studentId: z.string().uuid(),
+  programId: z.string().guid(),
+  studentId: z.string().guid(),
 });
 
 export const Route = createFileRoute("/pedagogica_/superior_/certificado")({
@@ -65,7 +65,7 @@ function CertificatePage() {
   // Decreto 257/25: classificação final inteira (10–20) com menção qualitativa.
   const degree = data?.program.degree ?? "licenciatura";
   const doctoral = degree === "doutoramento";
-  const final = data?.progress.completed ? finalClassification(data.progress.average) : null;
+  const final = data?.progress.completed ? finalClassification(data.progress.averageExact) : null;
   // Doutoramento: sem nota numérica, conta a decisão do júri (Decreto 257/25).
   const completed = Boolean(data?.progress.completed && (doctoral ? data.juryMention : final));
   const title = DEGREE_TITLE[degree];
@@ -101,7 +101,7 @@ function CertificatePage() {
         {transcript.isLoading ? (
           <p className="text-sm text-muted-foreground">A preparar o certificado…</p>
         ) : !data ? (
-          <p className="text-sm text-destructive">
+          <p className="text-sm text-destructive-strong">
             {transcript.error instanceof Error
               ? transcript.error.message
               : "Não foi possível abrir o certificado."}

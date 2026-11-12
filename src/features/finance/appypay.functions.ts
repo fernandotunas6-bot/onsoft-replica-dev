@@ -62,7 +62,7 @@ export const listGatewayCharges = createServerFn({ method: "GET" })
   });
 
 const createSchema = z.object({
-  invoiceId: z.string().uuid(),
+  invoiceId: z.string().guid(),
   studentName: z.string().max(200).optional().default(""),
   amount: z.number().positive().max(100_000_000),
   method: z.enum(["GPO", "REF"]),

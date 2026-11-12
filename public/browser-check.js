@@ -1,11 +1,11 @@
 /*
  * Verificação do navegador do SIGA Plus (portal e app SIGA Desktop).
  *
- * O SIGA é compilado para navegadores com o motor do Safari 16.4 ou mais recente
- * (Chrome/Edge 111, Firefox 114). Num motor mais antigo o ecrã aparece, mas o código
- * não arranca: botões, PIN e entrada não respondem. No Mac a app SIGA Desktop usa o
- * motor do Safari instalado no sistema, por isso um Mac com o Safari por actualizar
- * fica assim. Em vez de um ecrã morto, mostra como resolver.
+ * O SIGA é compilado para navegadores com o motor do Safari 15.4 ou mais recente
+ * (Chrome/Edge 99, Firefox 97; ver `target` em vite.config.ts). Num motor mais antigo o
+ * ecrã aparece, mas os estilos e o código não arrancam. No Mac a app SIGA Desktop usa o
+ * motor do Safari do sistema, por isso um Mac por actualizar fica assim. Em vez de um
+ * ecrã morto, mostra como resolver.
  *
  * Sintaxe antiga de propósito (var, function, sem módulos): tem de correr nos motores
  * antigos que pretende detectar. A cópia em desktop/public/ tem de ser igual (há um teste).
@@ -13,27 +13,53 @@
 (function () {
   "use strict";
 
-  function supported() {
+  // Diz o que falta neste motor, ou "" quando tem tudo.
+  function missingFeature() {
     try {
-      // Lookbehind em expressões regulares: Safari 16.4, Chrome 62, Firefox 78.
-      new RegExp("(?<=a)b");
+      // Array.prototype.at(): Safari 15.4, Chrome 92, Firefox 90.
+      if (typeof Array.prototype.at !== "function") return "Array.prototype.at()";
+      // @layer, de que o Tailwind 4 precisa: Safari 15.4, Chrome 99, Firefox 97.
+      if (typeof window.CSSLayerBlockRule === "undefined") return "camadas de CSS (@layer)";
     } catch (e) {
-      return false;
+      return "funcionalidades básicas";
     }
-    try {
-      // color-mix(): Safari 16.2, Chrome 111, Firefox 113 (Tailwind 4 usa-o nas cores).
-      if (window.CSS && CSS.supports && !CSS.supports("color", "color-mix(in srgb, red, blue)")) {
-        return false;
-      }
-    } catch (e) {
-      return false;
-    }
-    return true;
+    return "";
   }
 
-  if (supported()) return;
+  var SKIP_KEY = "siga-browser-check-skip";
+  function skipped() {
+    try {
+      return window.sessionStorage.getItem(SKIP_KEY) === "1";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  var missing = missingFeature();
+  if (!missing || skipped()) return;
+
+  // Que motor é este, por saltos de funcionalidades (o user agent do Safari não diz).
+  function engineGuess() {
+    try {
+      return Array.prototype.at ? "" : "anterior ao Safari 15.4";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  // Na app SIGA Desktop o plugin «os» do Tauri deixa ler a versão do macOS.
+  function macosVersion() {
+    try {
+      var info = window.__TAURI_OS_PLUGIN_INTERNALS__;
+      return info && typeof info.version === "string" ? info.version : "";
+    } catch (e) {
+      return "";
+    }
+  }
 
   var ua = navigator.userAgent || "";
+  // O Safari diz a sua versão no user agent; a app (WKWebView) não.
+  var safariVersion = (/Version\/([\d.]+)[^)]*Safari/.exec(ua) || [])[1] || "";
   var iOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   var mac = !iOS && /Macintosh|Mac OS X/.test(ua);
   var desktopApp = Boolean(window.__TAURI_INTERNALS__ || window.isTauri);
@@ -46,7 +72,7 @@
     title = "É preciso actualizar o Safari deste Mac";
     intro =
       (desktopApp ? "A app SIGA Desktop usa o motor do Safari do Mac. " : "") +
-      "O SIGA Plus precisa do Safari 16.4 ou mais recente e este Mac tem uma versão antiga: " +
+      "O SIGA Plus precisa do Safari 15.4 ou mais recente e este Mac tem uma versão antiga: " +
       "por isso os botões, o PIN e a entrada não funcionam.";
     steps = [
       "Abra o menu Apple () → Preferências do Sistema → Actualização de Software.",
@@ -55,10 +81,11 @@
     ];
     note =
       "No macOS 10.15 Catalina ou anterior não há Safari compatível: use o Firefox actualizado " +
-      "ou o SIGA Plus noutro computador.";
+      "ou o SIGA Plus noutro computador. Entretanto, o SIGA funciona no Chrome ou no Firefox " +
+      "actualizados, em portal-siga.com.";
   } else if (iOS) {
     title = "É preciso actualizar o iOS";
-    intro = "O SIGA Plus precisa do iOS/iPadOS 16.4 ou mais recente.";
+    intro = "O SIGA Plus precisa do iOS/iPadOS 15.4 ou mais recente.";
     steps = [
       "Abra Definições → Geral → Actualização de software.",
       "Instale a actualização e volte a abrir o SIGA Plus.",
@@ -114,6 +141,44 @@
     }
     card.appendChild(list);
     if (note) card.appendChild(el("p", "margin:0;font-size:13px;color:#64748B;", note));
+
+    // O que foi encontrado, para quem ajuda a resolver (suporte, Direcção).
+    var found = [];
+    var engine = engineGuess();
+    if (engine) found.push("Motor encontrado: " + engine);
+    found.push("Falta: " + missing);
+    if (safariVersion) found.push("Safari " + safariVersion);
+    var macos = mac ? macosVersion() : "";
+    if (macos) found.push("macOS " + macos);
+    if (found.length) {
+      var detail = el(
+        "p",
+        "margin:16px 0 0;padding-top:12px;border-top:1px solid #E2E8F0;font-size:12px;color:#64748B;",
+        found.join(" · ") + ".",
+      );
+      detail.id = "siga-browser-check-detail";
+      card.appendChild(detail);
+    }
+
+    // Se a verificação se enganar, não deixa ninguém preso neste ecrã.
+    var skip = el(
+      "button",
+      "margin:16px 0 0;padding:8px 14px;border:1px solid #CBD5E1;border-radius:10px;" +
+        "background:#fff;color:#0F172A;font:inherit;font-size:13px;cursor:pointer;",
+      "Continuar mesmo assim",
+    );
+    skip.id = "siga-browser-check-continue";
+    skip.setAttribute("type", "button");
+    skip.addEventListener("click", function () {
+      try {
+        window.sessionStorage.setItem(SKIP_KEY, "1");
+      } catch (e) {
+        // Sem sessionStorage: continua só desta vez.
+      }
+      document.documentElement.removeAttribute("data-siga-browser");
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    });
+    card.appendChild(skip);
 
     overlay.appendChild(card);
     document.body.appendChild(overlay);

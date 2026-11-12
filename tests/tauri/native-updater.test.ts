@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }));
+const { invoke, getOutboxItems } = vi.hoisted(() => ({
+  invoke: vi.fn(),
+  getOutboxItems: vi.fn((): unknown[] => []),
+}));
+vi.mock("@/lib/offline/outbox", () => ({ outboxItems: getOutboxItems }));
 vi.mock("@tauri-apps/api/core", () => ({ invoke, isTauri: () => true }));
 
 import {
@@ -10,7 +14,10 @@ import {
 } from "@/lib/native-updater";
 
 describe("actualizações da app pelos comandos Rust", () => {
-  beforeEach(() => invoke.mockReset());
+  beforeEach(() => {
+    invoke.mockReset();
+    getOutboxItems.mockReturnValue([]);
+  });
 
   it("verificar usa check_app_update (sem permissões do plugin no portal)", async () => {
     invoke.mockResolvedValueOnce({
@@ -44,6 +51,15 @@ describe("actualizações da app pelos comandos Rust", () => {
     invoke.mockResolvedValueOnce(undefined);
     await expect(installNativeUpdate()).resolves.toBe(true);
     expect(invoke).toHaveBeenCalledWith("install_app_update");
+  });
+
+  it("não instala quando há notas ou presenças no cofre, mesmo sem mutações React", async () => {
+    getOutboxItems.mockReturnValue([{ id: "local-1" }, { id: "local-2" }]);
+    await expect(installNativeUpdateWhenSafe(0)).resolves.toEqual({
+      installed: false,
+      waiting: 2,
+    });
+    expect(invoke).not.toHaveBeenCalled();
   });
 
   it("nunca instala com gravações por enviar", async () => {

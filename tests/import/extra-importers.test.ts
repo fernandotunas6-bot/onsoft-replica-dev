@@ -31,7 +31,7 @@ describe("Extra Importers (dividas, funcionarios, horarios)", () => {
           {
             id: "s1",
             person_id: "p1",
-            student_number: "PROC-2026-042",
+            student_number: "1260042",
             national_id: "005432190LA048",
             status: "active",
           },
@@ -45,7 +45,7 @@ describe("Extra Importers (dividas, funcionarios, horarios)", () => {
       };
       const analysis = dividasImporter.analyzeRow(
         {
-          student_identifier: "PROC-2026-042",
+          student_identifier: "1260042",
           amount_due: 35000,
           invoice_number: "FT-2026-001",
         },

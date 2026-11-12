@@ -3,6 +3,7 @@ import { FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fileMotion } from "@/components/files/file-motion";
 import { FilePickerModal } from "./FilePickerModal";
+import type { SchoolFileRequest } from "./file-request";
 import type { FileArea, FileKind } from "./kinds";
 import type { SchoolFileRecord } from "./schemas";
 
@@ -11,6 +12,7 @@ export function PickFileButton({
   area,
   acceptKinds,
   initialRelatedPersonId,
+  request,
   onPick,
   variant = "outline",
   size = "default",
@@ -20,6 +22,7 @@ export function PickFileButton({
   area?: FileArea;
   acceptKinds?: readonly FileKind[];
   initialRelatedPersonId?: string;
+  request?: SchoolFileRequest;
   onPick?: (file: SchoolFileRecord) => void;
   variant?: "outline" | "ghost" | "secondary";
   size?: "default" | "sm";
@@ -49,6 +52,7 @@ export function PickFileButton({
         area={area}
         acceptKinds={acceptKinds}
         initialRelatedPersonId={initialRelatedPersonId}
+        request={request}
         onPick={onPick}
       />
     </>

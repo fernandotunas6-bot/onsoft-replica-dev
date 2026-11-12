@@ -25,6 +25,7 @@ export const Route = createFileRoute("/api/siga-ai/chat")({
         const { askAiStream } = await import("@/features/siga-ai/gateway.server");
         const { askAiInputSchema } = await import("@/features/siga-ai/schemas");
         const { encodeGatewayEvent } = await import("@/features/siga-ai/stream-parse");
+        const { BODY_LIMITS, readJsonBodyLimited } = await import("@/lib/read-json-body");
 
         let userId: string;
         try {
@@ -36,9 +37,22 @@ export const Route = createFileRoute("/api/siga-ai/chat")({
           });
         }
 
+        // Corpo com limite: a pergunta tem no máximo 4000 caracteres, e ler sem tecto
+        // deixava qualquer sessão válida ocupar a memória do Worker.
+        const read = await readJsonBodyLimited(request, BODY_LIMITS.standard);
+        if (!read.ok) {
+          const tooLarge = read.reason === "too_large";
+          return new Response(
+            JSON.stringify({
+              error: tooLarge ? "Pergunta demasiado grande." : "Pergunta inválida.",
+            }),
+            { status: tooLarge ? 413 : 400, headers: { "content-type": "application/json" } },
+          );
+        }
+
         let input: ReturnType<typeof askAiInputSchema.parse>;
         try {
-          input = askAiInputSchema.parse(await request.json());
+          input = askAiInputSchema.parse(read.value);
         } catch {
           return new Response(JSON.stringify({ error: "Pergunta inválida." }), {
             status: 400,

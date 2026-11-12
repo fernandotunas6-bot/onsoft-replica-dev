@@ -92,7 +92,7 @@ const authorizedItem = {
 };
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/financeiro.rh.pagamentos");
+  const mod = await import("@/routes/financeiro_.rh_.pagamentos");
   return routeComponentOf(mod);
 }
 

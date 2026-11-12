@@ -9,6 +9,7 @@
 import { spawn } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertSafeE2ETarget } from "./e2e-safety.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -27,6 +28,7 @@ function run(command, args, env = process.env) {
 }
 
 const live = process.env.SIGA_E2E_LIVE === "1" || process.env.SIGA_E2E_LIVE === "true";
+if (live) assertSafeE2ETarget();
 const hasSecret = Boolean(process.env.SUPABASE_SECRET_KEY?.trim());
 const pyEnv = live && hasSecret ? { ...process.env, SIGA_E2E_LIVE: "1" } : process.env;
 

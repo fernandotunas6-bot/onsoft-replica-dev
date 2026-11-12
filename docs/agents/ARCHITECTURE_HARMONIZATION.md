@@ -245,8 +245,23 @@ VISITANTE → WEB (conhece / planos / demo OU cadastro)
      + Domain + settings
   → ADMIN regista o cliente
   → SIGA provisionado
-  → redirect para SIGA (onboarding: ano lectivo → operação)
+  → 1.º SIGA /configuracoes/inicio — painel administrativo da escola: configurar
+  → 2.º SIGA /portal — entrar na escola (operação)
 ```
+
+Ligações obrigatórias depois de criar a escola (01/11/2026):
+
+| Onde | Ligações |
+| --- | --- |
+| WEB `/start` (fim) | Assistente de configuração (1.º), Painel Administrativo (2.º), Portal Escolar; website e portal da escola |
+| SIGA `/configuracoes/inicio` | «A escola na internet»: website, portal SIGA Plus e «Entrar na escola» |
+| SIGA `/configuracoes/assinatura` (área do cliente) | website, portal SIGA Plus e domínios |
+| ADMIN `/tenants` e `/tenants/escola` | «Website da escola» e «Portal SIGA Plus» |
+
+Regra dos endereços: website na raiz do subdomínio (ou domínio próprio verificado),
+portal em `/portal?escola=<slug>`. No SIGA, `schoolSiteLinks`; no ADMIN,
+`getSchoolWebsiteUrl`/`getSchoolPortalUrl`; no WEB, `schoolAddressUrls`. Auditoria:
+[estado do ecossistema 01/11](../auditoria/estado-ecossistema-2026-11-01.md).
 
 Wizard: **frontend WEB**. Provisionamento: **SaaS/Admin/backend**.
 Trial público actual: 14 dias, honeypot + rate-limit IP/email

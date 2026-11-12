@@ -3,6 +3,7 @@ import { FolderOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { ClassMaterialsPanel } from "@/features/arquivos/ClassMaterialsPanel";
+import { ClassWaitlistPanel } from "@/features/enrollment/ClassWaitlistPanel";
 import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
@@ -115,7 +116,7 @@ export function TurmasWorkspaceTab({
   if (isError) {
     return (
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center shadow-soft">
-        <p className="font-semibold text-destructive">Não foi possível carregar as turmas</p>
+        <p className="font-semibold text-destructive-strong">Não foi possível carregar as turmas</p>
         <p className="mt-2 text-sm text-muted-foreground">{errorMessage || "Erro desconhecido"}</p>
       </div>
     );
@@ -144,8 +145,11 @@ export function TurmasWorkspaceTab({
 
   return (
     <>
+      <ClassWaitlistPanel />
       <ListFilterBar
         values={filters}
+        resultCount={turmasComDados.length}
+        resultNoun="turma"
         activeCount={activeCount}
         onChange={(name, value) => setFilter(name, value)}
         onReset={resetFilters}

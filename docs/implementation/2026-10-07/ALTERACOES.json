@@ -1,0 +1,362 @@
+{
+  "base_commit": "df5009b39f03b69acc2cc69db235682bfd994e15",
+  "scope": "Estado local final; inclui alterações pré-existentes identificadas no progresso",
+  "files": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "0aaac16d86952a3bff7f6125c26d1c05770ee0a9c233b236c4246e2f439a9657"
+    },
+    {
+      "path": ".github/workflows/deploy-production.yml",
+      "sha256": "6d4520d31ca477d173f35e60f358231fa39d37968a7ab28fa6f2b022296a60f3"
+    },
+    {
+      "path": ".github/workflows/ecosystem-e2e-live.yml",
+      "sha256": "c75069f716a9da262936eeccf8fda39cdbc49b3baf60274b1413eac99013b33f"
+    },
+    {
+      "path": "bun.lock",
+      "sha256": "1af7d68e062a93890a811d1c47bbdbaddd7c3d6b717d24fc118a272f99c31156"
+    },
+    {
+      "path": "docs/agents/CONTINUE.md",
+      "sha256": "f6906cf38d34dec08fa445e58ea78a04c0f223472baaec5ad6ee117d95834123"
+    },
+    {
+      "path": "docs/implementation/2026-10-07/PROGRESSO.md",
+      "sha256": "41ce80470e5233a18f3822d8b24532b83078b0427d168636f203deecc5979e4d"
+    },
+    {
+      "path": "docs/implementation/2026-10-07/REVISAO_SQL.md",
+      "sha256": "9f7927770600698388ac7695d9ae7872ad439ba7944941e289e2badf0493ca93"
+    },
+    {
+      "path": "docs/implementation/2026-10-07/matriz-verificacao.csv",
+      "sha256": "4372e0f513287f741d94941e0bb97e2d19b2bf4205c5452d64e1636a0deea794"
+    },
+    {
+      "path": "docs/specs/CONTRATOS_TRANSVERSAIS.md",
+      "sha256": "53e4aa1a8e2918d04ea83a9ba2ed57a4821edb7997921238c310b1c2dd5b594d"
+    },
+    {
+      "path": "docs/specs/CORRECCOES_2026-10-08.md",
+      "sha256": "b499d22ef8162bfed3b079a884fa26475bc67a22ebb871077727a81b135e330b"
+    },
+    {
+      "path": "docs/specs/DESKTOP_PWA.md",
+      "sha256": "48291c37b6e991d1886cd5a5f2a4cc0da3d31a99c9e79547807f5c24afbaafa4"
+    },
+    {
+      "path": "docs/specs/ECOSSISTEMA_APPS.md",
+      "sha256": "fe41c30061e05f886cdea43936e40b9ca0e32f02539ab37667ab35551d6bca01"
+    },
+    {
+      "path": "docs/specs/JORNADA_INTEGRADA.md",
+      "sha256": "a1215fc27f99c31e555e71730918012347d18828eec063e936a674e91c54f561"
+    },
+    {
+      "path": "docs/specs/LACUNAS_E_DECISOES.md",
+      "sha256": "d5015418a0ffcdc1acd78771dd36ba6c325cc152ccb2739975eee11806f8836c"
+    },
+    {
+      "path": "docs/specs/README.md",
+      "sha256": "9245b92b2e2c713e748d22134e622c36b286894290c9275fe52adcb4f2d0a3ac"
+    },
+    {
+      "path": "docs/specs/contratos-api.csv",
+      "sha256": "84a4f0273669ba42e49dcc0a6259732abbd1f4a19db5de900afd7d03658e3450"
+    },
+    {
+      "path": "docs/specs/matriz-evolucao.csv",
+      "sha256": "0cf176fc92988c0236b5b2eac99a4fe75c4461c22847909624dac334efa1c1e2"
+    },
+    {
+      "path": "docs/specs/modules/academic.md",
+      "sha256": "39c8cf8dd304a0f42266bee3e16018b0efd1d6b26de38ae61083785144fc6bc0"
+    },
+    {
+      "path": "docs/specs/modules/access.md",
+      "sha256": "bb4bde4bf473220e2b94f06eda2b8fe948732b1507ba8bf0826a0e0f334fe791"
+    },
+    {
+      "path": "docs/specs/modules/ai-assist.md",
+      "sha256": "57c4662cdab70de6604d45eb0f8f2e035f448fc2e3a1944167471d014a586cf9"
+    },
+    {
+      "path": "docs/specs/modules/alumni.md",
+      "sha256": "4fd123e9e48ed62231defcd00291044ccf02591e2ae7c38fa32b61fb37e4fd87"
+    },
+    {
+      "path": "docs/specs/modules/arquivos.md",
+      "sha256": "f11946fcc19a10252bc17759ec55a74e9c23735ec494fee06f2e060232bdddb5"
+    },
+    {
+      "path": "docs/specs/modules/audit.md",
+      "sha256": "311a4ddc532bead8659135805353443f89c68090db5281444188104e499cdedc"
+    },
+    {
+      "path": "docs/specs/modules/auth.md",
+      "sha256": "1d4bf72aa324bd310ed8e0a9dad534b7013f6544c55e68359b35bfa335cbfd25"
+    },
+    {
+      "path": "docs/specs/modules/calendar.md",
+      "sha256": "4531d694ea773196d71bfd96eee4a81341a790d911f3a29254dff06ecb2ad6d0"
+    },
+    {
+      "path": "docs/specs/modules/catracas.md",
+      "sha256": "46feeb1dc029bd41956d2ac246e60425789dcebdb1759de976e4618ad6c179f4"
+    },
+    {
+      "path": "docs/specs/modules/communications.md",
+      "sha256": "2533408f9b64824144af41fba5dd65b69370838b4417f7fd8b3aeeadbf96ea8e"
+    },
+    {
+      "path": "docs/specs/modules/contacts.md",
+      "sha256": "24079ab79906c6f8b1461afedcf9f8d1ca38e780e0ac6b4a99c05b4c41a7d742"
+    },
+    {
+      "path": "docs/specs/modules/dashboard.md",
+      "sha256": "e032ec383e7c86c5658a58bc21fdef2d55d91d73d04294f5b4031fb2919b1902"
+    },
+    {
+      "path": "docs/specs/modules/documents.md",
+      "sha256": "68bd262eca0ba198cc833d4d0cd1e8a58adaecf0c05a4cb347b1d49494143c1d"
+    },
+    {
+      "path": "docs/specs/modules/enrollment.md",
+      "sha256": "8cb08b74eecc94d54bf880a5aca5def0dec5aae3e6bafe81ec60b1d9d8ffa68e"
+    },
+    {
+      "path": "docs/specs/modules/finance.md",
+      "sha256": "60998ab0630a69d1effe3791be028fbd2788d0f2232d870ee8dfa88133c664bf"
+    },
+    {
+      "path": "docs/specs/modules/higher-ed.md",
+      "sha256": "f58ee2b54592d297f6cfc46dd9559c1f70b24924f1c9c68e7c190d810cf9f987"
+    },
+    {
+      "path": "docs/specs/modules/hr.md",
+      "sha256": "4cca924427ffe4d2b94454961a8e5695ca60cca2a74cf84fdf8c97f96cb62dc2"
+    },
+    {
+      "path": "docs/specs/modules/import.md",
+      "sha256": "b7c6c401be8e59fafbe9fc03cbbf70debca38c20f37fa1eaac6eaffe1fd55844"
+    },
+    {
+      "path": "docs/specs/modules/integrations.md",
+      "sha256": "886af877a9bfbd427b6be03726c3c99000e017b62b77d337e23c312254ede7a7"
+    },
+    {
+      "path": "docs/specs/modules/intelligence.md",
+      "sha256": "8a0547adb38b659de26e9eb10b2a0373af74329c086caf58b038de58a098b113"
+    },
+    {
+      "path": "docs/specs/modules/lesson-plans.md",
+      "sha256": "fc8ef9c5e6232239b3c3543c3d73f0afade70a0cdc216faf093d183a81371c8c"
+    },
+    {
+      "path": "docs/specs/modules/messages.md",
+      "sha256": "afed780ff568693eacce1011d166ce121d0f3c407a850e241e985a829a4fba81"
+    },
+    {
+      "path": "docs/specs/modules/notifications.md",
+      "sha256": "2c4be729f3cc152caee0a41831ab0cca2b80f37aab8551e7afd68bdba9c37d4e"
+    },
+    {
+      "path": "docs/specs/modules/otp.md",
+      "sha256": "854e49aab40089544b666a2290bcb62f8c5313004f9a8041f2019f5a0eb521d3"
+    },
+    {
+      "path": "docs/specs/modules/pedagogica.md",
+      "sha256": "79262572b8845e2ec119c3aeed93b7a47ea6412d2fed28b486a4a42ec96a5252"
+    },
+    {
+      "path": "docs/specs/modules/people.md",
+      "sha256": "2b9366ec0f1cdbfe7588f72c0ac7bd274405193b008ee2cbc049cd7caf287332"
+    },
+    {
+      "path": "docs/specs/modules/saas.md",
+      "sha256": "8b8de1de1b73930cfec5ed84437c7d3b7108d413ab7da620cf2505b6c69c4b1c"
+    },
+    {
+      "path": "docs/specs/modules/school.md",
+      "sha256": "fad1b0e4823d916a5503e7d991030e621bf0cd2c0c8fdd865a7fa186f3f89992"
+    },
+    {
+      "path": "docs/specs/modules/spotlight.md",
+      "sha256": "569b046a21939c79f89d34dc147dafd0c4a07831386fe92edbf18214befb6c7f"
+    },
+    {
+      "path": "docs/specs/modules/students.md",
+      "sha256": "60cc4123497194e9e929daa1b5d7d125809358713c1c8e177810523adc090f45"
+    },
+    {
+      "path": "eslint.config.js",
+      "sha256": "0af67d2dcdf9d26f4adc8fd7e70e1ded703da584f1245c41b421fb1f73cba6f1"
+    },
+    {
+      "path": "package.json",
+      "sha256": "69a759197e2b819a10505896ed63c7635ed2b165aeb292d8d7d8af887a0ece42"
+    },
+    {
+      "path": "playwright.config.ts",
+      "sha256": "996815cff8735ed84c645114751965c63dc04318443476c4f38c5b23ba73abd7"
+    },
+    {
+      "path": "scripts/deploy-all.mjs",
+      "sha256": "75ce1585efb2fd4b7193ea9dbdd7af4f3778573b5e4e61cc82bcdaddfd343184"
+    },
+    {
+      "path": "scripts/deploy-cf.mjs",
+      "sha256": "df478e39915f9a124a733fb141a98453cff6805605753d1561748ecb0071c71c"
+    },
+    {
+      "path": "scripts/siga/build-module-specs.py",
+      "sha256": "2f5f7acf6cad1b69d9f17230bca80a284e4983f640daab352c295b39988b9bea"
+    },
+    {
+      "path": "scripts/siga/check-release-contracts.mjs",
+      "sha256": "8d74c15ebf0a7d579941502a26c6432a9ca7269b2c63d566c2f219d6cbb25b2b"
+    },
+    {
+      "path": "scripts/siga/e2e-cleanup-lib.mjs",
+      "sha256": "69a250617ac6139485d6ab63f4547204b430fadab10594b55fea73a86b1b97fe"
+    },
+    {
+      "path": "scripts/siga/e2e-ecosystem-live.mjs",
+      "sha256": "bf28c3be7cd12c65fe6338b779826cbe8285f2fd60cceb9a7b86deb0d44621de"
+    },
+    {
+      "path": "scripts/siga/e2e-ecosystem-playwright.mjs",
+      "sha256": "c183253540391a5e1d5be6a829a8fd940b863d1ce3013001ed557fb0919f061f"
+    },
+    {
+      "path": "scripts/siga/e2e-ecosystem-playwright.py",
+      "sha256": "3f5928690b4f983b2f4e15eb4e6f0eec431711b8cf0bc20fb8e2a77bcac6655d"
+    },
+    {
+      "path": "scripts/siga/e2e-safety.d.mts",
+      "sha256": "a0a95d2e2425ec4003d102cd1ca18b73f15c7597ec75e5db62f7e3116d6a46b4"
+    },
+    {
+      "path": "scripts/siga/e2e-safety.mjs",
+      "sha256": "422544d5c4abc09bcce135cb539346afe8f8c75157a8c15c28bdad347d61ccb9"
+    },
+    {
+      "path": "scripts/siga/prepare-ci-env.mjs",
+      "sha256": "78351c08e16a870fe5f20554d1e864f3e00b14ebd666cd63a2ea9ed1259a88a0"
+    },
+    {
+      "path": "src/features/access/grants.ts",
+      "sha256": "757ea21c9a5f893d587a79b3c09f0fc6b28526ff7eadb7b1649ab0ee76f49b98"
+    },
+    {
+      "path": "src/features/calendar/server.ts",
+      "sha256": "c931f7eb4c211ea92823e03c726e7fbb5041f848d6fe5cba308129d285c31623"
+    },
+    {
+      "path": "src/features/import/engine/parse.ts",
+      "sha256": "24eb17410d5cae9d9f6ade4c34f29a6b37ebf0e24ab6259c3e9a2c9bc4517476"
+    },
+    {
+      "path": "src/features/students/StudentEnrollmentSheet.tsx",
+      "sha256": "c886ec42d86efd6de7c50831ea59cdf451708e44127aaaa0874bd12cbacc7fb9"
+    },
+    {
+      "path": "src/features/students/schemas.ts",
+      "sha256": "443314bd1337bc38de4ca4ac7a6430b7d29c4133c8fc657393b9b41e3c193983"
+    },
+    {
+      "path": "src/features/students/server.ts",
+      "sha256": "b2ea77a5c3d19679bd751314bc125401a677336e7b9af8ce0045fb1a7a981e2c"
+    },
+    {
+      "path": "src/integrations/supabase/server-error.ts",
+      "sha256": "2a9e0dafe9e38b88f86d80827848e8792f07fe0ccae375f2f1e475185ef65b99"
+    },
+    {
+      "path": "src/integrations/supabase/workflow-rpcs.ts",
+      "sha256": "e0a8a4ceb9d514558b282fae85f41d18e794444034fbf8bbfa145cf1e562c82b"
+    },
+    {
+      "path": "supabase/migrations/20261007083733_atomic_student_enrollment_and_academic_year.sql",
+      "sha256": "f5509afb8b6777c177a7f9d312f6321c77172e0be3eb8f3d3fd67cf2b095dfbb"
+    },
+    {
+      "path": "supabase/migrations/20261007083740_staff_module_grants_require_mfa.sql",
+      "sha256": "839e537dc2c4d50d49b103b6eb3365a3914ec54d10304b1a0cf187836659c79b"
+    },
+    {
+      "path": "tests/access/grants-mfa.test.ts",
+      "sha256": "3abc3e9bdb8552913b56867bb83cc6efd6a36f46cc5eef6f948e0dbf1e17fe09"
+    },
+    {
+      "path": "tests/calendar/academic-year-integrity.test.ts",
+      "sha256": "258ff374327b8af57eeb86cb90f13c453c901faf0a3d176fee84c57e80533d10"
+    },
+    {
+      "path": "tests/e2e/helpers/sga-live-admin.ts",
+      "sha256": "bc78ef09cb356ac2ed46adb69cb81fa2ca927ec1b51be4abf0499e2c6aedbe30"
+    },
+    {
+      "path": "tests/e2e/safety-setup.ts",
+      "sha256": "45b13e958a386cb74aa8b7b475a8ae8a1bc22735cd7286c4f0ad57f9053838cf"
+    },
+    {
+      "path": "tests/import/parser-limits.test.ts",
+      "sha256": "5396f2a711351dd628cac0a31e54654ca16e43065cbe0ba4201a5e3ec4f60a5a"
+    },
+    {
+      "path": "tests/saas/e2e-cleanup.test.ts",
+      "sha256": "521f18bf02703c93d8afca4abba530c06b61c6c5363c279a962ab82cfdb7eb4e"
+    },
+    {
+      "path": "tests/security/active-academic-year.test.ts",
+      "sha256": "33b7902ea7a6b310306aa15fd8e0d95eb4fc06ea0cdb97c7b77bbbd4f7a14c8d"
+    },
+    {
+      "path": "tests/security/checked-writes.test.ts",
+      "sha256": "a25b9584f9b165337f02ac490e91e42ec09b6a977a2cab3d9d52f483088669d5"
+    },
+    {
+      "path": "tests/security/colunas-inexistentes.test.ts",
+      "sha256": "0c7b04a458014cd7ca3a9816963ba1e1182ad2968bc70d9c29573f244209c6e9"
+    },
+    {
+      "path": "tests/security/database-error-privacy.test.ts",
+      "sha256": "7a2d12f12dc905d0ac786fb172988c00914e648ab2ecdda6b488a7caac22aeb2"
+    },
+    {
+      "path": "tests/security/e2e-safety.test.ts",
+      "sha256": "b6a1d5c8ad166fce52f0ab001fb63b5db7e722217ee2589b79d6cef6c73fb89a"
+    },
+    {
+      "path": "tests/security/espera-migracao.ts",
+      "sha256": "9b0e46ea20cc9539f7ad9737e4b97c748f0ae28f467f7cac871cdf826f9ea290"
+    },
+    {
+      "path": "tests/security/production-columns.test.ts",
+      "sha256": "c1cdc2987cce75920d08821f1898c6420122677d708fe0c176f68ad7d6a4fba3"
+    },
+    {
+      "path": "tests/sql/README.md",
+      "sha256": "9487adf8c186e6ce98e07ab35a7772fb912045e5ddb2d4bd06049bf1d4d674e9"
+    },
+    {
+      "path": "tests/sql/atomic-school-workflows.mjs",
+      "sha256": "2be5cdc6cea23d82a14adb69144b54e7e9ddfb71dc6930eb17abb1827dc48971"
+    },
+    {
+      "path": "tests/sql/staff-grants-mfa.mjs",
+      "sha256": "57cf1b29724a8d94ec1d331ae1cd28fa2dde0ea4224e095d0e03436cbd812546"
+    },
+    {
+      "path": "tests/students/atomic-workflows.test.ts",
+      "sha256": "7ad062704d4d8f3d63d198b20ac765e8faf89af7c8195e3c702b8e24ffe8e6e2"
+    },
+    {
+      "path": "tests/students/schemas.test.ts",
+      "sha256": "80b05c656f1127a5d682bde8052444bb6035b222e8fde71969cc3bbe6dae1931"
+    }
+  ]
+}

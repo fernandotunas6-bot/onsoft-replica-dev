@@ -1,0 +1,11 @@
+{
+  "linhas": 940,
+  "por_estado": {
+    "Bloqueado por falta de acesso": 200,
+    "Verificado com falha": 8,
+    "Verificado funcional": 18,
+    "Parcialmente verificado": 5,
+    "Não testado": 709
+  },
+  "nota": "Linhas são cenários e superfícies, não funcionalidades únicas; não usar percentagem de linhas como percentagem de produto auditado."
+}

@@ -1,3 +1,4 @@
+import { SigaOpening } from "@/components/brand/SigaOpening";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -7,7 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { applyPendingUpdate, registerServiceWorker, SW_UPDATE_READY_EVENT } from "@/lib/pwa";
@@ -17,7 +18,6 @@ import { toast } from "@/lib/toast";
 import { Toaster } from "@/components/ui/sonner";
 import { AppearanceProvider } from "@/lib/appearance";
 import { AuthGate } from "@/components/auth/AuthGate";
-import { RouteAccessGate } from "@/components/auth/RouteAccessGate";
 import { SchoolYearProvider } from "@/features/auth/use-school-settings";
 import { SchoolBrandAppearanceSync } from "@/components/layout/SchoolBrandAppearanceSync";
 import { EntityFocusProvider } from "@/features/intelligence/entity-focus-context";
@@ -27,6 +27,24 @@ import { TenantProvider } from "@/features/saas/tenant-context";
 import { TenantAccessBarrier } from "@/features/saas/TenantAccessBarrier";
 import { PageLoading } from "@/components/ui/page-loading";
 import { readSessionHint } from "@/features/auth/session-hint";
+import { getAppUrl } from "@/lib/app-config";
+
+// A autorização continua a proteger o Outlet autenticado; não descarregar
+// o código do perfil e do onboarding no ecrã público de entrada.
+// A fila de envio só precisa de sincronização com a sessão autenticada.
+// Quando o chunk monta, a rotina já verifica as operações pendentes.
+// Não alterar ou descartar dados da fila durante o carregamento.
+const OfflineOutboxSync = lazy(() =>
+  import("@/components/layout/OfflineOutboxSync").then((module) => ({
+    default: module.OfflineOutboxSync,
+  })),
+);
+
+const RouteAccessGate = lazy(() =>
+  import("@/components/auth/RouteAccessGate").then((module) => ({
+    default: module.RouteAccessGate,
+  })),
+);
 
 function NotFoundComponent() {
   return (
@@ -60,20 +78,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "Portal de Gestão Escolar" },
+      { title: "SIGA Plus — Gestão escolar" },
       {
         name: "description",
         content:
           "Plataforma integrada de gestão escolar: estudantes, turmas, secretaria académica, contabilidade e relatórios.",
       },
-      { property: "og:title", content: "Portal de Gestão Escolar" },
+      { property: "og:title", content: "SIGA Plus — Gestão escolar" },
       {
         property: "og:description",
         content:
           "Plataforma integrada de gestão escolar: estudantes, turmas, secretaria académica, contabilidade e relatórios.",
       },
       { property: "og:type", content: "website" },
+      // Imagem das pré-visualizações (WhatsApp, redes sociais). Endereço absoluto da
+      // plataforma, como o Open Graph exige; o mesmo ficheiro no WEB e no DOC.
+      { property: "og:image", content: `${getAppUrl()}/og-image.png` },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "SIGA Plus — Gestão escolar para Angola" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: `${getAppUrl()}/og-image.png` },
       { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#F8F8FA" },
       { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#0F172A" },
       { name: "mobile-web-app-capable", content: "yes" },
@@ -130,7 +155,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 import { DesktopIntegration } from "@/components/layout/DesktopIntegration";
 import { DesktopVaultGate } from "@/components/layout/DesktopVaultGate";
-import { OfflineOutboxSync } from "@/components/layout/OfflineOutboxSync";
+
 import { areaToneForPath } from "@/lib/area-tone";
 
 function ClientOnlyToaster() {
@@ -197,6 +222,8 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <TenantProvider>
         <AppearanceProvider>
+          {/* Abertura de marca só na app escolar; as páginas públicas não a mostram. */}
+          {isPublic ? null : <SigaOpening />}
           <DesktopIntegration />
           <DesktopVaultGate />
           <div className="relative pt-[env(safe-area-inset-top,0)] flex min-h-screen flex-col">
@@ -213,15 +240,19 @@ function RootComponent() {
               )
             ) : (
               <AuthGate sessionHint={sessionHint}>
-                <OfflineOutboxSync />
+                <Suspense fallback={null}>
+                  <OfflineOutboxSync />
+                </Suspense>
                 <TenantAccessBarrier allowSchoolAdmin>
                   <SchoolYearProvider>
                     <SchoolBrandAppearanceSync />
                     <EntityFocusProvider>
-                      <RouteAccessGate>
-                        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-                        <Outlet />
-                      </RouteAccessGate>
+                      <Suspense fallback={<PageLoading message="A confirmar acesso…" />}>
+                        <RouteAccessGate>
+                          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                          <Outlet />
+                        </RouteAccessGate>
+                      </Suspense>
                     </EntityFocusProvider>
                   </SchoolYearProvider>
                 </TenantAccessBarrier>

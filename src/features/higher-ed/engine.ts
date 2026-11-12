@@ -312,8 +312,12 @@ export function checkEnrollmentBatch(params: {
     selected.map((unit) => [unit.id, checkUnitEnrollment({ ...params, unit })] as const),
   );
 
+  // Toda a carga do ano conta, com resultado lançado ou não: só «inscrito» deixava
+  // reprovar 36 créditos e inscrever outros 36 no mesmo semestre. Anuladas e
+  // creditadas (dispensado) não são carga.
   const alreadyThisYear = records.filter(
-    (r) => r.academicYearId === academicYearId && r.status === "inscrito",
+    (r) =>
+      r.academicYearId === academicYearId && r.status !== "anulado" && r.status !== "dispensado",
   );
   const unitById = new Map(plan.map((u) => [u.id, u]));
   const creditsBySemester = { 1: 0, 2: 0 } as Record<1 | 2, number>;
@@ -469,7 +473,10 @@ export function seasonEligibility(params: {
     !done &&
     pending > 0 &&
     (workerSpecial || pending <= regulation.special_season_max_units) &&
-    (latest?.status === "reprovado" || latest?.status === "excluido_frequencia");
+    (latest?.status === "reprovado" || latest?.status === "excluido_frequencia") &&
+    // Uma vez: reprovado na especial já não volta à especial (cada lançamento
+    // sobrescrevia a nota anterior).
+    latest?.season !== "especial";
   const melhoria =
     regulation.improvement_enabled &&
     unitRecords.some((r) => r.status === "aprovado") &&
@@ -493,6 +500,9 @@ export function seasonResult(params: {
   const { season, frequency, exam, previousGrade, regulation } = params;
   let grade: number | null;
   if (season === "normal") {
+    // Sem nota de exame não há resultado: a fórmula usava só a frequência e aprovava
+    // quem não fez o exame (abaixo da dispensa).
+    if (normalizeScore(exam) === null) return { status: "reprovado", finalGrade: null };
     grade = calculateComponentGrade("frequencia_exame", frequency, exam, {
       frequencia: regulation.frequency_weight,
       exame: 1 - regulation.frequency_weight,
@@ -509,6 +519,13 @@ export function seasonResult(params: {
 }
 
 // ── Progressão ─────────────────────────────────────────────────────────────
+
+function exactCreditWeightedAverage(items: Array<{ score: number; credits: number }>) {
+  const valid = items.filter((item) => item.credits > 0);
+  const credits = valid.reduce((sum, item) => sum + item.credits, 0);
+  if (!credits) return null;
+  return valid.reduce((sum, item) => sum + item.score * item.credits, 0) / credits;
+}
 
 export function studentProgress(params: {
   plan: PlanUnit[];
@@ -544,6 +561,8 @@ export function studentProgress(params: {
     creditsTotal,
     percent: creditsTotal ? Math.round((creditsEarned / creditsTotal) * 100) : 0,
     average: calculateCreditWeightedAverage(graded),
+    /** Sem o arredondamento às décimas: a classificação final arredonda uma só vez. */
+    averageExact: exactCreditWeightedAverage(graded),
     gpa: calculateGpa(graded),
     curricularYear,
     pendingUnits,

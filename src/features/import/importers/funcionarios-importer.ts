@@ -1,4 +1,4 @@
-import { normalizeDate, normalizeText } from "../engine/normalize";
+import { normalizeDate, normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadExistingPeople, resolveOrCreatePerson, type PersonCandidate } from "./people-core";
 
@@ -15,14 +15,6 @@ type FuncionariosCache = ImportRefCache & {
   employments: EmploymentRef[];
   departments: Array<{ id: string; name: string }>;
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 function employmentType(
   value: unknown,

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const listChatMessagesInputSchema = z.object({
-  conversationId: z.string().uuid(),
+  conversationId: z.string().guid(),
   limit: z.number().int().min(10).max(200).default(60),
   /** ISO. Devolve as mensagens anteriores a esta data — "carregar anteriores". */
   before: z.string().datetime().optional(),
@@ -9,10 +9,10 @@ export const listChatMessagesInputSchema = z.object({
 
 export const sendChatMessageInputSchema = z
   .object({
-    conversationId: z.string().uuid(),
+    conversationId: z.string().guid(),
     body: z.string().trim().max(4000).optional(),
-    replyTo: z.string().uuid().optional(),
-    attachmentFileId: z.string().uuid().optional(),
+    replyTo: z.string().guid().optional(),
+    attachmentFileId: z.string().guid().optional(),
     attachmentFileName: z.string().trim().max(255).optional(),
   })
   .refine((value) => Boolean(value.body?.trim()) || Boolean(value.attachmentFileId), {
@@ -20,9 +20,9 @@ export const sendChatMessageInputSchema = z
     path: ["body"],
   });
 
-export const deleteChatMessageInputSchema = z.object({ messageId: z.string().uuid() });
-export const conversationInputSchema = z.object({ conversationId: z.string().uuid() });
-export const startDirectInputSchema = z.object({ peerId: z.string().uuid() });
+export const deleteChatMessageInputSchema = z.object({ messageId: z.string().guid() });
+export const conversationInputSchema = z.object({ conversationId: z.string().guid() });
+export const startDirectInputSchema = z.object({ peerId: z.string().guid() });
 
 /** Tipos que a UI consome. `type` reproduz os filtros do painel (Turmas, Responsáveis). */
 export type ChatConversationType = "group" | "guardian" | "student" | "staff";

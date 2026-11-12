@@ -28,10 +28,10 @@ const nullableUrl = nullableHttpUrlSchema;
 
 export const portfolioItemSchema = z
   .object({
-    itemId: z.string().uuid().optional(),
+    itemId: z.string().guid().optional(),
     itemType: z.enum(alumniPortfolioItemTypes),
     educationLevel: z.enum(alumniPortfolioEducationLevels).nullable().optional(),
-    educationStageId: z.string().uuid().nullable().optional(),
+    educationStageId: z.string().guid().nullable().optional(),
     title: z.string().trim().min(2).max(180),
     summary: nullableText(3000),
     organization: nullableText(180),
@@ -40,7 +40,7 @@ export const portfolioItemSchema = z
     endedOn: z.string().date().nullable().optional(),
     externalUrl: nullableUrl,
     imageUrl: nullableUrl,
-    officialDocumentRequestId: z.string().uuid().nullable().optional(),
+    officialDocumentRequestId: z.string().guid().nullable().optional(),
     skills: z.array(z.string().trim().min(1).max(80)).max(30).optional().default([]),
     tags: z.array(z.string().trim().min(1).max(80)).max(30).optional().default([]),
     featured: z.boolean().optional().default(false),
@@ -52,9 +52,9 @@ export const portfolioItemSchema = z
     path: ["endedOn"],
   });
 
-const portfolioAdminListSchema = z.object({ alumniId: z.string().uuid() });
-const portfolioDeleteSchema = z.object({ itemId: z.string().uuid() });
-const portfolioFeaturedSchema = z.object({ itemId: z.string().uuid(), featured: z.boolean() });
+const portfolioAdminListSchema = z.object({ alumniId: z.string().guid() });
+const portfolioDeleteSchema = z.object({ itemId: z.string().guid() });
+const portfolioFeaturedSchema = z.object({ itemId: z.string().guid(), featured: z.boolean() });
 
 async function resolveOwnProfile(userId: string) {
   const membership = await resolveSgaMembershipAdmin(userId);

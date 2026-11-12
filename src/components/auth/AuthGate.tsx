@@ -7,14 +7,19 @@ import {
 } from "@/lib/password-policy-error";
 import { passwordExposureCount } from "@/lib/pwned-password";
 import { authRedirectError, withoutAuthRedirectError } from "@/lib/auth-redirect-error";
+import { portalLoginReturn } from "@/features/auth/portal-login-return";
 import {
   SESSION_EXPIRED_MESSAGE,
   consumeSessionExpiredFlag,
   reportPossibleSessionError,
 } from "@/lib/session-expiry";
+import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { writeSessionHint } from "@/features/auth/session-hint";
+import { FirstPasswordScreen } from "@/features/auth/FirstPasswordScreen";
+import { mustChangePassword } from "@/features/students/student-accounts";
 import { pendingMfaFactors } from "@/features/auth/pending-mfa";
+import { isLoginMfaEnabled } from "@/features/auth/login-mfa-policy";
 import {
   passkeysSupported,
   registerPasskey,
@@ -22,8 +27,6 @@ import {
   sessionAal,
   type VerificationFactors,
 } from "@/features/auth/verification";
-import { MfaChallenge } from "./MfaChallenge";
-import { StepUpDialog } from "./StepUpDialog";
 import {
   SHARED_DEVICE_IDLE_MS,
   TRUSTED_DEVICE_DAYS,
@@ -33,9 +36,12 @@ import {
 } from "@/features/auth/trusted-device";
 import { AuthBrandIntro } from "./AuthBrandIntro";
 import { AuthCaptcha } from "./AuthCaptcha";
-import { authCaptchaConfigured } from "@/lib/auth-captcha-config";
+import { GoogleIdentityButton } from "./GoogleIdentityButton";
+import { mapSignInError } from "@/features/auth/sign-in-error";
 import {
   createContext,
+  lazy,
+  Suspense,
   useContext,
   useEffect,
   useState,
@@ -53,12 +59,25 @@ import {
   Smartphone,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
+import { clearOfflineQueries } from "@/lib/offline/offline-queries";
+import { clearRecentNav } from "@/lib/navigation-memory";
 import { Link } from "@tanstack/react-router";
+import { isTauriDesktop } from "@/lib/desktop-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageLoading } from "@/components/ui/page-loading";
+
+// Neither security UI is needed until MFA starts or an authenticated session
+// requests step-up verification. Keep the same handlers; split only the bundle.
+const MfaChallenge = lazy(() =>
+  import("./MfaChallenge").then((module) => ({ default: module.MfaChallenge })),
+);
+const StepUpDialog = lazy(() =>
+  import("./StepUpDialog").then((module) => ({ default: module.StepUpDialog })),
+);
 
 const AuthSessionContext = createContext<Session | null>(null);
 const ACTIVITY_WRITE_INTERVAL_MS = 15_000;
@@ -83,41 +102,12 @@ function warnToChangePassword(message: string) {
   });
 }
 
-function mapSignInError(message: string) {
-  const value = message.toLowerCase();
-  // O projecto tem captcha activa: o servidor recusa ANTES de olhar para a senha, e a
-  // mensagem não casava com nenhum caso abaixo — saía o genérico, que faz parecer
-  // problema de credenciais. Ver AuthCaptcha.tsx.
-  if (value.includes("captcha")) {
-    return authCaptchaConfigured
-      ? "Confirme que não é um robô e tente novamente."
-      : "A verificação anti-robô está activa no servidor mas não está configurada nesta aplicação. Avise a administração: falta VITE_HCAPTCHA_SITE_KEY.";
-  }
-  if (value.includes("invalid login credentials") || value.includes("invalid_credentials")) {
-    return "Email ou senha incorrectos. Confirme os dados e tente novamente.";
-  }
-  if (value.includes("email not confirmed")) {
-    return "Confirme o email da conta antes de iniciar sessão.";
-  }
-  if (value.includes("captcha")) {
-    // A protecção por captcha do Supabase Auth exige um token que esta
-    // aplicação não envia: ligada no painel, bloqueia todas as entradas.
-    return "O início de sessão está bloqueado por uma configuração do servidor (captcha). Avise a administração.";
-  }
-  if (value.includes("too many requests") || value.includes("rate limit")) {
-    return "Demasiadas tentativas. Aguarde um momento e tente outra vez.";
-  }
-  if (value.includes("network") || value.includes("fetch")) {
-    return "Não foi possível contactar o serviço de autenticação.";
-  }
-  return "Não foi possível iniciar sessão. Tente novamente.";
-}
-
 const identifierSignInErrors = {
   captcha_failed: "captcha",
   invalid_credentials: "Invalid login credentials",
   email_not_confirmed: "Email not confirmed",
   rate_limited: "Too many requests",
+  school_required: "school_required",
   unavailable: "network",
 } as const;
 
@@ -151,14 +141,18 @@ export function useAuthSession(): Session | null {
  */
 function offerPasskey() {
   if (!passkeysSupported()) return;
-  toast("Da próxima vez, entre com um toque", {
-    description: "Crie uma chave de acesso: impressão digital, Face ID ou Windows Hello.",
+  toast("Pode configurar uma chave de acesso", {
+    description:
+      "Use impressão digital, Face ID ou Windows Hello e escolha nas Definições se quer confirmar cada novo login.",
     duration: 15_000,
     action: {
       label: "Criar chave",
       onClick: () => {
         void registerPasskey().then(
-          () => toast.success("Chave de acesso criada. Da próxima vez basta um toque."),
+          () =>
+            toast.success(
+              "Chave de acesso criada. A confirmação no login é opcional nas Definições.",
+            ),
           (passkeyError: unknown) => toast.error(passkeyErrorMessage(passkeyError)),
         );
       },
@@ -174,6 +168,7 @@ export function AuthGate({
   /** Cookie-pista lido no SSR: `false` = sem sessão, desenha logo o ecrã de entrada. */
   sessionHint?: boolean;
 }) {
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   // Sem pista de sessão o ecrã de entrada sai já no HTML do servidor (LCP): se afinal
   // houver sessão, o `getSession` abaixo troca para a app logo após a hidratação.
@@ -193,7 +188,19 @@ export function AuthGate({
   // «Agora não» cala o convite durante 30 dias neste navegador.
   const [installDismissed, setInstallDismissed] = useState(true);
   const [isStandalone, setIsStandalone] = useState(false);
+  // Na app de computador não faz sentido oferecer a transferência dela.
+  const [insideDesktopApp, setInsideDesktopApp] = useState(true);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  // A escola deste endereço deixa os alunos entrar com o número (Definições → Segurança).
+  const [studentNumberLogin, setStudentNumberLogin] = useState(false);
+  const [modeChanged, setModeChanged] = useState(false);
+
+  useEffect(() => {
+    if (!modeChanged || checking || session || mfaFactors) return;
+    document
+      .getElementById(mode === "signup" ? "signup-name" : "login-email")
+      ?.focus({ preventScroll: true });
+  }, [mode, modeChanged, checking, session, mfaFactors]);
 
   useEffect(() => {
     try {
@@ -207,6 +214,7 @@ export function AuthGate({
         window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as unknown as { standalone?: boolean }).standalone === true;
       setIsStandalone(Boolean(isStandaloneMode));
+      setInsideDesktopApp(isTauriDesktop());
       try {
         const until = Number(localStorage.getItem(INSTALL_DISMISSED_KEY));
         setInstallDismissed(Number.isFinite(until) && until > Date.now());
@@ -248,15 +256,48 @@ export function AuthGate({
   };
 
   useEffect(() => {
+    if (session) return;
     let active = true;
+    void import("@/features/access/student-access-server")
+      .then(({ studentNumberLoginAvailable }) => studentNumberLoginAvailable())
+      .then((result) => {
+        if (active && result.available) setStudentNumberLogin(true);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [session]);
 
-    // Qualquer via de entrada (senha, B.I., link mágico, Google, sessão
-    // restaurada) passa por aqui: uma conta com 2FA só entra com aal2. O
-    // servidor recusa os tokens aal1 dessas contas (`requireSupabaseAuth`).
-    const adoptSession = async (nextSession: Session | null) => {
+  useEffect(() => {
+    let active = true;
+    let sessionVersion = 0;
+    let currentUserId: string | null = null;
+
+    const updateIdentity = (nextSession: Session | null) => {
+      const nextUserId = nextSession?.user.id ?? null;
+      if (nextUserId === currentUserId) return;
+      // Os dados de vários módulos não têm userId na chave. A expiração,
+      // revogação ou saída noutra aba também têm de os apagar, antes de mostrar
+      // outra pessoa — não apenas o botão que chama useSignOut.
+      queryClient.clear();
+      if (currentUserId) {
+        clearOfflineQueries();
+        clearRecentNav();
+      }
+      currentUserId = nextUserId;
+      setSession(null);
+      setMfaFactors(null);
+    };
+
+    // Qualquer via de entrada passa por aqui. Só uma preferência explícita
+    // da conta pede 2FA no login; o servidor aplica a mesma regra.
+    const adoptSession = async (nextSession: Session | null, version: number) => {
+      if (!active || version !== sessionVersion) return;
+      updateIdentity(nextSession);
       if (nextSession) {
         const factors = await pendingMfaFactors();
-        if (!active) return;
+        if (!active || version !== sessionVersion) return;
         if (factors) {
           setMfaFactors(factors);
           setSession(null);
@@ -270,12 +311,13 @@ export function AuthGate({
     };
 
     const bootstrap = async () => {
+      const version = sessionVersion;
       try {
         const { data } = await supabase.auth.getSession();
-        if (!active) return;
+        if (!active || version !== sessionVersion) return;
         writeSessionHint(Boolean(data.session));
         if (data.session) {
-          await adoptSession(data.session);
+          await adoptSession(data.session, version);
           return;
         }
 
@@ -295,7 +337,7 @@ export function AuthGate({
           }
         }
       } catch (bootstrapError) {
-        if (!active) return;
+        if (!active || version !== sessionVersion) return;
         setError(
           bootstrapError instanceof Error
             ? bootstrapError.message
@@ -309,6 +351,8 @@ export function AuthGate({
 
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
+      const version = ++sessionVersion;
+      updateIdentity(nextSession);
       // Uma conta sem vínculo escolar (ex.: primeiro login Google) entra na
       // sessão mas não vê dados de escola nenhuma: o RouteAccessGate mostra-lhe
       // o painel de integração institucional, e o servidor recusa tudo o que
@@ -328,7 +372,7 @@ export function AuthGate({
         return;
       }
       // Fora do callback: o supabase-js bloqueia se se aguardar o Auth dentro dele.
-      window.setTimeout(() => void adoptSession(nextSession), 0);
+      window.setTimeout(() => void adoptSession(nextSession, version), 0);
     });
     // Erros de sessão não tratados (ex.: server function chamada num evento).
     const onRejection = (event: PromiseRejectionEvent) => {
@@ -340,7 +384,7 @@ export function AuthGate({
       data.subscription.unsubscribe();
       window.removeEventListener("unhandledrejection", onRejection);
     };
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     if (!session) return;
@@ -369,7 +413,8 @@ export function AuthGate({
     const checkActivity = () => {
       // Dispositivo reconhecido (sessão com 2FA): sem fim por inactividade.
       // Só volta a pedir a verificação perante um sinal de risco.
-      let trust = deviceTrust(session.user.id);
+      const loginMfaOn = isLoginMfaEnabled(session.user.app_metadata);
+      let trust = loginMfaOn ? deviceTrust(session.user.id) : "shared";
       if (trust === "shared" && verifiedSession) {
         // Sessão com 2FA de antes do reconhecimento existir: reconhece agora.
         trustDevice(session.user.id);
@@ -460,9 +505,9 @@ export function AuthGate({
         }
         return;
       }
-      setError(mapSignInError(signInError.message));
-    } catch {
-      setError("Não foi possível contactar o serviço de autenticação.");
+      setError(mapSignInError(signInError));
+    } catch (failure) {
+      setError(mapSignInError(failure));
     } finally {
       setSubmitting(false);
       setCaptchaReset((value) => value + 1);
@@ -536,7 +581,7 @@ export function AuthGate({
             ? undefined
             : window.location.pathname.startsWith("/.lovable/oauth/consent")
               ? window.location.href
-              : window.location.origin,
+              : (portalLoginReturn(window.location.href) ?? window.location.origin),
       },
     });
     if (oauthError) {
@@ -598,7 +643,7 @@ export function AuthGate({
           passwordPolicyMessage(signUpError) ??
             (/password/i.test(signUpError.message)
               ? "A senha não cumpre a política de segurança. Use uma senha mais forte."
-              : mapSignInError(signUpError.message)),
+              : mapSignInError(signUpError)),
         );
         return;
       }
@@ -629,10 +674,26 @@ export function AuthGate({
   }
 
   if (session) {
+    // Conta criada pela Secretaria com senha provisória: primeiro escolhe a sua.
+    if (mustChangePassword(session.user.app_metadata)) {
+      return (
+        <AuthSessionContext.Provider value={session}>
+          <FirstPasswordScreen
+            name={
+              typeof session.user.user_metadata?.["full_name"] === "string"
+                ? (session.user.user_metadata["full_name"] as string)
+                : null
+            }
+          />
+        </AuthSessionContext.Provider>
+      );
+    }
     return (
       <AuthSessionContext.Provider value={session}>
         {children}
-        <StepUpDialog email={session.user.email ?? null} />
+        <Suspense fallback={null}>
+          <StepUpDialog email={session.user.email ?? null} />
+        </Suspense>
       </AuthSessionContext.Provider>
     );
   }
@@ -640,15 +701,22 @@ export function AuthGate({
   return (
     <AuthSessionContext.Provider value={null}>
       <main className="grid min-h-dvh bg-background lg:grid-cols-[1fr_1fr] lg:gap-2 lg:p-3">
-        <section className="relative hidden flex-col justify-between overflow-hidden rounded-2xl border border-border/60 bg-card p-12 text-foreground lg:flex">
-          <AuthBrandIntro className="self-start text-[32px]" />
+        <section className="auth-hero relative hidden flex-col justify-between overflow-hidden rounded-2xl border border-border/60 bg-primary p-12 text-primary-foreground shadow-sm lg:flex">
+          <AuthBackgroundVideo />
+          <div
+            aria-hidden
+            // Só escurece em baixo, onde está o texto: o vídeo (sem o letreiro por
+            // cima) fica visível no resto do painel.
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/85 via-primary/30 to-transparent"
+          />
+          <AuthBrandIntro className="relative self-start text-[32px]" />
           <AuthHeroSlides />
-          <div className="relative flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div className="relative flex items-center justify-between gap-3 text-xs opacity-80">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4" /> Autenticação Segura
             </div>
             {isStandalone && (
-              <div className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs">
+              <div className="flex items-center gap-1.5 rounded-md bg-primary-foreground/15 px-2.5 py-1 text-xs">
                 <Smartphone className="size-3.5" /> PWA Ativo
               </div>
             )}
@@ -658,52 +726,51 @@ export function AuthGate({
         <section className="flex flex-col items-center justify-center px-5 py-8 sm:px-8">
           {/* No telemóvel o painel da marca não aparece: sem isto, o ecrã não dizia onde se entra. */}
           <AuthBrandIntro className="mb-8 text-[28px] lg:hidden" />
-          <div className="siga-auth-card w-full max-w-[420px] rounded-2xl border border-border/70 bg-card p-6 sm:p-8">
+          <div
+            id="auth-panel-content"
+            data-auth-panel=""
+            data-auth-view={mode}
+            data-auth-motion={modeChanged ? "on" : "off"}
+            className="auth-view siga-auth-card w-full max-w-[420px] rounded-2xl border border-border/70 bg-card p-6 sm:p-8"
+          >
             <h2 className="mt-1 font-display text-[24px] font-semibold tracking-tight text-center">
               {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-center">
               {mode === "signup"
                 ? "Uma só identidade para todas as escolas a que pertencer."
-                : "Entre com Google, e-mail ou Nº de BI."}
+                : studentNumberLogin
+                  ? "Entre com Google, e-mail, Nº de BI ou Nº de aluno."
+                  : "Entre com Google, e-mail ou Nº de BI."}
             </p>
-            <div
-              role="tablist"
-              aria-label="Modo de acesso"
-              className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 text-xs font-semibold"
-              hidden={Boolean(mfaFactors)}
-            >
-              {(
-                [
-                  ["signin", "Já tenho conta"],
-                  ["signup", "Criar conta"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === value}
-                  onClick={() => {
-                    setMode(value);
+            {!mfaFactors ? (
+              <p className="mt-4 text-center text-xs text-muted-foreground">
+                {mode === "signup" ? "Já tem conta? " : "Ainda não tem conta? "}
+                <a
+                  href={mode === "signup" ? "#login-email" : "#signup-name"}
+                  aria-controls="auth-panel-content"
+                  aria-disabled={submitting || resetting || sendingMagicLink || undefined}
+                  tabIndex={submitting || resetting || sendingMagicLink ? -1 : undefined}
+                  className="font-medium text-primary underline underline-offset-4 decoration-primary/40 transition-colors hover:decoration-primary aria-disabled:opacity-60"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (submitting || resetting || sendingMagicLink) return;
+                    setMode(mode === "signup" ? "signin" : "signup");
+                    setModeChanged(true);
+                    setShowPassword(false);
                     setError(null);
                     setInfo(null);
                   }}
-                  className={`min-h-[36px] rounded-lg px-3 py-2 transition-colors ${
-                    mode === value
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-foreground/75 hover:text-foreground"
-                  }`}
                 >
-                  {label}
-                </button>
-              ))}
-            </div>
+                  {mode === "signup" ? "Iniciar sessão" : "Criar conta"}
+                </a>
+              </p>
+            ) : null}
 
             {error ? (
               <p
                 role="alert"
-                className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive-strong"
               >
                 {error}
               </p>
@@ -719,31 +786,39 @@ export function AuthGate({
 
             {mfaFactors ? (
               <div className="mt-6">
-                <MfaChallenge
-                  factors={mfaFactors}
-                  intro="Falta confirmar que é você. Só é pedido neste dispositivo de 30 em 30 dias, ou se algo mudar."
-                  cancelLabel="Usar outra conta"
-                  onCancel={() => {
-                    setMfaFactors(null);
-                    void supabase.auth.signOut({ scope: "local" });
-                  }}
-                  onVerified={async (method) => {
-                    const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-                    if (assurance.data?.currentLevel !== "aal2") {
-                      throw new Error("A verificação não elevou a sessão. Tente novamente.");
-                    }
-                    const { data: sessionData } = await supabase.auth.getSession();
-                    if (!sessionData.session) {
-                      throw new Error("A sessão não ficou disponível após a verificação.");
-                    }
-                    const userId = sessionData.session.user.id;
-                    localStorage.setItem(activityKey(userId), String(Date.now()));
-                    trustDevice(userId);
-                    setSession(sessionData.session);
-                    setMfaFactors(null);
-                    if (method === "code" && !mfaFactors.passkeyId) offerPasskey();
-                  }}
-                />
+                <Suspense
+                  fallback={
+                    <p role="status" className="text-sm text-muted-foreground">
+                      A preparar verificação de segurança…
+                    </p>
+                  }
+                >
+                  <MfaChallenge
+                    factors={mfaFactors}
+                    intro="Confirme que é você. Neste dispositivo fica válido em todas as escolas e painéis, e só volta a ser pedido daqui a 30 dias, se terminar a sessão ou se o navegador mudar."
+                    cancelLabel="Usar outra conta"
+                    onCancel={() => {
+                      setMfaFactors(null);
+                      void supabase.auth.signOut({ scope: "local" });
+                    }}
+                    onVerified={async (method) => {
+                      const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+                      if (assurance.data?.currentLevel !== "aal2") {
+                        throw new Error("A verificação não elevou a sessão. Tente novamente.");
+                      }
+                      const { data: sessionData } = await supabase.auth.getSession();
+                      if (!sessionData.session) {
+                        throw new Error("A sessão não ficou disponível após a verificação.");
+                      }
+                      const userId = sessionData.session.user.id;
+                      localStorage.setItem(activityKey(userId), String(Date.now()));
+                      trustDevice(userId);
+                      setSession(sessionData.session);
+                      setMfaFactors(null);
+                      if (method === "code" && !mfaFactors.passkeyId) offerPasskey();
+                    }}
+                  />
+                </Suspense>
               </div>
             ) : null}
 
@@ -755,7 +830,9 @@ export function AuthGate({
             >
               <div className="space-y-1.5">
                 <Label htmlFor="login-email" className="text-xs font-medium">
-                  Email ou Nº de BI / NIF
+                  {studentNumberLogin
+                    ? "Email, Nº de BI ou Nº de aluno"
+                    : "Email ou Nº de BI / NIF"}
                 </Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -767,7 +844,11 @@ export function AuthGate({
                     required
                     defaultValue={rememberedEmail}
                     className="pl-9 h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
-                    placeholder="utilizador@escola.ao ou 004212984LA042"
+                    placeholder={
+                      studentNumberLogin
+                        ? "utilizador@escola.ao, 004212984LA042 ou 1260001"
+                        : "utilizador@escola.ao ou 004212984LA042"
+                    }
                   />
                 </div>
               </div>
@@ -778,7 +859,7 @@ export function AuthGate({
                   </Label>
                   <button
                     type="button"
-                    className="text-xs font-medium text-primary hover:underline disabled:opacity-60"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-md px-2 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60"
                     onClick={() => void resetPassword()}
                     disabled={resetting || submitting || sendingMagicLink}
                   >
@@ -924,33 +1005,40 @@ export function AuthGate({
                   ou
                   <span className="h-px flex-1 bg-border" />
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mt-4 w-full gap-2 h-[44px] text-[14px] font-medium"
-                  onClick={() => void signInWithGoogle()}
+                <GoogleIdentityButton
+                  mode={mode}
                   disabled={submitting || resetting || sendingMagicLink}
-                >
-                  <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-                    <path
-                      fill="#4285F4"
-                      d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.88-3a7.4 7.4 0 0 1-4.07 1.16c-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8l4-3.11Z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 4.75c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
-                    />
-                  </svg>
-                  {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
-                </Button>
+                  onError={setError}
+                  fallback={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mt-4 w-full gap-2 h-[44px] text-[14px] font-medium"
+                      onClick={() => void signInWithGoogle()}
+                      disabled={submitting || resetting || sendingMagicLink}
+                    >
+                      <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
+                        <path
+                          fill="#4285F4"
+                          d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.88-3a7.4 7.4 0 0 1-4.07 1.16c-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8l4-3.11Z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 4.75c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
+                        />
+                      </svg>
+                      {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
+                    </Button>
+                  }
+                />
               </>
             )}
 
@@ -976,6 +1064,15 @@ export function AuthGate({
               </div>
             ) : null}
           </div>
+          {!insideDesktopApp ? (
+            // <a> simples: a página é pública e abre do zero.
+            <a
+              href="/transferir"
+              className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              <Download className="size-3.5" /> Transferir a app do SIGA
+            </a>
+          ) : null}
         </section>
       </main>
     </AuthSessionContext.Provider>

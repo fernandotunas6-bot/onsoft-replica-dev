@@ -23,7 +23,7 @@ export function FileBrowserNav({
 }) {
   return (
     <aside className="border-b border-border bg-secondary/40 p-3 md:border-b-0 md:border-r">
-      <p className="px-2 pb-2 pt-1 text-[11px] font-bold text-muted-foreground">Repositórios</p>
+      <p className="px-2 pb-2 pt-1 text-[11px] font-bold text-muted-foreground">Áreas</p>
       <nav className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
         {areas.map((item) => {
           const Icon = repoIcon[item];
@@ -42,11 +42,6 @@ export function FileBrowserNav({
               <Icon className="size-4 shrink-0" />
               <span className="min-w-0">
                 <span className="block truncate">{meta.label}</span>
-                {meta.reserved ? (
-                  <span className="block text-[11px] font-semibold text-muted-foreground">
-                    Reservado
-                  </span>
-                ) : null}
               </span>
             </button>
           );

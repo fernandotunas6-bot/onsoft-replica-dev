@@ -1,3 +1,4 @@
+import { PageActionMenu } from "@/components/layout/PageActionMenu";
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -534,77 +535,162 @@ function CalendarioPage() {
         <PageHeader
           group="Académico"
           title="Calendário Lectivo"
-          description="Períodos lectivos, feriados nacionais (Luanda) e o mesmo feed ICS do telemóvel."
+          description="Períodos lectivos e feriados, com sincronização no seu calendário."
           actions={
             <>
-              <DocHelpButton title="Navegação — Calendário lectivo" />
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarCsv}
-                disabled={!exportRows.length}
-              >
-                <Download className="size-4" /> CSV
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarPdf}
-                disabled={!exportRows.length}
-              >
-                <FileDown className="size-4" /> PDF
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarOficial}
-                disabled={!filtered.length && !holidays.length}
-              >
-                <FileBadge className="size-4" /> Oficial
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() =>
-                  void copyCalendarFeed("plain").catch((error) =>
-                    toast.error(
-                      error instanceof Error ? error.message : "Não foi possível criar o feed.",
-                    ),
-                  )
-                }
-              >
-                <Smartphone className="size-4" /> Subscrever ICS
-              </Button>
-              {gcalOn ? (
+              <PageActionMenu>
+                <DocHelpButton title="Navegação — Calendário lectivo" />
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={exportarCsv}
+                  disabled={!exportRows.length}
+                >
+                  <Download className="size-4" /> CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={exportarPdf}
+                  disabled={!exportRows.length}
+                >
+                  <FileDown className="size-4" /> PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={exportarOficial}
+                  disabled={!filtered.length && !holidays.length}
+                >
+                  <FileBadge className="size-4" /> Oficial
+                </Button>
                 <Button
                   variant="outline"
                   className="gap-2"
                   onClick={() =>
-                    void copyCalendarFeed("google").catch((error) =>
+                    void copyCalendarFeed("plain").catch((error) =>
                       toast.error(
                         error instanceof Error ? error.message : "Não foi possível criar o feed.",
                       ),
                     )
                   }
                 >
-                  Google
+                  <Smartphone className="size-4" /> Subscrever calendário
                 </Button>
-              ) : null}
-              {appleOn ? (
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() =>
-                    void copyCalendarFeed("apple").catch((error) =>
-                      toast.error(
-                        error instanceof Error ? error.message : "Não foi possível criar o feed.",
-                      ),
-                    )
-                  }
-                >
-                  Apple
-                </Button>
-              ) : null}
+                {gcalOn ? (
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() =>
+                      void copyCalendarFeed("google").catch((error) =>
+                        toast.error(
+                          error instanceof Error ? error.message : "Não foi possível criar o feed.",
+                        ),
+                      )
+                    }
+                  >
+                    Google
+                  </Button>
+                ) : null}
+                {appleOn ? (
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() =>
+                      void copyCalendarFeed("apple").catch((error) =>
+                        toast.error(
+                          error instanceof Error ? error.message : "Não foi possível criar o feed.",
+                        ),
+                      )
+                    }
+                  >
+                    Apple
+                  </Button>
+                ) : null}
+                {canConfigureTerms && calendarYear && periodModel.kind === "semestre" ? (
+                  semesterDrafts.length ? (
+                    <QuickFormModal
+                      title={`Semestres de ${calendarYear.name}`}
+                      description={`Os semestres do ano lectivo (${calendarYear.startsOn} a ${calendarYear.endsOn}). As datas sugeridas dividem o ano em dois: acerte-as às épocas de exame da instituição.`}
+                      icon={<CalendarDays className="size-5" />}
+                      submitLabel="Criar semestres"
+                      successDescription="Semestres criados."
+                      onSubmit={saveSemesters}
+                      fields={semesterDrafts.flatMap((term) => [
+                        {
+                          name: `nome${term.sequence}`,
+                          label: `${term.sequence}º semestre — nome`,
+                          defaultValue: term.name,
+                          full: true,
+                        },
+                        {
+                          name: `inicio${term.sequence}`,
+                          label: "Início",
+                          type: "date" as const,
+                          defaultValue: term.startsOn,
+                        },
+                        {
+                          name: `fim${term.sequence}`,
+                          label: "Fim",
+                          type: "date" as const,
+                          defaultValue: term.endsOn,
+                        },
+                      ])}
+                      trigger={(open) => (
+                        <Button
+                          className="gap-2"
+                          onClick={open}
+                          disabled={!academicCalendarQuery.isSuccess}
+                        >
+                          <CalendarDays className="size-4" />
+                          Configurar semestres
+                        </Button>
+                      )}
+                    />
+                  ) : null
+                ) : null}
+                {canConfigureTerms && calendarYear && periodModel.kind === "trimestre" ? (
+                  <QuickFormModal
+                    title={`Trimestres de ${calendarYear.name}`}
+                    description={`Os três trimestres do ano lectivo (${calendarYear.startsOn} a ${calendarYear.endsOn}), gravados de uma vez. Pautas, notas e fecho de trimestre dependem deles. As datas sugeridas seguem o calendário escolar nacional (MED), com as pausas de Natal e da Páscoa; acerte-as ao calendário da escola.`}
+                    icon={<CalendarDays className="size-5" />}
+                    submitLabel="Guardar trimestres"
+                    successDescription="Trimestres guardados."
+                    onSubmit={saveTerms}
+                    fields={drafts.flatMap((term) => [
+                      {
+                        name: `nome${term.sequence}`,
+                        label: `${term.sequence}º trimestre — nome`,
+                        defaultValue: term.name,
+                        full: true,
+                      },
+                      {
+                        name: `inicio${term.sequence}`,
+                        label: "Início",
+                        type: "date" as const,
+                        defaultValue: term.startsOn,
+                      },
+                      {
+                        name: `fim${term.sequence}`,
+                        label: "Fim",
+                        type: "date" as const,
+                        defaultValue: term.endsOn,
+                      },
+                    ])}
+                    trigger={(open) => (
+                      <Button
+                        variant={missingTerms ? "default" : "outline"}
+                        className="gap-2"
+                        onClick={open}
+                        disabled={!academicCalendarQuery.isSuccess}
+                      >
+                        <CalendarDays className="size-4" />
+                        {missingTerms ? "Configurar trimestres" : "Trimestres"}
+                      </Button>
+                    )}
+                  />
+                ) : null}
+              </PageActionMenu>
               {canManage && needsAcademicYear ? (
                 <QuickFormModal
                   title="Definir ano lectivo"
@@ -636,96 +722,13 @@ function CalendarioPage() {
                   )}
                 />
               ) : null}
-              {canConfigureTerms && calendarYear && periodModel.kind === "semestre" ? (
-                semesterDrafts.length ? (
-                  <QuickFormModal
-                    title={`Semestres de ${calendarYear.name}`}
-                    description={`Os semestres do ano lectivo (${calendarYear.startsOn} a ${calendarYear.endsOn}). As datas sugeridas dividem o ano em dois: acerte-as às épocas de exame da instituição.`}
-                    icon={<CalendarDays className="size-5" />}
-                    submitLabel="Criar semestres"
-                    successDescription="Semestres criados."
-                    onSubmit={saveSemesters}
-                    fields={semesterDrafts.flatMap((term) => [
-                      {
-                        name: `nome${term.sequence}`,
-                        label: `${term.sequence}º semestre — nome`,
-                        defaultValue: term.name,
-                        full: true,
-                      },
-                      {
-                        name: `inicio${term.sequence}`,
-                        label: "Início",
-                        type: "date" as const,
-                        defaultValue: term.startsOn,
-                      },
-                      {
-                        name: `fim${term.sequence}`,
-                        label: "Fim",
-                        type: "date" as const,
-                        defaultValue: term.endsOn,
-                      },
-                    ])}
-                    trigger={(open) => (
-                      <Button
-                        className="gap-2"
-                        onClick={open}
-                        disabled={!academicCalendarQuery.isSuccess}
-                      >
-                        <CalendarDays className="size-4" />
-                        Configurar semestres
-                      </Button>
-                    )}
-                  />
-                ) : null
-              ) : null}
-              {canConfigureTerms && calendarYear && periodModel.kind === "trimestre" ? (
-                <QuickFormModal
-                  title={`Trimestres de ${calendarYear.name}`}
-                  description={`Os três trimestres do ano lectivo (${calendarYear.startsOn} a ${calendarYear.endsOn}), gravados de uma vez. Pautas, notas e fecho de trimestre dependem deles. As datas sugeridas seguem o calendário escolar nacional (MED), com as pausas de Natal e da Páscoa; acerte-as ao calendário da escola.`}
-                  icon={<CalendarDays className="size-5" />}
-                  submitLabel="Guardar trimestres"
-                  successDescription="Trimestres guardados."
-                  onSubmit={saveTerms}
-                  fields={drafts.flatMap((term) => [
-                    {
-                      name: `nome${term.sequence}`,
-                      label: `${term.sequence}º trimestre — nome`,
-                      defaultValue: term.name,
-                      full: true,
-                    },
-                    {
-                      name: `inicio${term.sequence}`,
-                      label: "Início",
-                      type: "date" as const,
-                      defaultValue: term.startsOn,
-                    },
-                    {
-                      name: `fim${term.sequence}`,
-                      label: "Fim",
-                      type: "date" as const,
-                      defaultValue: term.endsOn,
-                    },
-                  ])}
-                  trigger={(open) => (
-                    <Button
-                      variant={missingTerms ? "default" : "outline"}
-                      className="gap-2"
-                      onClick={open}
-                      disabled={!academicCalendarQuery.isSuccess}
-                    >
-                      <CalendarDays className="size-4" />
-                      {missingTerms ? "Configurar trimestres" : "Trimestres"}
-                    </Button>
-                  )}
-                />
-              ) : null}
               {canManage && !needsAcademicYear ? (
                 <QuickFormModal
                   title="Novo período lectivo"
-                  description="No SGA o calendário são períodos (terms), não eventos livres."
+                  description="Defina o nome e as datas do período lectivo."
                   icon={<Plus className="size-5" />}
                   submitLabel="Criar período"
-                  successDescription="Período lectivo criado no SGA."
+                  successDescription="Período lectivo criado."
                   onSubmit={createPeriod}
                   fields={[
                     { name: "nome", label: "Nome", placeholder: "1º Trimestre", full: true },
@@ -889,7 +892,9 @@ function CalendarioPage() {
                   : "Seleccione um dia"}
               </p>
               {selectedHoliday ? (
-                <p className="text-sm font-semibold text-destructive">{selectedHoliday.name}</p>
+                <p className="text-sm font-semibold text-destructive-strong">
+                  {selectedHoliday.name}
+                </p>
               ) : null}
               {selectedTerms.length ? (
                 <ul className="space-y-1 text-sm">
@@ -1117,6 +1122,8 @@ function CalendarioPage() {
         >
           <ListFilterBar
             className="mb-4"
+            resultCount={filtered.length}
+            resultNoun="evento"
             values={filters}
             activeCount={activeCount}
             onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
@@ -1144,7 +1151,7 @@ function CalendarioPage() {
           {eventsQuery.isLoading ? (
             <p className="text-sm text-muted-foreground">A carregar calendário…</p>
           ) : eventsQuery.isError ? (
-            <p className="text-sm text-destructive">
+            <p className="text-sm text-destructive-strong">
               {eventsQuery.error instanceof Error
                 ? eventsQuery.error.message
                 : "Não foi possível carregar o calendário."}
@@ -1379,7 +1386,7 @@ function CalendarioPage() {
                                       <Button
                                         size="sm"
                                         variant="ghost"
-                                        className="gap-1.5 text-destructive"
+                                        className="gap-1.5 text-destructive-strong"
                                         onClick={open}
                                       >
                                         <Trash2 className="size-3.5" /> Apagar

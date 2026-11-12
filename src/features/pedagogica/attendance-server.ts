@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { withOfflineReceipt } from "@/features/offline-sync/receipts";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import {
   assertCanSeeStudent,
   loadStudentScope,
@@ -16,6 +18,14 @@ import {
 import { resolveUserLinkedEntities } from "@/features/auth/server";
 import { schoolTodayIso } from "@/lib/school-date";
 import { LOCKED_SHEET_STATUSES } from "@/features/academic/sga-grades";
+import { loadShareableSchoolFile, signChatAttachmentFile } from "@/features/arquivos/server";
+import { nowTimeInLuanda } from "@/features/dashboard/school-today";
+import {
+  readTeacherPresence,
+  type TeacherPresenceFields,
+} from "@/features/pedagogica/teacher-presence";
+import { recordTeacherCheckin } from "@/features/pedagogica/teacher-presence-server";
+import { loadSchoolPresenceMode } from "@/features/pedagogica/school-presence-mode";
 
 export const attendanceStatusEnum = z.enum([
   "present",
@@ -30,22 +40,31 @@ export type AttendanceStatus = z.infer<typeof attendanceStatusEnum>;
 
 export const listTeacherAttendanceSessionsInputSchema = z.object({
   date: z.string().optional(), // YYYY-MM-DD
-  classGroupId: z.string().uuid().optional(),
+  classGroupId: z.string().guid().optional(),
+  // As aulas de um professor (menu do professor). Só estreita: o professor vê
+  // sempre só as suas.
+  teacherId: z.string().guid().optional(),
 });
 
 export const getAttendanceCallSheetInputSchema = z.object({
-  sessionId: z.string().uuid().optional(),
-  classGroupId: z.string().uuid().optional(),
-  subjectId: z.string().uuid().optional(),
+  sessionId: z.string().guid().optional(),
+  classGroupId: z.string().guid().optional(),
+  subjectId: z.string().guid().optional(),
   date: z.string().optional(),
 });
 
 export const submitAttendanceCallBatchInputSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.string().guid(),
+  /** Defesa do servidor contra replay offline noutra escola/conta. */
+  offlineSchoolId: z.string().guid().optional(),
+  offlineActorId: z.string().guid().optional(),
+  /** Chave do envio na fila offline: repetir o mesmo devolve o mesmo resultado. */
+  offlineOpId: z.string().uuid().optional(),
+  offlineDeviceId: z.string().trim().min(1).max(128).optional(),
   markAllPresent: z.boolean().optional(),
   records: z.array(
     z.object({
-      studentId: z.string().uuid(),
+      studentId: z.string().guid(),
       status: attendanceStatusEnum,
       notes: z.string().optional(),
     }),
@@ -53,11 +72,11 @@ export const submitAttendanceCallBatchInputSchema = z.object({
 });
 
 export const editFinalizedAttendanceCallInputSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.string().guid(),
   reason: z.string().min(5, "O motivo deve ter pelo menos 5 caracteres."),
   records: z.array(
     z.object({
-      studentId: z.string().uuid(),
+      studentId: z.string().guid(),
       status: attendanceStatusEnum,
       notes: z.string().optional(),
     }),
@@ -65,32 +84,39 @@ export const editFinalizedAttendanceCallInputSchema = z.object({
 });
 
 export const submitAttendanceJustificationInputSchema = z.object({
-  studentId: z.string().uuid(),
-  sessionId: z.string().uuid().optional(),
-  attendanceRecordId: z.string().uuid().optional(),
+  studentId: z.string().guid(),
+  sessionId: z.string().guid().optional(),
+  attendanceRecordId: z.string().guid().optional(),
   reason: z.string().min(8, "A justificativa deve ter pelo menos 8 caracteres."),
-  fileId: z.string().uuid().optional(),
+  fileId: z.string().guid().optional(),
   fileName: z.string().optional(),
 });
 
 export const reviewAttendanceJustificationInputSchema = z.object({
-  justificationId: z.string().uuid(),
+  justificationId: z.string().guid(),
   status: z.enum(["approved", "rejected"]),
   reviewNotes: z.string().optional(),
 });
 
 export const getStudentAttendanceHistoryInputSchema = z.object({
-  studentId: z.string().uuid().optional(),
+  studentId: z.string().guid().optional(),
 });
 
 /**
- * Presente, dispensado (justificado) e atrasado contam a favor da assiduidade; só a ausência
- * sem justificação penaliza a taxa. "not_registered" já é excluído antes de chegar aqui.
+ * Presente, dispensado (justificado), atrasado e saída antecipada contam a favor da
+ * assiduidade; só a ausência sem justificação penaliza a taxa — a mesma regra da
+ * exclusão por faltas (`absencePercentageFromStatuses`). A saída antecipada contava
+ * aqui como falta: a ficha mostrava uma assiduidade pior do que a da pauta.
+ * "not_registered" já é excluído antes de chegar aqui.
  */
 export function computeAttendanceRate(records: Array<{ status: AttendanceStatus }>): number | null {
   if (records.length === 0) return null;
   const presentCount = records.filter(
-    (r) => r.status === "present" || r.status === "excused" || r.status === "late",
+    (r) =>
+      r.status === "present" ||
+      r.status === "excused" ||
+      r.status === "late" ||
+      r.status === "early_exit",
   ).length;
   return Math.round((presentCount / records.length) * 100);
 }
@@ -177,7 +203,11 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
     const dateObj = new Date(`${today}T12:00:00Z`);
     const weekday = dateObj.getDay(); // 0 = Domingo, 1 = Segunda...
 
-    let classSubjectQuery = db
+    // Leituras por páginas e com os `.in(...)` em lotes: a direcção vê as disciplinas
+    // de todas as turmas, e com ~200 a lista passava o tamanho do URL — o erro era
+    // ignorado e o ecrã ficava sem aulas.
+    const reads = pagedReadClient(db);
+    let classSubjectQuery = reads
       .from("class_subjects")
       .select("id, class_group_id, subject_id, teacher_id")
       .eq("school_id", membership.schoolId)
@@ -187,8 +217,18 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
     // (antes via as da escola inteira).
     if (membership.appRole === "Professor") {
       const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
-      if (!linked.teacher_id) return { sessions: [], date: today, pendingCount: 0 };
+      if (!linked.teacher_id)
+        return {
+          sessions: [],
+          date: today,
+          pendingCount: 0,
+          presenceEnabled: null,
+          presenceMode: "button" as const,
+          viewerIsTeacher: membership.appRole === "Professor",
+        };
       classSubjectQuery = classSubjectQuery.eq("teacher_id", linked.teacher_id);
+    } else if (data.teacherId) {
+      classSubjectQuery = classSubjectQuery.eq("teacher_id", data.teacherId);
     }
     if (data.classGroupId) {
       classSubjectQuery = classSubjectQuery.eq("class_group_id", data.classGroupId);
@@ -200,10 +240,17 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
 
     const classSubjectIds = (classSubjects ?? []).map((cs: { id: string }) => cs.id);
     if (classSubjectIds.length === 0) {
-      return { sessions: [], date: today, pendingCount: 0 };
+      return {
+        sessions: [],
+        date: today,
+        pendingCount: 0,
+        presenceEnabled: null,
+        presenceMode: "button" as const,
+        viewerIsTeacher: membership.appRole === "Professor",
+      };
     }
 
-    const { data: slots } = await db
+    const { data: slots } = await reads
       .from("timetable_slots")
       .select("id, class_subject_id, weekday, starts_at, ends_at, room")
       .in("class_subject_id", classSubjectIds)
@@ -219,8 +266,8 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
     ];
 
     const [{ data: groups }, { data: subjects }] = await Promise.all([
-      db.from("class_groups").select("id, name").in("id", classGroupIds),
-      db.from("subjects").select("id, name").in("id", subjectIds),
+      reads.from("class_groups").select("id, name").in("id", classGroupIds),
+      reads.from("subjects").select("id, name").in("id", subjectIds),
     ]);
 
     const groupMap = new Map(
@@ -240,21 +287,27 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       ),
     );
 
-    const { data: existingSessions } = await db
+    // `*` traz também a presença do professor quando a migração 20261026083707 já
+    // correu (sem ela, as colunas simplesmente não vêm).
+    const { data: existingSessions } = await reads
       .from("siga_attendance_sessions")
-      .select(
-        "id, class_group_id, subject_id, timetable_slot_id, lesson_date, status, starts_at, ends_at",
-      )
+      .select("*")
       .eq("school_id", membership.schoolId)
       .eq("lesson_date", today);
 
-    const sessionBySlotMap = new Map<string, { id: string; status: string }>(
-      (existingSessions ?? [])
-        .filter((s: { timetable_slot_id: string | null }) => s.timetable_slot_id)
-        .map((s: { timetable_slot_id: string | null; id: string; status: string }) => [
-          s.timetable_slot_id!,
-          s,
-        ]),
+    const sessionBySlotMap = new Map<
+      string,
+      { id: string; status: string } & Record<string, unknown>
+    >(
+      (
+        (existingSessions ?? []) as Array<{
+          timetable_slot_id: string | null;
+          id: string;
+          status: string;
+        }>
+      )
+        .filter((s) => s.timetable_slot_id)
+        .map((s) => [s.timetable_slot_id!, s]),
     );
 
     // Sessões que faltam para as aulas do dia: uma só escrita, com erro
@@ -283,13 +336,13 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
             };
           }),
         )
-        .select("id, status, timetable_slot_id");
+        .select("*");
       // Outro pedido criou-as entretanto (índice único por escola, aula e dia,
       // migração 20260929230000): lêem-se as que ficaram.
       if (createError?.code === "23505") {
-        ({ data: created, error: createError } = await db
+        ({ data: created, error: createError } = await reads
           .from("siga_attendance_sessions")
-          .select("id, status, timetable_slot_id")
+          .select("*")
           .eq("school_id", membership.schoolId)
           .eq("lesson_date", today)
           .in(
@@ -321,9 +374,49 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       room: string | null;
       status: "pending" | "completed" | "cancelled";
       lesson_date: string;
+      teacher_id: string | null;
+      teacher_name: string | null;
+      teacher_presence: TeacherPresenceFields;
     }> = [];
 
     let pendingCount = 0;
+    const firstSession = sessionBySlotMap.values().next().value;
+    // null: ainda não há aulas para saber se a migração da presença já correu.
+    const presenceEnabled = firstSession ? readTeacherPresence(firstSession).enabled : null;
+
+    // Nome do professor de cada aula, para a Direcção ver quem está (ou não) na sala.
+    // O professor só vê as suas aulas e não precisa disto.
+    const teacherNames = new Map<string, string>();
+    if (membership.appRole !== "Professor") {
+      const teacherIds = [
+        ...new Set(
+          (classSubjects ?? [])
+            .map((cs: { teacher_id: string | null }) => cs.teacher_id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ];
+      if (teacherIds.length) {
+        const { data: teacherRows } = await reads
+          .from("teachers")
+          .select("id, person_id")
+          .eq("school_id", membership.schoolId)
+          .in("id", teacherIds);
+        const personIds = (teacherRows ?? [])
+          .map((row: { person_id: string | null }) => row.person_id)
+          .filter((id): id is string => Boolean(id));
+        if (personIds.length) {
+          const { loadPeopleLite } = await import("@/features/people/lookup");
+          const people = await loadPeopleLite(db, membership.schoolId, personIds);
+          for (const row of (teacherRows ?? []) as Array<{
+            id: string;
+            person_id: string | null;
+          }>) {
+            const name = row.person_id ? people.get(row.person_id)?.full_name : null;
+            if (name) teacherNames.set(row.id, name);
+          }
+        }
+      }
+    }
 
     for (const slot of slots ?? []) {
       const cs = csMap.get(slot.class_subject_id);
@@ -348,11 +441,73 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
         room: slot.room ?? null,
         status,
         lesson_date: today,
+        teacher_id: cs.teacher_id ?? null,
+        teacher_name: cs.teacher_id ? (teacherNames.get(cs.teacher_id) ?? null) : null,
+        teacher_presence: readTeacherPresence(existing ?? null).fields,
       });
     }
 
-    return { sessions: sessionsList, date: today, pendingCount };
+    // Os lotes de ids não mantêm a ordem por hora entre si.
+    sessionsList.sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+    return {
+      sessions: sessionsList,
+      date: today,
+      pendingCount,
+      presenceEnabled,
+      presenceMode: await loadSchoolPresenceMode(db, membership.schoolId),
+      viewerIsTeacher: membership.appRole === "Professor",
+    };
   });
+
+/**
+ * Entre várias sessões da mesma turma e disciplina no mesmo dia (dois tempos),
+ * escolhe a da aula em curso ou a próxima por fazer; senão, a última do dia.
+ * Sem hora (`nowTime` nulo, outro dia), a primeira por fazer.
+ */
+export function pickLessonSession<
+  T extends { status: string; starts_at: string | null; ends_at: string | null },
+>(rows: T[], nowTime: string | null): T | null {
+  if (rows.length === 0) return null;
+  const sorted = [...rows]
+    .filter((row) => row.status !== "cancelled")
+    .sort((a, b) => String(a.starts_at ?? "").localeCompare(String(b.starts_at ?? "")));
+  if (sorted.length === 0) return rows[0] ?? null;
+  const pending = sorted.filter((row) => row.status !== "completed");
+  if (nowTime) {
+    const current = sorted.find(
+      (row) =>
+        row.starts_at &&
+        row.ends_at &&
+        String(row.starts_at).slice(0, 5) <= nowTime &&
+        nowTime < String(row.ends_at).slice(0, 5),
+    );
+    if (current) return current;
+    const next = pending.find(
+      (row) => !row.starts_at || String(row.starts_at).slice(0, 5) >= nowTime,
+    );
+    if (next) return next;
+  }
+  return pending[0] ?? sorted[sorted.length - 1] ?? null;
+}
+
+/** O tempo do horário a ligar a uma sessão nova: o que está a decorrer, o próximo ou o primeiro. */
+export function pickLessonSlot<T extends { starts_at: string; ends_at: string }>(
+  slots: T[],
+  nowTime: string | null,
+): T | null {
+  if (slots.length === 0) return null;
+  const sorted = [...slots].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  if (nowTime) {
+    const current = sorted.find(
+      (slot) => slot.starts_at.slice(0, 5) <= nowTime && nowTime < slot.ends_at.slice(0, 5),
+    );
+    if (current) return current;
+    const next = sorted.find((slot) => slot.starts_at.slice(0, 5) >= nowTime);
+    if (next) return next;
+    return sorted[sorted.length - 1] ?? null;
+  }
+  return sorted[0] ?? null;
+}
 
 export const getAttendanceCallSheet = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -390,15 +545,23 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
       sessionRow = s;
     } else if (data.classGroupId && data.subjectId) {
       const today = data.date || schoolTodayIso();
-      const { data: s } = await db
+      // Pode haver dois tempos da mesma disciplina no mesmo dia (uma sessão por
+      // tempo). Antes lia-se com `maybeSingle()`: com duas sessões vinha erro, e o
+      // código criava uma terceira, sem hora, e as presenças repartiam-se.
+      const { data: sameDay, error: sameDayError } = await db
         .from("siga_attendance_sessions")
         .select("*")
         .eq("school_id", membership.schoolId)
         .eq("class_group_id", data.classGroupId)
         .eq("subject_id", data.subjectId)
-        .eq("lesson_date", today)
-        .maybeSingle();
-      sessionRow = s;
+        .eq("lesson_date", today);
+      if (sameDayError) {
+        throw publicDatabaseError(sameDayError, "Não foi possível abrir a chamada desta aula.");
+      }
+      sessionRow = pickLessonSession(
+        (sameDay ?? []) as Array<NonNullable<typeof sessionRow>>,
+        today === schoolTodayIso() ? nowTimeInLuanda() : null,
+      );
 
       if (!sessionRow) {
         // Só se abre sessão para uma disciplina realmente atribuída à turma.
@@ -419,13 +582,31 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
           }
         }
 
-        const { data: created } = await db
+        // Com tempo no horário nesse dia, a sessão fica ligada a ele (hora, sala e o
+        // índice único por tempo e dia); sem horário, abre-se uma sessão avulsa.
+        const { data: daySlots } = await db
+          .from("timetable_slots")
+          .select("id, starts_at, ends_at")
+          .eq("school_id", membership.schoolId)
+          .eq("class_subject_id", classSubject.id)
+          .eq("weekday", new Date(`${today}T12:00:00Z`).getUTCDay())
+          .eq("status", "active")
+          .order("starts_at");
+        const slot = pickLessonSlot(
+          (daySlots ?? []) as Array<{ id: string; starts_at: string; ends_at: string }>,
+          today === schoolTodayIso() ? nowTimeInLuanda() : null,
+        );
+
+        const { data: created, error: createError } = await db
           .from("siga_attendance_sessions")
           .insert({
             school_id: membership.schoolId,
             class_group_id: data.classGroupId,
             subject_id: data.subjectId,
             teacher_id: classSubject.teacher_id,
+            timetable_slot_id: slot?.id ?? null,
+            starts_at: slot?.starts_at ?? null,
+            ends_at: slot?.ends_at ?? null,
             lesson_date: today,
             status: "pending",
             created_by: context.userId,
@@ -433,6 +614,16 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
           .select("*")
           .single();
         sessionRow = created;
+        if (!sessionRow && createError?.code === "23505" && slot) {
+          const { data: concurrent } = await db
+            .from("siga_attendance_sessions")
+            .select("*")
+            .eq("school_id", membership.schoolId)
+            .eq("timetable_slot_id", slot.id)
+            .eq("lesson_date", today)
+            .maybeSingle();
+          sessionRow = concurrent;
+        }
       }
     }
 
@@ -440,12 +631,15 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
       throw new Error("Sessão de chamada não encontrada.");
     }
 
+    let viewerIsSessionTeacher = false;
     if (membership.appRole === "Professor") {
       const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
       if (!teacherOwnsAttendanceSession(linked.teacher_id, sessionRow.teacher_id)) {
         throw new Error("Não tem permissão para consultar a chamada de outro professor.");
       }
+      viewerIsSessionTeacher = true;
     }
+    const teacherPresence = readTeacherPresence(sessionRow as unknown as Record<string, unknown>);
 
     const [{ data: classGroup }, { data: subject }] = await Promise.all([
       db.from("class_groups").select("id, name").eq("id", sessionRow.class_group_id).single(),
@@ -509,6 +703,13 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
         ends_at: sessionRow.ends_at,
         status: sessionRow.status,
         notes: sessionRow.notes,
+        teacher_presence: teacherPresence.fields,
+        /** Falso enquanto a migração 20261026083707 não correr. */
+        presence_enabled: teacherPresence.enabled,
+        viewer_is_session_teacher: viewerIsSessionTeacher,
+        viewer_can_register_presence:
+          membership.appRole === "Administrador" || membership.appRole === "Secretaria",
+        presence_mode: await loadSchoolPresenceMode(db, membership.schoolId),
       },
       students: studentsList,
       totalCount: studentsList.length,
@@ -576,84 +777,181 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
       context.userId,
       ["Administrador", "Secretaria", "Professor"],
     );
+    if (data.offlineSchoolId && data.offlineSchoolId !== membership.schoolId) {
+      throw new Error("A escola activa é diferente da escola de origem do lançamento offline.");
+    }
+    if (data.offlineActorId && data.offlineActorId !== context.userId) {
+      throw new Error("A conta actual é diferente da conta que realizou o lançamento offline.");
+    }
     const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const {
+      offlineSchoolId: _school,
+      offlineActorId: _actor,
+      offlineOpId,
+      offlineDeviceId,
+      ...payload
+    } = data;
+    return withOfflineReceipt(
+      {
+        db,
+        schoolId,
+        actorId: context.userId,
+        opId: offlineOpId,
+        deviceId: offlineDeviceId,
+        kind: "attendance.submit",
+        payload,
+        alreadyApplied: () => attendanceCallAlreadyApplied(db, schoolId, data),
+      },
+      async () => {
+        const { data: session, error: sErr } = await db
+          .from("siga_attendance_sessions")
+          .select(
+            "id, school_id, class_group_id, subject_id, teacher_id, status, lesson_date, starts_at",
+          )
+          .eq("id", data.sessionId)
+          .eq("school_id", membership.schoolId)
+          .single();
 
-    const { data: session, error: sErr } = await db
-      .from("siga_attendance_sessions")
-      .select("id, school_id, class_group_id, subject_id, teacher_id, status, lesson_date")
-      .eq("id", data.sessionId)
-      .eq("school_id", membership.schoolId)
-      .single();
+        if (sErr || !session) throw new Error("Sessão de chamada não encontrada.");
+        await assertAttendanceNotLocked(db, membership.schoolId, session);
+        // Chamada já fechada: mudar presenças é uma correcção, com motivo e
+        // auditoria (editFinalizedAttendanceCall). Antes, reenviar a chamada
+        // reescrevia-a sem rasto.
+        if (session.status === "completed") {
+          throw new Error(
+            "Esta chamada já foi fechada. Use «Corrigir chamada» e indique o motivo.",
+          );
+        }
 
-    if (sErr || !session) throw new Error("Sessão de chamada não encontrada.");
-    await assertAttendanceNotLocked(db, membership.schoolId, session);
-    // Chamada já fechada: mudar presenças é uma correcção, com motivo e
-    // auditoria (editFinalizedAttendanceCall). Antes, reenviar a chamada
-    // reescrevia-a sem rasto.
-    if (session.status === "completed") {
-      throw new Error("Esta chamada já foi fechada. Use «Corrigir chamada» e indique o motivo.");
-    }
+        if (membership.appRole === "Professor") {
+          const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
+          if (!teacherOwnsAttendanceSession(linked.teacher_id, session.teacher_id)) {
+            throw new Error("Não tem permissão para realizar a chamada de outro professor.");
+          }
+        }
 
-    if (membership.appRole === "Professor") {
-      const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
-      if (!teacherOwnsAttendanceSession(linked.teacher_id, session.teacher_id)) {
-        throw new Error("Não tem permissão para realizar a chamada de outro professor.");
-      }
-    }
+        // Só alunos matriculados nesta turma entram na chamada.
+        const { data: classEnrollments } = await db
+          .from("enrollments")
+          .select("student_id")
+          .eq("school_id", membership.schoolId)
+          .eq("class_group_id", session.class_group_id)
+          .in("status", ["active", "pending"]);
+        const enrolled = new Set((classEnrollments ?? []).map((row) => String(row.student_id)));
+        const outsiders = data.records.filter((item) => !enrolled.has(item.studentId));
+        if (outsiders.length) {
+          throw new Error("A chamada inclui alunos que não estão matriculados nesta turma.");
+        }
 
-    // Só alunos matriculados nesta turma entram na chamada.
-    const { data: classEnrollments } = await db
-      .from("enrollments")
-      .select("student_id")
-      .eq("school_id", membership.schoolId)
-      .eq("class_group_id", session.class_group_id)
-      .in("status", ["active", "pending"]);
-    const enrolled = new Set((classEnrollments ?? []).map((row) => String(row.student_id)));
-    const outsiders = data.records.filter((item) => !enrolled.has(item.studentId));
-    if (outsiders.length) {
-      throw new Error("A chamada inclui alunos que não estão matriculados nesta turma.");
-    }
+        // Uma só escrita para a turma inteira. Antes era um upsert por aluno, com o
+        // erro ignorado: uma linha recusada pela base não impedia o "ok".
+        const now = new Date().toISOString();
+        if (data.records.length) {
+          const { error: upsertError } = await db.from("siga_attendance_records").upsert(
+            data.records.map((item) => ({
+              school_id: membership.schoolId,
+              session_id: session.id,
+              student_id: item.studentId,
+              status:
+                data.markAllPresent && item.status === "not_registered" ? "present" : item.status,
+              notes: item.notes ?? null,
+              recorded_by: context.userId,
+              updated_at: now,
+            })),
+            { onConflict: "session_id,student_id" },
+          );
+          if (upsertError)
+            throw publicDatabaseError(upsertError, "Não foi possível gravar a chamada.");
+        }
+        await recomputeAttendanceRates(
+          db,
+          membership.schoolId,
+          data.records.map((item) => item.studentId),
+        );
 
-    // Uma só escrita para a turma inteira. Antes era um upsert por aluno, com o
-    // erro ignorado: uma linha recusada pela base não impedia o "ok".
-    const now = new Date().toISOString();
-    if (data.records.length) {
-      const { error: upsertError } = await db.from("siga_attendance_records").upsert(
-        data.records.map((item) => ({
-          school_id: membership.schoolId,
-          session_id: session.id,
-          student_id: item.studentId,
-          status: data.markAllPresent && item.status === "not_registered" ? "present" : item.status,
-          notes: item.notes ?? null,
-          recorded_by: context.userId,
-          updated_at: now,
-        })),
-        { onConflict: "session_id,student_id" },
-      );
-      if (upsertError) throw publicDatabaseError(upsertError, "Não foi possível gravar a chamada.");
-    }
-    await recomputeAttendanceRates(
-      db,
-      membership.schoolId,
-      data.records.map((item) => item.studentId),
+        // Sem isto a chamada ficava "pendente" com as presenças gravadas; repetir é
+        // seguro (o upsert acima é idempotente), por isso o erro sobe.
+        const { error: completeError } = await db
+          .from("siga_attendance_sessions")
+          .update({
+            status: "completed",
+            updated_at: new Date().toISOString(),
+            updated_by: context.userId,
+          })
+          .eq("id", session.id);
+        if (completeError) {
+          throw publicDatabaseError(completeError, "Presenças gravadas, mas a chamada não fechou.");
+        }
+
+        // Concluir a chamada no dia da aula também confirma que o professor esteve na
+        // sala, se ainda não o tinha feito. Um envio offline que chega mais tarde não
+        // conta: a hora de chegada ao servidor não é a hora da aula.
+        // Só no modo «botão»: com o QR obrigatório a presença vem da leitura do QR, e
+        // desligada não se regista.
+        if (
+          membership.appRole === "Professor" &&
+          !offlineOpId &&
+          String(session.lesson_date) === schoolTodayIso() &&
+          (await loadSchoolPresenceMode(db, membership.schoolId)) === "button"
+        ) {
+          try {
+            await recordTeacherCheckin(db, {
+              schoolId: membership.schoolId,
+              sessionId: String(session.id),
+              userId: context.userId,
+              method: "call",
+              startsAt: session.starts_at ? String(session.starts_at) : null,
+            });
+          } catch (presenceError) {
+            // A chamada já está gravada; a presença é um extra que não a desfaz.
+            console.warn("[attendance] presença do professor não registada:", presenceError);
+          }
+        }
+
+        return { ok: true, sessionId: session.id, count: data.records.length };
+      },
     );
-
-    // Sem isto a chamada ficava "pendente" com as presenças gravadas; repetir é
-    // seguro (o upsert acima é idempotente), por isso o erro sobe.
-    const { error: completeError } = await db
-      .from("siga_attendance_sessions")
-      .update({
-        status: "completed",
-        updated_at: new Date().toISOString(),
-        updated_by: context.userId,
-      })
-      .eq("id", session.id);
-    if (completeError) {
-      throw publicDatabaseError(completeError, "Presenças gravadas, mas a chamada não fechou.");
-    }
-
-    return { ok: true, sessionId: session.id, count: data.records.length };
   });
+
+/**
+ * Depois de um envio offline que caiu a meio: a chamada já está fechada com estas
+ * presenças? Então o envio entrou. Se alguém a corrigiu entretanto, não está, e o
+ * reenvio é recusado («já foi fechada») em vez de reescrever a correcção.
+ */
+async function attendanceCallAlreadyApplied(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  data: z.infer<typeof submitAttendanceCallBatchInputSchema>,
+) {
+  const { data: session } = await db
+    .from("siga_attendance_sessions")
+    .select("id, status")
+    .eq("id", data.sessionId)
+    .eq("school_id", schoolId)
+    .maybeSingle();
+  if (!session || session.status !== "completed") return null;
+  if (data.records.length) {
+    const { data: rows, error } = await db
+      .from("siga_attendance_records")
+      .select("student_id, status")
+      .eq("school_id", schoolId)
+      .eq("session_id", session.id)
+      .in(
+        "student_id",
+        data.records.map((item) => item.studentId),
+      );
+    if (error) return null;
+    const stored = new Map((rows ?? []).map((row) => [String(row.student_id), String(row.status)]));
+    const same = data.records.every(
+      (item) =>
+        stored.get(item.studentId) ===
+        (data.markAllPresent && item.status === "not_registered" ? "present" : item.status),
+    );
+    if (!same) return null;
+  }
+  return { ok: true as const, sessionId: String(session.id), count: data.records.length };
+}
 
 export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -794,6 +1092,19 @@ export const submitAttendanceJustification = createServerFn({ method: "POST" })
       if (!record) throw new Error("Registo de presença não encontrado para este aluno.");
     }
 
+    // O anexo (atestado) tem de ser um ficheiro que quem envia consegue abrir nos
+    // Arquivos, e o nome é o do ficheiro: antes vinham os dois do browser, sem
+    // verificação, e quem decidia via só um nome.
+    const attachment = data.fileId
+      ? await loadShareableSchoolFile(
+          db,
+          membership.schoolId,
+          data.fileId,
+          context.userId,
+          membership.appRole,
+        )
+      : null;
+
     const { data: justification, error } = await db
       .from("siga_attendance_justifications")
       .insert({
@@ -802,8 +1113,8 @@ export const submitAttendanceJustification = createServerFn({ method: "POST" })
         session_id: data.sessionId ?? null,
         attendance_record_id: data.attendanceRecordId ?? null,
         reason: data.reason.trim(),
-        file_id: data.fileId ?? null,
-        file_name: data.fileName ?? null,
+        file_id: attachment?.id ?? null,
+        file_name: attachment?.name ?? null,
         status: "pending",
         submitted_by: context.userId,
       })
@@ -812,6 +1123,72 @@ export const submitAttendanceJustification = createServerFn({ method: "POST" })
 
     if (error) throw publicDatabaseError(error, "Não foi possível enviar a justificativa.");
     return justification;
+  });
+
+type AttendanceDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
+
+/**
+ * Quem decide uma justificação: a Direcção e a Secretaria decidem todas; o professor
+ * só as das suas aulas.
+ */
+async function assertMayDecideJustification(
+  db: AttendanceDb,
+  membership: { schoolId: string; allAppRoles: string[] },
+  userId: string,
+  just: { session_id: string | null; attendance_record_id: string | null },
+) {
+  const managesAll = membership.allAppRoles.some(
+    (role) => role === "Administrador" || role === "Secretaria",
+  );
+  if (managesAll) return;
+  let sessionId = just.session_id ? String(just.session_id) : null;
+  if (!sessionId && just.attendance_record_id) {
+    const { data: record } = await db
+      .from("siga_attendance_records")
+      .select("session_id")
+      .eq("school_id", membership.schoolId)
+      .eq("id", just.attendance_record_id)
+      .maybeSingle();
+    sessionId = record?.session_id ? String(record.session_id) : null;
+  }
+  const { data: ownSession } = sessionId
+    ? await db
+        .from("siga_attendance_sessions")
+        .select("teacher_id")
+        .eq("school_id", membership.schoolId)
+        .eq("id", sessionId)
+        .maybeSingle()
+    : { data: null };
+  const linked = await resolveUserLinkedEntities(db, membership.schoolId, userId);
+  if (!teacherOwnsAttendanceSession(linked.teacher_id, ownSession?.teacher_id)) {
+    throw new Error(
+      "Só pode decidir justificativas das suas aulas. As restantes são da Direcção ou da Secretaria.",
+    );
+  }
+}
+
+/** Abre o anexo (atestado) de uma justificação, para quem a pode decidir. */
+export const openAttendanceJustificationFile = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => z.object({ justificationId: z.string().guid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
+    const db = await loadSgaAdminClient();
+    const { data: just, error } = await db
+      .from("siga_attendance_justifications")
+      .select("id, session_id, attendance_record_id, file_id")
+      .eq("id", data.justificationId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível abrir o anexo.");
+    if (!just?.file_id) throw new Error("Esta justificativa não tem anexo.");
+    await assertMayDecideJustification(db, membership, context.userId, just);
+    return { url: await signChatAttachmentFile(db, membership.schoolId, String(just.file_id)) };
   });
 
 export const reviewAttendanceJustification = createServerFn({ method: "POST" })
@@ -844,35 +1221,7 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
     // A justificação aprovada tira a falta da contagem (e da exclusão por
     // faltas). O professor só decide as das suas próprias aulas; as outras são
     // da Direcção ou da Secretaria.
-    const managesAll = membership.allAppRoles.some(
-      (role) => role === "Administrador" || role === "Secretaria",
-    );
-    if (!managesAll) {
-      let sessionId = just.session_id ? String(just.session_id) : null;
-      if (!sessionId && just.attendance_record_id) {
-        const { data: record } = await db
-          .from("siga_attendance_records")
-          .select("session_id")
-          .eq("school_id", membership.schoolId)
-          .eq("id", just.attendance_record_id)
-          .maybeSingle();
-        sessionId = record?.session_id ? String(record.session_id) : null;
-      }
-      const { data: ownSession } = sessionId
-        ? await db
-            .from("siga_attendance_sessions")
-            .select("teacher_id")
-            .eq("school_id", membership.schoolId)
-            .eq("id", sessionId)
-            .maybeSingle()
-        : { data: null };
-      const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
-      if (!teacherOwnsAttendanceSession(linked.teacher_id, ownSession?.teacher_id)) {
-        throw new Error(
-          "Só pode decidir justificativas das suas aulas. As restantes são da Direcção ou da Secretaria.",
-        );
-      }
-    }
+    await assertMayDecideJustification(db, membership, context.userId, just);
 
     // Aprovar torna a falta justificada: a pauta oficial já não muda por aqui.
     if (data.status === "approved") {
@@ -897,7 +1246,7 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
       }
     }
 
-    const { error: reviewError } = await db
+    const { data: decided, error: reviewError } = await db
       .from("siga_attendance_justifications")
       .update({
         status: data.status,
@@ -905,10 +1254,16 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
         reviewed_by: context.userId,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", just.id);
+      .eq("id", just.id)
+      // Duas pessoas a decidir ao mesmo tempo (uma aprova, outra rejeita): só a
+      // primeira conta. Antes a rejeição gravava-se por cima e a falta ficava
+      // justificada com a justificação «rejeitada».
+      .eq("status", "pending")
+      .select("id");
     if (reviewError) {
       throw publicDatabaseError(reviewError, "Não foi possível registar a decisão.");
     }
+    if (!decided?.length) throw new Error("Esta justificativa já foi decidida.");
 
     if (data.status === "approved" && just.attendance_record_id) {
       const { error: excuseError } = await db

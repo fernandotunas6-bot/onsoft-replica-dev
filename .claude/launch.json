@@ -3,52 +3,45 @@
   "configurations": [
     {
       "name": "siga",
-      "url": "http://localhost:3006",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
       "port": 3006
     },
     {
       "name": "web",
-      "url": "http://localhost:5174",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/valentinocanguele/edu/onsoft-replica-dev/painel/web && npm run dev"],
       "port": 5174
     },
     {
       "name": "admin",
-      "url": "http://localhost:3005",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/valentinocanguele/edu/onsoft-replica-dev/painel/admin && npm run dev"],
       "port": 3005
     },
     {
       "name": "payflow",
-      "url": "http://localhost:3007",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/valentinocanguele/edu/onsoft-replica-dev/painel/payflow && npm run dev"],
       "port": 3007
     },
     {
       "name": "doc",
-      "url": "http://localhost:5173",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/valentinocanguele/edu/onsoft-replica-dev/painel/docs && npm run dev -- --port 5173 --host 127.0.0.1"],
       "port": 5173
     },
     {
-      "name": "siga-fresh",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": [
-        "vite",
-        "dev",
-        "--port",
-        "3016",
-        "--strictPort"
-      ],
-      "port": 3016
+      "name": "escolas",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/valentinocanguele/edu/onsoft-replica-dev/painel/escolas && npm run build && SCHOOL_SITE_PORT=4174 node scripts/serve.mjs"],
+      "port": 4174
     },
     {
-      "name": "siga-audit",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": [
-        "vite",
-        "dev",
-        "--port",
-        "3026",
-        "--strictPort"
-      ],
-      "port": 3026
+      "name": "escolas-wt",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/valentinocanguele/edu/onsoft-replica-dev/.claude/worktrees/escolas-multiescola-testes/painel/escolas && SCHOOL_SITE_PORT=4184 npm run dev"],
+      "port": 4184
     }
   ]
 }

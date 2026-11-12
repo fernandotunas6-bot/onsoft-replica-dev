@@ -1,0 +1,73 @@
+name: Verificar token da Cloudflare
+
+# Diz, sem revelar valores, se o token de um ambiente GitHub serve para
+# publicar. Nasceu a 30/10: o deploy de produção falhou 4 vezes seguidas
+# porque os segredos tinham sido guardados em ambientes com o nome errado
+# (`production1` e um ambiente chamado `CLOUDFLARE_API_TOKEN`), enquanto o
+# `deploy-production.yml` lê o ambiente `production`, que estava vazio.
+# Antes disto, a única forma de saber se um token servia era tentar publicar.
+#
+# Imprime apenas `ok` / `falha` e o código de erro da Cloudflare:
+#   9109 / 1000 -> token inválido ou revogado (há que emitir outro)
+#   10000       -> token válido mas sem permissão no recurso
+#   ausente     -> o segredo não existe nesse ambiente
+# Nunca imprime o token, nem o identificador da conta.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: "Ambiente GitHub a verificar"
+        required: true
+        default: production
+  push:
+    branches: ["chore/verificar-token-cloudflare"]
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: Verificar ${{ matrix.ambiente }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ambiente: ${{ fromJSON(github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.ambiente) || '["production","production1","CLOUDFLARE_API_TOKEN"]') }}
+    environment: ${{ matrix.ambiente }}
+    steps:
+      - name: Verificar o token
+        env:
+          # Nomes alternativos porque foi assim que ficaram guardados por engano.
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CONTA: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.ID }}
+        run: |
+          echo "Ambiente: ${{ matrix.ambiente }}"
+
+          if [ -z "$TOKEN" ]; then
+            echo "CLOUDFLARE_API_TOKEN: ausente neste ambiente"
+          else
+            echo "CLOUDFLARE_API_TOKEN: presente (${#TOKEN} caracteres)"
+            codigo=$(curl -s -X GET "https://api.cloudflare.com/client/v4/user/tokens/verify" \
+              -H "Authorization: Bearer $TOKEN" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print('ok' if d.get('success') else (d.get('errors') or [{}])[0].get('code','?'))")
+            echo "  /user/tokens/verify -> $codigo"
+          fi
+
+          if [ -z "$CONTA" ]; then
+            echo "CLOUDFLARE_ACCOUNT_ID (ou ID): ausente neste ambiente"
+          else
+            echo "CLOUDFLARE_ACCOUNT_ID (ou ID): presente (${#CONTA} caracteres)"
+            if [ -n "$TOKEN" ]; then
+              codigo=$(curl -s "https://api.cloudflare.com/client/v4/accounts/$CONTA/pages/projects" \
+                -H "Authorization: Bearer $TOKEN" \
+                | python3 -c "import json,sys; d=json.load(sys.stdin); print('ok' if d.get('success') else (d.get('errors') or [{}])[0].get('code','?'))")
+              echo "  listar projectos Pages -> $codigo"
+            fi
+          fi
+
+          if [ -n "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "SUPABASE_SERVICE_ROLE_KEY: presente"
+          else
+            echo "SUPABASE_SERVICE_ROLE_KEY: ausente neste ambiente"
+          fi

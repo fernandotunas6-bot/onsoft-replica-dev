@@ -26,9 +26,7 @@
       "id": "dashboard",
       "skill": "siga-dashboard",
       "label": "Dashboard",
-      "routes": [
-        "src/routes/index.tsx"
-      ],
+      "routes": ["src/routes/index.tsx"],
       "feature": [
         "src/features/dashboard/server.ts",
         "src/features/dashboard/alerts.ts",
@@ -43,24 +41,19 @@
         "tests/spotlight/catalog.test.ts"
       ],
       "accessKey": "dashboard",
-      "navPath": "/"
+      "navPath": "/portal"
     },
     {
       "id": "alunos",
       "skill": "siga-alunos",
       "label": "Alunos / matrículas internas",
-      "routes": [
-        "src/routes/alunos/index.tsx",
-        "src/routes/alunos/$studentId.tsx"
-      ],
+      "routes": ["src/routes/alunos/index.tsx", "src/routes/alunos/$studentId.tsx"],
       "feature": [
         "src/features/students/schemas.ts",
         "src/features/students/server.ts",
         "src/features/students/StudentEnrollmentSheet.tsx"
       ],
-      "tests": [
-        "tests/students/schemas.test.ts"
-      ],
+      "tests": ["tests/students/schemas.test.ts"],
       "accessKey": "pessoas",
       "navPath": "/alunos"
     },
@@ -70,19 +63,19 @@
       "label": "Alumni / antigos alunos",
       "routes": [
         "src/routes/alumni.tsx",
-        "src/routes/alumni.$alumniId.tsx",
-        "src/routes/alumni.$alumniId.portfolio.tsx",
-        "src/routes/alumni.portal.tsx",
-        "src/routes/alumni.portal.portfolio.tsx",
-        "src/routes/alumni.portal.portfolio.showcase.tsx",
-        "src/routes/alumni.portal.portfolio.print.tsx",
-        "src/routes/alumni.insights.tsx",
-        "src/routes/alumni.operations.tsx",
-        "src/routes/alumni.communications.tsx",
-        "src/routes/alumni.matching.tsx",
-        "src/routes/alumni.documents.tsx",
-        "src/routes/alumni.calendar.tsx",
-        "src/routes/alumni.pipeline.tsx"
+        "src/routes/alumni_.$alumniId.tsx",
+        "src/routes/alumni_.$alumniId_.portfolio.tsx",
+        "src/routes/alumni_.portal.tsx",
+        "src/routes/alumni_.portal_.portfolio.tsx",
+        "src/routes/alumni_.portal_.portfolio_.showcase.tsx",
+        "src/routes/alumni_.portal_.portfolio_.print.tsx",
+        "src/routes/alumni_.insights.tsx",
+        "src/routes/alumni_.operations.tsx",
+        "src/routes/alumni_.communications.tsx",
+        "src/routes/alumni_.matching.tsx",
+        "src/routes/alumni_.documents.tsx",
+        "src/routes/alumni_.calendar.tsx",
+        "src/routes/alumni_.pipeline.tsx"
       ],
       "feature": [
         "src/features/alumni/schemas.ts",
@@ -112,7 +105,6 @@
         "tests/communications/schemas.test.ts"
       ],
       "accessKey": "pessoas",
-      "navPath": "/alumni",
       "sql": "supabase/migrations/20260907010000_alumni_master_module.sql",
       "sqlMigrations": [
         "supabase/migrations/20260907010000_alumni_master_module.sql",
@@ -123,20 +115,17 @@
         "supabase/migrations/20260907060000_alumni_portfolio.sql",
         "supabase/migrations/20260907070000_alumni_portfolio_education_levels.sql",
         "supabase/migrations/20260907080000_alumni_portfolio_education_history.sql"
-      ]
+      ],
+      "dormant": true,
+      "dormantReason": "Zero registos em produção a 25/10/2026. Desligado por omissão em todas as escolas; uma escola pode ligá-lo com uma linha em school_modules (status active).",
+      "navPath": "/alumni"
     },
     {
       "id": "pessoas",
       "skill": "siga-pessoas",
       "label": "Pessoas e professores",
-      "routes": [
-        "src/routes/pessoas/index.tsx",
-        "src/routes/professores/$teacherId.tsx"
-      ],
-      "feature": [
-        "src/features/people/schemas.ts",
-        "src/features/people/server.ts"
-      ],
+      "routes": ["src/routes/pessoas/index.tsx", "src/routes/professores/$teacherId.tsx"],
+      "feature": ["src/features/people/schemas.ts", "src/features/people/server.ts"],
       "tests": [
         "tests/people/schemas.test.ts",
         "tests/people/angola-identity-edit-contract.test.ts"
@@ -148,24 +137,17 @@
       "id": "pedagogica",
       "skill": "siga-pedagogica",
       "label": "Área pedagógica / turmas",
-      "routes": [
-        "src/routes/pedagogica.tsx",
-        "src/routes/relatorios.academicos.tsx"
-      ],
+      "routes": ["src/routes/pedagogica.tsx", "src/routes/relatorios.academicos.tsx"],
       "feature": [
         "src/features/academic/schemas.ts",
         "src/features/academic/server.ts",
         "src/features/academic/ClassGroupSheet.tsx",
         "src/features/academic/sga-grades.ts"
       ],
-      "tests": [
-        "tests/academic/schemas.test.ts"
-      ],
+      "tests": ["tests/academic/schemas.test.ts"],
       "accessKey": "pedagogica",
       "navPath": "/pedagogica",
-      "secondaryNavPaths": [
-        "/relatorios/academicos"
-      ]
+      "secondaryNavPaths": ["/relatorios/academicos"]
     },
     {
       "id": "financeiro",
@@ -176,28 +158,21 @@
         "src/routes/faturas.tsx",
         "src/routes/relatorios.financeiros.tsx"
       ],
-      "feature": [
-        "src/features/finance/schemas.ts",
-        "src/features/finance/server.ts"
-      ],
+      "feature": ["src/features/finance/schemas.ts", "src/features/finance/server.ts"],
       "accessKey": "financeiro",
       "navPath": "/financeiro",
-      "secondaryNavPaths": [
-        "/faturas",
-        "/relatorios/financeiros",
-        "/financeiro/rh"
-      ]
+      "secondaryNavPaths": ["/faturas", "/relatorios/financeiros", "/financeiro/rh"]
     },
     {
       "id": "rh",
       "skill": "siga-rh",
       "label": "RH, assiduidade e folha salarial",
       "routes": [
-        "src/routes/financeiro.rh.tsx",
-        "src/routes/financeiro.rh.folha.tsx",
-        "src/routes/financeiro.rh.faltas.tsx",
-        "src/routes/financeiro.rh.presenca.tsx",
-        "src/routes/financeiro.rh.pagamentos.tsx",
+        "src/routes/financeiro_.rh.tsx",
+        "src/routes/financeiro_.rh_.folha.tsx",
+        "src/routes/financeiro_.rh_.faltas.tsx",
+        "src/routes/financeiro_.rh_.presenca.tsx",
+        "src/routes/financeiro_.rh_.pagamentos.tsx",
         "src/routes/professor.presenca.tsx"
       ],
       "feature": [
@@ -209,30 +184,25 @@
         "src/features/hr/teacher-lessons.ts",
         "src/features/hr/TeacherAttendancePanel.tsx"
       ],
-      "tests": [
-        "tests/hr/schemas-contract.test.ts"
-      ],
+      "tests": ["tests/hr/schemas-contract.test.ts"],
       "accessKey": "financeiro",
+      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql",
+      "dormant": true,
+      "dormantReason": "Zero registos em produção a 25/10/2026. Desligado por omissão em todas as escolas; uma escola pode ligá-lo com uma linha em school_modules (status active).",
       "navPath": "/financeiro/rh",
       "secondaryNavPaths": [
         "/financeiro/rh/folha",
         "/financeiro/rh/faltas",
         "/financeiro/rh/presenca",
         "/financeiro/rh/pagamentos"
-      ],
-      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
+      ]
     },
     {
       "id": "documentos",
       "skill": "siga-documentos",
       "label": "Documentos",
-      "routes": [
-        "src/routes/documentos.tsx"
-      ],
-      "feature": [
-        "src/features/documents/schemas.ts",
-        "src/features/documents/server.ts"
-      ],
+      "routes": ["src/routes/documentos.tsx"],
+      "feature": ["src/features/documents/schemas.ts", "src/features/documents/server.ts"],
       "accessKey": "pessoas",
       "navPath": "/documentos"
     },
@@ -240,20 +210,14 @@
       "id": "calendario",
       "skill": "siga-calendario",
       "label": "Calendário e ICS",
-      "routes": [
-        "src/routes/calendario.tsx",
-        "src/routes/calendario.ics.tsx"
-      ],
+      "routes": ["src/routes/calendario.tsx", "src/routes/calendario.ics.tsx"],
       "feature": [
         "src/features/calendar/schemas.ts",
         "src/features/calendar/server.ts",
         "src/features/calendar/feed.ts",
         "src/features/calendar/ics.ts"
       ],
-      "tests": [
-        "tests/calendar/schemas.test.ts",
-        "tests/calendar/ics-timed.test.ts"
-      ],
+      "tests": ["tests/calendar/schemas.test.ts", "tests/calendar/ics-timed.test.ts"],
       "accessKey": "pedagogica",
       "navPath": "/calendario"
     },
@@ -261,19 +225,14 @@
       "id": "comunicacoes",
       "skill": "siga-comunicacoes",
       "label": "Comunicações",
-      "routes": [
-        "src/routes/comunicacoes.tsx"
-      ],
+      "routes": ["src/routes/comunicacoes.tsx"],
       "feature": [
         "src/features/communications/schemas.ts",
         "src/features/communications/server.ts",
         "src/features/messages/chat-schemas.ts",
         "src/features/messages/server.ts"
       ],
-      "tests": [
-        "tests/communications/schemas.test.ts",
-        "tests/messages/recent-contacts.test.ts"
-      ],
+      "tests": ["tests/communications/schemas.test.ts", "tests/messages/recent-contacts.test.ts"],
       "accessKey": "pedagogica",
       "navPath": "/comunicacoes"
     },
@@ -281,10 +240,7 @@
       "id": "acessos",
       "skill": "siga-acessos",
       "label": "Acessos, grants e 2FA",
-      "routes": [
-        "src/routes/acessos.tsx",
-        "src/routes/alterar-senha.tsx"
-      ],
+      "routes": ["src/routes/acessos.tsx", "src/routes/alterar-senha.tsx"],
       "feature": [
         "src/features/access/schemas.ts",
         "src/features/access/server.ts",
@@ -292,9 +248,7 @@
         "src/features/auth/access-policy.ts",
         "src/components/auth/AuthGate.tsx"
       ],
-      "tests": [
-        "tests/auth/access-policy.test.ts"
-      ],
+      "tests": ["tests/auth/access-policy.test.ts"],
       "accessKey": "gestao",
       "navPath": "/acessos"
     },
@@ -302,9 +256,7 @@
       "id": "matricula",
       "skill": "siga-matricula",
       "label": "Matrícula pública",
-      "routes": [
-        "src/routes/matricula/$slug.tsx"
-      ],
+      "routes": ["src/routes/matricula/$slug.tsx"],
       "feature": [
         "src/features/enrollment/schemas.ts",
         "src/features/enrollment/server.ts",
@@ -334,9 +286,7 @@
       "id": "arquivos",
       "skill": "siga-arquivos",
       "label": "Arquivos",
-      "routes": [
-        "src/routes/arquivos.tsx"
-      ],
+      "routes": ["src/routes/arquivos.tsx"],
       "feature": [
         "src/features/arquivos/schemas.ts",
         "src/features/arquivos/server.ts",
@@ -345,9 +295,7 @@
         "src/features/arquivos/FilePickerModal.tsx",
         "src/features/arquivos/resolve-file.ts"
       ],
-      "tests": [
-        "tests/arquivos/schemas.test.ts"
-      ],
+      "tests": ["tests/arquivos/schemas.test.ts"],
       "accessKey": "arquivos",
       "navPath": "/arquivos",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
@@ -356,17 +304,13 @@
       "id": "lesson-plans",
       "skill": "siga-lesson-plans",
       "label": "Planos de Aula",
-      "routes": [
-        "src/routes/planos-aula.tsx"
-      ],
+      "routes": ["src/routes/planos-aula.tsx"],
       "feature": [
         "src/features/lesson-plans/schemas.ts",
         "src/features/lesson-plans/server.ts",
         "src/features/lesson-plans/LessonPlanModal.tsx"
       ],
-      "tests": [
-        "tests/lesson-plans/schemas.test.ts"
-      ],
+      "tests": ["tests/lesson-plans/schemas.test.ts"],
       "accessKey": "pedagogica",
       "navPath": "/planos-aula",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
@@ -375,9 +319,7 @@
       "id": "importar",
       "skill": "siga-importar",
       "label": "Motor Central de Importação",
-      "routes": [
-        "src/routes/importar.tsx"
-      ],
+      "routes": ["src/routes/importar.tsx"],
       "feature": [
         "src/features/import/schemas.ts",
         "src/features/import/server.ts",
@@ -385,9 +327,7 @@
         "src/features/import/components/ImportWorkflowWizard.tsx",
         "src/features/import/components/ImportHistoryPanel.tsx"
       ],
-      "tests": [
-        "tests/import/schemas.test.ts"
-      ],
+      "tests": ["tests/import/schemas.test.ts"],
       "accessKey": "importacao",
       "navPath": "/importar",
       "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
@@ -396,10 +336,7 @@
       "id": "catracas",
       "skill": "siga-catracas",
       "label": "Catracas e Cartão Virtual",
-      "routes": [
-        "src/routes/catracas.tsx",
-        "src/routes/api/catracas/device-scan.tsx"
-      ],
+      "routes": ["src/routes/catracas.tsx", "src/routes/api/catracas/device-scan.tsx"],
       "feature": [
         "src/features/catracas/schemas.ts",
         "src/features/catracas/server.ts",
@@ -417,38 +354,31 @@
         "tests/catracas/reconciliation.test.ts"
       ],
       "accessKey": "gestao",
-      "navPath": "/catracas",
-      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
+      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql",
+      "dormant": true,
+      "dormantReason": "Zero registos em produção a 25/10/2026. Desligado por omissão em todas as escolas; uma escola pode ligá-lo com uma linha em school_modules (status active).",
+      "navPath": "/catracas"
     },
     {
       "id": "saas",
       "skill": "siga-saas",
       "label": "SaaS Control Center (plataforma)",
-      "routes": [
-        "src/routes/saas-admin.tsx",
-        "src/routes/criar-escola.tsx"
-      ],
+      "routes": ["src/routes/saas-admin.tsx", "src/routes/criar-escola.tsx"],
       "feature": [
         "src/features/saas/schemas.ts",
         "src/features/saas/server.ts",
         "src/features/saas/types.ts",
         "src/features/saas/tenant-context.tsx",
-        "src/lib/saas/provisioning-service.ts",
         "src/lib/saas/tenant-resolver.ts"
       ],
-      "tests": [
-        "tests/saas/schemas.test.ts"
-      ],
+      "tests": ["tests/saas/schemas.test.ts"],
       "publicPath": "/criar-escola"
     },
     {
       "id": "siga-ai",
       "skill": "siga-ai",
       "label": "SIGA AI (IA local, Project NOMAD)",
-      "routes": [
-        "src/routes/siga-ai.tsx",
-        "src/routes/api/siga-ai/chat.tsx"
-      ],
+      "routes": ["src/routes/siga-ai.tsx", "src/routes/api/siga-ai/chat.tsx"],
       "feature": [
         "src/features/siga-ai/schemas.ts",
         "src/features/siga-ai/server.ts",
@@ -483,6 +413,8 @@
         "tests/siga-ai/ask-stream.test.ts",
         "tests/siga-ai/pdf-text.test.ts"
       ],
+      "dormant": true,
+      "dormantReason": "Precisa do servidor de IA da escola (Ollama e Qdrant) configurado. Desligado por omissão em todas as escolas; uma escola pode ligá-lo com uma linha em school_modules (status active).",
       "navPath": "/siga-ai",
       "sql": "supabase/migrations/20261012160000_siga_ai_module.sql"
     }

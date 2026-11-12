@@ -10,9 +10,9 @@ const at = (needle: string) => {
 };
 
 describe("aceitar candidatura: sem alunos duplicados nem pessoas órfãs", () => {
-  it("exige 2FA antes de qualquer escrita", () => {
-    expect(at("requireAal2(context.claims")).toBeLessThan(at('.from("enrollment_applications")'));
-    expect(at("requireAal2(context.claims")).toBeLessThan(at('.from("people")'));
+  it("valida escrita por perfil e escola antes de qualquer operação", () => {
+    expect(at("requireSgaWriterForWrite(")).toBeLessThan(at('.from("enrollment_applications")'));
+    expect(decide).not.toContain("requireAal2(context.claims");
   });
 
   it("reserva a candidatura (pendente e sem reserva activa) antes de criar a pessoa", () => {
@@ -23,8 +23,8 @@ describe("aceitar candidatura: sem alunos duplicados nem pessoas órfãs", () =>
     expect(decide).toContain("decided_at.is.null,decided_at.lt.");
   });
 
-  it("valida a turma antes de criar o aluno", () => {
-    expect(at('.from("class_groups")')).toBeLessThan(at(".insert(personPayload)"));
+  it("valida a turma (activa, ano activo, data, lotação) antes de criar o aluno", () => {
+    expect(at("assertClassAcceptsEnrollment(db")).toBeLessThan(at(".insert(personPayload)"));
   });
 
   it("reaproveita a pessoa do mesmo BI e recusa um segundo aluno", () => {
@@ -43,7 +43,7 @@ describe("aceitar candidatura: sem alunos duplicados nem pessoas órfãs", () =>
   });
 
   it("marca a candidatura aceite antes de colocar na turma", () => {
-    expect(at('decision: "accepted",')).toBeLessThan(at('rpc("enroll_student"'));
+    expect(at('decision: "accepted",')).toBeLessThan(at("enrollStudentRpc(context.supabase"));
   });
 
   it("só quem reservou fecha a candidatura", () => {

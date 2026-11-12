@@ -68,7 +68,7 @@ function pickKnown<T extends ListFilterBag>(defaults: T, source: ListFilterBag):
   return next as Partial<T>;
 }
 
-function readStored(key: string): ListFilterBag {
+export function readStoredListFilters(key: string): ListFilterBag {
   if (typeof window === "undefined") return {};
   try {
     const raw = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
@@ -121,7 +121,11 @@ export function usePersistedListFilters<T extends ListFilterBag>(
 ) {
   const persistUrl = options?.persistUrl !== false;
   const [filters, setFiltersState] = useState<T>(() =>
-    mergeFilterSources(defaults, readStored(storageKey), persistUrl ? readUrlBag() : null),
+    mergeFilterSources(
+      defaults,
+      readStoredListFilters(storageKey),
+      persistUrl ? readUrlBag() : null,
+    ),
   );
 
   useEffect(() => {
@@ -132,7 +136,9 @@ export function usePersistedListFilters<T extends ListFilterBag>(
   useEffect(() => {
     if (!persistUrl) return;
     const onPopState = () => {
-      setFiltersState(mergeFilterSources(defaults, readStored(storageKey), readUrlBag()));
+      setFiltersState(
+        mergeFilterSources(defaults, readStoredListFilters(storageKey), readUrlBag()),
+      );
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);

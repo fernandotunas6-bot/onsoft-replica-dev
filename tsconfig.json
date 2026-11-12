@@ -15,6 +15,7 @@
     "types": ["vite/client"],
 
     "moduleResolution": "Bundler",
+    "moduleSuffixes": [".sga", ""],
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": false,
     "noEmit": true,
@@ -31,6 +32,7 @@
     "exactOptionalPropertyTypes": false,
     "noUncheckedSideEffectImports": true,
     "paths": {
+      "@/integrations/supabase/types": ["./src/integrations/supabase/types.sga.ts"],
       "@/*": ["./src/*"]
     }
   }

@@ -9,12 +9,18 @@ const WEB_URL = process.env.VITE_WEB_URL || (isProd ? `https://www.${PLATFORM_DO
 const SIGA_URL = process.env.VITE_SIGA_URL || (isProd ? `https://${PLATFORM_DOMAIN}` : 'http://localhost:3006')
 const ADMIN_URL = process.env.VITE_ADMIN_URL || (isProd ? `https://admin.${PLATFORM_DOMAIN}` : 'http://localhost:3005')
 const PAYFLOW_URL = process.env.VITE_PAYFLOW_URL || (isProd ? `https://payflow.${PLATFORM_DOMAIN}` : 'http://localhost:3007')
+const DOCS_URL = (process.env.VITE_DOCS_URL || (isProd ? `https://docs.${PLATFORM_DOMAIN}` : 'http://localhost:5173')).replace(/\/+$/, '')
 
 export default defineConfig({
   lang: 'pt-PT',
   title: 'SIGA Plus',
   description: 'Documentação Oficial da Plataforma SIGA Plus - Sistema Proprietário de Gestão Académica e Administrativa.',
-  ignoreDeadLinks: true,
+  // Ligações mortas falham o build. Excepções: endereços locais de desenvolvimento e
+  // os documentos de public/documentos (ficheiros, não páginas). Com `true`, 12
+  // ligações mortas passavam despercebidas (10/11/2026).
+  ignoreDeadLinks: [/^https?:\/\/localhost/, /^\/documentos\//],
+  // README.md é para quem mantém o DOC, não uma página do site.
+  srcExclude: ['README.md'],
 
   // Claro por omissão, como no resto do ecossistema (SIGA, WEB, ADMIN).
   // O selector de tema continua disponível e a escolha do leitor persiste.
@@ -35,10 +41,11 @@ export default defineConfig({
   },
 
   themeConfig: {
-    logo: '/logo.svg',
+    logo: { src: '/brand/siga-plus-icon.png', alt: '' },
 
     nav: [
       { text: 'Guia', link: '/guide/' },
+      { text: 'Ensino público', link: '/institucional/ensino-publico' },
       { text: 'SIGA', link: '/siga/navegacao' },
       { text: 'WEB', link: '/web/criar-escola' },
       { text: 'ADMIN', link: '/admin/control-center' },
@@ -57,6 +64,11 @@ export default defineConfig({
     ],
 
     sidebar: {
+      '/institucional/': [
+        { text: 'Propostas institucionais', items: [
+          { text: 'Ensino público angolano', link: '/institucional/ensino-publico' },
+        ] },
+      ],
       '/arquitetura/': [
         {
           text: 'Arquitetura do ecossistema',
@@ -148,10 +160,10 @@ export default defineConfig({
           text: 'Guia da Plataforma',
           items: [
             { text: 'Funcionalidades & Permissões', link: '/guide/features' },
-            { text: 'Segurança de Rotas & RBAC', link: '/guide/route-security' },
+            { text: 'Segurança de rotas e acessos', link: '/guide/route-security' },
             { text: 'Pilha Tecnológica', link: '/guide/tech-stack' },
             { text: 'Estrutura do Projecto', link: '/guide/project-structure' },
-            { text: 'Sistema de Temas', link: '/guide/theme-system' },
+            { text: 'Aparência e marca', link: '/guide/theme-system' },
           ],
         },
         {
@@ -161,44 +173,6 @@ export default defineConfig({
             { text: 'Contribuindo', link: '/guide/contributing' },
             { text: 'Suporte Institucional', link: '/guide/support' },
             { text: 'Licença Proprietária', link: '/guide/license' },
-          ],
-        },
-      ],
-
-      // Template paths still resolve via rewrites → conteúdo vivo
-      '/vite/': [
-        {
-          text: 'Guia (via Vite → vivo)',
-          items: [
-            { text: 'Stack por aplicação', link: '/guide/choosing-framework' },
-            { text: 'Instalação', link: '/guide/installation' },
-            { text: 'Suporte', link: '/guide/support' },
-          ],
-        },
-      ],
-      '/nextjs/': [
-        {
-          text: 'ADMIN (via Next → vivo)',
-          items: [
-            { text: 'Control Center', link: '/admin/control-center' },
-            { text: 'Fluxos', link: '/arquitetura/fluxos' },
-          ],
-        },
-      ],
-      '/components/': [
-        {
-          text: 'Funcionalidades (via Components → vivo)',
-          items: [
-            { text: 'Features', link: '/guide/features' },
-            { text: 'Navegação SIGA', link: '/siga/navegacao' },
-          ],
-        },
-      ],
-      '/theme-customizer/': [
-        {
-          text: 'Temas (via Customizer → vivo)',
-          items: [
-            { text: 'Sistema de Temas', link: '/guide/theme-system' },
           ],
         },
       ],
@@ -259,13 +233,18 @@ export default defineConfig({
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }],
     ['link', { rel: 'shortcut icon', href: '/favicon.png' }],
-    ['link', { rel: 'apple-touch-icon', href: '/favicon.png' }],
+    ['link', { rel: 'apple-touch-icon', href: '/brand/siga-plus-icon.png' }],
     ['meta', { name: 'theme-color', content: '#5f6368' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:locale', content: 'pt_PT' }],
     ['meta', { property: 'og:title', content: 'SIGA Plus | Documentação Oficial' }],
     ['meta', { property: 'og:site_name', content: 'SIGA Plus' }],
-    ['meta', { property: 'og:image', content: '/og-image.png' }],
-    ['meta', { property: 'og:url', content: 'https://siga-plus.local' }],
+    // O og-image.png nunca existiu no DOC e o og:url apontava para siga-plus.local.
+    ['meta', { property: 'og:image', content: `${DOCS_URL}/og-image.png` }],
+    ['meta', { property: 'og:image:width', content: '1200' }],
+    ['meta', { property: 'og:image:height', content: '630' }],
+    ['meta', { property: 'og:url', content: DOCS_URL }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:image', content: `${DOCS_URL}/og-image.png` }],
   ],
 })

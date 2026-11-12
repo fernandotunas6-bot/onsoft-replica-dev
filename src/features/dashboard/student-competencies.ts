@@ -36,7 +36,7 @@ const EMPTY: StudentCompetencies = { passing: 10, subjects: [] };
 export const getMyStudentCompetencies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ studentId: z.string().uuid().optional() }).parse(input ?? {}),
+    z.object({ studentId: z.string().guid().optional() }).parse(input ?? {}),
   )
   .handler(async ({ data, context }): Promise<StudentCompetencies> => {
     const visible = await resolveVisibleStudent(context.userId, data.studentId);

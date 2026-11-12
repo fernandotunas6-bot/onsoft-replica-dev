@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestIP } from "@tanstack/react-start/server";
+import { serverFnClientIp } from "@/lib/server-fn-ip";
 import { getAppUrl, getAppName, getAuthResetPasswordUrl } from "@/lib/app-config";
 import { getPlatformDomain } from "@/lib/saas/platform-domain";
 import { resolveTenantLookup } from "@/lib/saas/tenant-resolver";
@@ -82,7 +82,7 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
     const email = data.email.toLowerCase().trim();
     const hostname = data.hostname?.toLowerCase().trim() || "";
 
-    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const ip = serverFnClientIp();
     const rateLimitKeys = [`ip:${ip}`, `email:${email}`];
     if (
       !isRateLimitBypassed(...rateLimitKeys) &&

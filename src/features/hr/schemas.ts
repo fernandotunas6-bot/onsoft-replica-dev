@@ -157,17 +157,17 @@ export const createPayrollRunInputSchema = z.object({
 export type CreatePayrollRunInput = z.infer<typeof createPayrollRunInputSchema>;
 
 export const payrollRunIdInputSchema = z.object({
-  payrollRunId: z.string().uuid(),
+  payrollRunId: z.string().guid(),
 });
 export type PayrollRunIdInput = z.infer<typeof payrollRunIdInputSchema>;
 
 export const paymentBatchIdInputSchema = z.object({
-  batchId: z.string().uuid(),
+  batchId: z.string().guid(),
 });
 export type PaymentBatchIdInput = z.infer<typeof paymentBatchIdInputSchema>;
 
 export const reviewHrAbsenceInputSchema = z.object({
-  absenceId: z.string().uuid(),
+  absenceId: z.string().guid(),
   absenceType: hrAbsenceTypeSchema,
   decision: z.enum(["validate", "reject"]),
   reason: z.string().trim().min(3).max(1000),
@@ -176,7 +176,7 @@ export type ReviewHrAbsenceInput = z.infer<typeof reviewHrAbsenceInputSchema>;
 
 export const upsertHrPaymentDestinationInputSchema = z
   .object({
-    employmentId: z.string().uuid(),
+    employmentId: z.string().guid(),
     method: hrPaymentMethodSchema,
     beneficiaryName: z.string().trim().min(2).max(160),
     bankName: z.string().trim().max(160).optional().default(""),
@@ -202,7 +202,7 @@ export type UpsertHrPaymentDestinationInput = z.infer<typeof upsertHrPaymentDest
 
 export const confirmPayrollPaymentItemInputSchema = z
   .object({
-    paymentItemId: z.string().uuid(),
+    paymentItemId: z.string().guid(),
     result: z.enum(["paid", "failed"]),
     reference: z.string().trim().min(3).max(160),
     failureReason: z.string().trim().max(500).optional().default(""),
@@ -224,7 +224,7 @@ export type ConfirmPayrollPaymentItemInput = z.infer<typeof confirmPayrollPaymen
  * salário não era devido).
  */
 export const reversePayrollPaymentItemInputSchema = z.object({
-  paymentItemId: z.string().uuid(),
+  paymentItemId: z.string().guid(),
   reason: z.string().trim().min(5, "Indique o motivo (mínimo 5 caracteres).").max(500),
   next: z.enum(["repay", "cancel"]),
 });
@@ -288,7 +288,7 @@ export const DEFAULT_ATTENDANCE_ASSURANCE_POLICY: AttendanceAssurancePolicyInput
 };
 
 export const createTeacherLessonQrInputSchema = z.object({
-  occurrenceId: z.string().uuid(),
+  occurrenceId: z.string().guid(),
   purpose: hrQrPurposeSchema,
 });
 export type CreateTeacherLessonQrInput = z.infer<typeof createTeacherLessonQrInputSchema>;
@@ -346,15 +346,15 @@ export const materializeTeacherLessonsInputSchema = z
 export type MaterializeTeacherLessonsInput = z.infer<typeof materializeTeacherLessonsInputSchema>;
 
 export const assignTeacherSubstituteInputSchema = z.object({
-  occurrenceId: z.string().uuid(),
-  substituteTeacherId: z.string().uuid(),
+  occurrenceId: z.string().guid(),
+  substituteTeacherId: z.string().guid(),
   reason: z.string().trim().min(3).max(1000),
 });
 export type AssignTeacherSubstituteInput = z.infer<typeof assignTeacherSubstituteInputSchema>;
 
 export const createExtraTeacherLessonInputSchema = z
   .object({
-    classSubjectId: z.string().uuid(),
+    classSubjectId: z.string().guid(),
     lessonDate: calendarDateSchema("Data da aula inválida."),
     startsAt: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Hora inicial inválida."),
     endsAt: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Hora final inválida."),
@@ -372,7 +372,7 @@ export const createExtraTeacherLessonInputSchema = z
 export type CreateExtraTeacherLessonInput = z.infer<typeof createExtraTeacherLessonInputSchema>;
 
 export const occurrenceIdInputSchema = z.object({
-  occurrenceId: z.string().uuid(),
+  occurrenceId: z.string().guid(),
 });
 export type OccurrenceIdInput = z.infer<typeof occurrenceIdInputSchema>;
 

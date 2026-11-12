@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
+import { ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,94 +11,52 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { createClient } from "@/lib/supabase/client"
+import { getSigaUrl } from "@/lib/ecosystem-urls"
 
+/**
+ * Recuperação de senha dos administradores da plataforma.
+ *
+ * A consola não tem página para definir uma senha nova: o pedido antigo
+ * (`resetPasswordForEmail` com regresso a /sign-in) enviava o e-mail genérico do
+ * Supabase e deixava a pessoa no login sem forma de mudar a senha. A recuperação
+ * oficial é a do SIGA Plus («Esqueceu a senha?» na entrada): e-mail institucional,
+ * link seguro e confirmação do segundo factor antes de gravar a senha nova.
+ */
 export function ForgotPasswordForm1({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [email, setEmail] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setIsSubmitting(true)
-
-    try {
-      const supabase = createClient()
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: typeof window !== "undefined" ? `${window.location.origin}/sign-in` : undefined,
-      })
-
-      if (resetError) {
-        setError(resetError.message)
-        setIsSubmitting(false)
-        return
-      }
-
-      setSuccess(true)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível enviar o pedido.")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Esqueceu a senha?</CardTitle>
+          <CardTitle className="text-xl">Recuperar o acesso</CardTitle>
           <CardDescription>
-            Insira o seu e-mail de administrador e enviaremos instruções para redefinir o acesso.
+            A senha recupera-se na entrada do SIGA Plus, com um link seguro enviado para o
+            seu e-mail.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {success ? (
-            <div className="space-y-4 text-center">
-              <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                E-mail de recuperação enviado para <strong>{email}</strong> se a conta existir.
-              </p>
-              <div className="text-center text-sm">
-                <Link href="/sign-in" className="underline underline-offset-4 font-medium">
-                  Voltar para o login
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-6">
-                {error && <p className="text-destructive text-sm">{error}</p>}
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">E-mail</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="admin@exemplo.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full cursor-pointer" disabled={isSubmitting}>
-                    {isSubmitting ? "A enviar…" : "Enviar link de redefinição"}
-                  </Button>
-                </div>
-                <div className="text-center text-sm">
-                  Lembrou-se da senha?{" "}
-                  <Link href="/sign-in" className="underline underline-offset-4 font-medium">
-                    Voltar para o login
-                  </Link>
-                </div>
-              </div>
-            </form>
-          )}
+        <CardContent className="grid gap-5">
+          <ol className="grid list-decimal gap-2 pl-5 text-sm text-muted-foreground">
+            <li>Abra a entrada do SIGA Plus e escreva o e-mail desta conta.</li>
+            <li>Escolha «Esqueceu a senha?» e abra o link que receber.</li>
+            <li>
+              Defina a nova senha (é pedido o código da aplicação autenticadora) e volte aqui
+              para entrar.
+            </li>
+          </ol>
+          <Button asChild className="w-full gap-2">
+            <a href={getSigaUrl("/")} target="_blank" rel="noreferrer">
+              Abrir a entrada do SIGA Plus
+              <ExternalLink className="size-4" aria-hidden="true" />
+            </a>
+          </Button>
+          <div className="text-center text-sm">
+            Lembrou-se da senha?{" "}
+            <Link href="/sign-in" className="font-medium underline underline-offset-4">
+              Voltar para o login
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -1,3 +1,4 @@
+import { FeedbackIcon } from "@/components/ui/feedback-icon";
 import { cn } from "@/lib/utils";
 
 interface LoadingSpinnerProps {
@@ -13,13 +14,11 @@ export function LoadingSpinner({ className, size = "md" }: LoadingSpinnerProps) 
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[200px]">
-      <div
-        className={cn(
-          "animate-spin rounded-full border-b-2 border-primary",
-          sizeClasses[size],
-          className,
-        )}
+    <div className="flex items-center justify-center min-h-[200px]" role="status">
+      <span className="sr-only">A carregar…</span>
+      <FeedbackIcon
+        state="processing"
+        className={cn("text-primary", sizeClasses[size], className)}
       />
     </div>
   );

@@ -1,4 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
+import {
+  workflowRpcClient,
+  activeYearResultSchema,
+  assertWorkflowRpcAvailable,
+} from "@/integrations/supabase/workflow-rpcs";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -290,36 +296,24 @@ export const setActiveAcademicYear = createServerFn({ method: "POST" })
       context.userId,
       ["Administrador"],
     );
-    const db = await loadSgaAdminClient();
-    const { data: year, error: yearError } = await db
-      .from("academic_years")
-      .select("id, name")
-      .eq("id", data.yearId)
-      .eq("school_id", membership.schoolId)
-      .maybeSingle();
-    if (yearError) throw publicDatabaseError(yearError, "Não foi possível ler o ano lectivo.");
-    if (!year) throw new Error("Ano lectivo não encontrado.");
-
-    // Fechar primeiro: com o índice de um ano activo por escola, activar antes
-    // de fechar seria recusado.
-    const { error: closeError } = await db
-      .from("academic_years")
-      .update({ status: "closed", updated_by: context.userId })
-      .eq("school_id", membership.schoolId)
-      .eq("status", "active")
-      .neq("id", year.id);
-    if (closeError) {
-      throw publicDatabaseError(closeError, "Não foi possível fechar os outros anos lectivos.");
-    }
-    const { error: activateError } = await db
-      .from("academic_years")
-      .update({ status: "active", updated_by: context.userId })
-      .eq("id", year.id)
-      .eq("school_id", membership.schoolId);
-    if (activateError) {
-      throw publicDatabaseError(activateError, "Não foi possível activar o ano lectivo.");
-    }
-    return { id: String(year.id), name: String(year.name) };
+    requireAal2(context.claims, "Activar o ano lectivo");
+    const { data: result, error } = await workflowRpcClient(context.supabase).rpc(
+      "siga_save_active_academic_year",
+      {
+        p_school_id: membership.schoolId,
+        p_year_id: data.yearId,
+        p_name: null,
+        p_starts_on: null,
+        p_ends_on: null,
+      },
+    );
+    assertWorkflowRpcAvailable(error);
+    if (error)
+      throw publicDatabaseError(
+        error,
+        "Não foi possível guardar o ano lectivo. O ano activo anterior foi preservado.",
+      );
+    return activeYearResultSchema.parse(result);
   });
 
 /**
@@ -340,71 +334,24 @@ export const createAcademicYear = createServerFn({ method: "POST" })
       context.userId,
       ["Administrador"],
     );
-    const db = await loadSgaAdminClient();
-
-    const { data: existing, error: existingError } = await db
-      .from("academic_years")
-      .select("id, name")
-      .eq("school_id", membership.schoolId)
-      .eq("name", data.name)
-      .maybeSingle();
-    if (existingError) {
-      throw publicDatabaseError(existingError, "Não foi possível validar o ano lectivo.");
-    }
-
-    // Um ano activo de cada vez: o resto do SIGA resolve o ano por status.
-    // Guarda-se qual estava activo para o repor se o novo não ficar gravado —
-    // senão a escola ficava sem ano lectivo activo.
-    const { data: closed, error: closeError } = await db
-      .from("academic_years")
-      .update({ status: "closed" })
-      .eq("school_id", membership.schoolId)
-      .eq("status", "active")
-      .select("id");
-    if (closeError) {
-      throw publicDatabaseError(closeError, "Não foi possível fechar o ano lectivo anterior.");
-    }
-    const reopenPrevious = async () => {
-      const ids = (closed ?? [])
-        .map((row) => String(row.id))
-        .filter((id) => id !== String(existing?.id ?? ""));
-      if (!ids.length) return;
-      await db
-        .from("academic_years")
-        .update({ status: "active" })
-        .eq("school_id", membership.schoolId)
-        .in("id", ids);
-    };
-
-    if (existing?.id) {
-      const { error } = await db
-        .from("academic_years")
-        .update({ starts_on: data.startsOn, ends_on: data.endsOn, status: "active" })
-        .eq("id", existing.id)
-        .eq("school_id", membership.schoolId);
-      if (error) {
-        await reopenPrevious();
-        throw publicDatabaseError(error, "Não foi possível activar o ano lectivo.");
-      }
-      return { id: existing.id as string, name: data.name, created: false };
-    }
-
-    const { data: created, error } = await db
-      .from("academic_years")
-      .insert({
-        school_id: membership.schoolId,
-        name: data.name,
-        starts_on: data.startsOn,
-        ends_on: data.endsOn,
-        status: "active",
-      })
-      .select("id")
-      .single();
-    if (error) {
-      await reopenPrevious();
-      throw publicDatabaseError(error, "Não foi possível criar o ano lectivo.");
-    }
-    return { id: created.id as string, name: data.name, created: true };
+    requireAal2(context.claims, "Activar o ano lectivo");
+    const { data: result, error } = await workflowRpcClient(context.supabase).rpc(
+      "siga_save_active_academic_year",
+      {
+        p_school_id: membership.schoolId,
+        p_year_id: null,
+        p_name: data.name,
+        p_starts_on: data.startsOn,
+        p_ends_on: data.endsOn,
+      },
+    );
+    assertWorkflowRpcAvailable(error);
+    if (error)
+      throw publicDatabaseError(
+        error,
+        "Não foi possível guardar o ano lectivo. O ano activo anterior foi preservado.",
+      );
+    return activeYearResultSchema.parse(result);
   });
 
 export const createCalendarEvent = createServerFn({ method: "POST" })

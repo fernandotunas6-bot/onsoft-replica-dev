@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { fileRequestPurposes } from "./file-request";
 
 export const fileAreaOptions = ["escola", "secretaria", "pessoal", "publico"] as const;
 export const fileVisibilityOptions = ["private", "school", "public"] as const;
@@ -80,26 +81,34 @@ export const fileMetaFieldsSchema = z.object({
     .optional()
     .or(z.literal("")),
   referenceCode: z.string().trim().max(80).optional().or(z.literal("")),
-  relatedUserId: z.string().uuid().optional().nullable(),
-  relatedPersonId: z.string().uuid().optional().nullable(),
+  relatedUserId: z.string().guid().optional().nullable(),
+  relatedPersonId: z.string().guid().optional().nullable(),
 });
 export type FileMetaFields = z.infer<typeof fileMetaFieldsSchema>;
 
 export const listArquivosInputSchema = z.object({
   query: z.string().trim().optional(),
   area: fileAreaSchema.optional(),
-  classGroupId: z.string().uuid().optional(),
-  relatedUserId: z.string().uuid().optional(),
-  relatedPersonId: z.string().uuid().optional(),
+  classGroupId: z.string().guid().optional(),
+  relatedUserId: z.string().guid().optional(),
+  relatedPersonId: z.string().guid().optional(),
   category: fileCategorySchema.optional(),
   /** null = raiz da área; uuid = conteúdo da pasta */
-  parentId: z.string().uuid().nullable().optional(),
+  parentId: z.string().guid().nullable().optional(),
   limit: z.number().int().min(1).max(FILE_LIST_LIMIT).default(FILE_LIST_LIMIT),
 });
 export type ListArquivosInput = z.infer<typeof listArquivosInputSchema>;
 
+/**
+ * Pesquisa limitada por nomes exactos, sem devolver ficheiros de outras escolas.
+ * Os tamanhos são comparados no browser apenas para sinalizar correspondências.
+ */
+export const findExistingSchoolFilesInputSchema = z.object({
+  names: z.array(z.string().trim().min(1).max(180)).min(1).max(40),
+});
+
 export const registerSchoolFileInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   name: z.string().trim().min(1).max(180),
   mime: z.string().trim().min(1).max(120),
   sizeBytes: z.number().int().min(1).max(FILE_MAX_BYTES),
@@ -107,91 +116,99 @@ export const registerSchoolFileInputSchema = z.object({
   visibility: fileVisibilitySchema,
   storagePath: z.string().trim().min(1).max(400),
   storageBackend: z.enum(fileBackendOptions),
-  classGroupId: z.string().uuid().optional(),
-  parentId: z.string().uuid().optional().nullable(),
+  classGroupId: z.string().guid().optional(),
+  parentId: z.string().guid().optional().nullable(),
   title: z.string().trim().min(1).max(180).optional(),
   description: z.string().trim().max(800).optional(),
   category: fileCategorySchema.optional(),
   documentDate: z.string().trim().optional(),
   referenceCode: z.string().trim().max(80).optional(),
-  relatedUserId: z.string().uuid().optional().nullable(),
-  relatedPersonId: z.string().uuid().optional().nullable(),
+  relatedUserId: z.string().guid().optional().nullable(),
+  relatedPersonId: z.string().guid().optional().nullable(),
 });
 export type RegisterSchoolFileInput = z.infer<typeof registerSchoolFileInputSchema>;
 
 export const createSchoolFolderInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   name: z.string().trim().min(1).max(120),
   area: fileAreaSchema,
-  parentId: z.string().uuid().optional().nullable(),
+  parentId: z.string().guid().optional().nullable(),
   visibility: fileVisibilitySchema.default("private"),
 });
 
 export const moveSchoolFilesInputSchema = z.object({
-  ids: z.array(z.string().uuid()).min(1).max(40),
-  parentId: z.string().uuid().nullable(),
+  ids: z.array(z.string().guid()).min(1).max(40),
+  parentId: z.string().guid().nullable(),
   area: fileAreaSchema.optional(),
 });
 
 export const listFolderTrailInputSchema = z.object({
-  folderId: z.string().uuid().optional().nullable(),
+  folderId: z.string().guid().optional().nullable(),
 });
 
 export const archiveFinanceDocumentInputSchema = z.object({
   category: z.enum(["recibo", "talao", "fatura"]),
   title: z.string().trim().min(1).max(180),
   description: z.string().trim().min(12).max(800),
-  relatedPersonId: z.string().uuid().optional().nullable(),
+  relatedPersonId: z.string().guid().optional().nullable(),
   sourceLabel: z.string().trim().max(120).optional(),
   documentCode: z.string().trim().max(40).optional(),
   amountLabel: z.string().trim().max(80).optional(),
 });
 export type ArchiveFinanceDocumentInput = z.infer<typeof archiveFinanceDocumentInputSchema>;
 
+/** Ids de outras escolas nunca podem ser validados por um cliente externo. */
+export const resolveRequestedSchoolFileSchema = z.object({
+  id: z.string().guid(),
+  purpose: z.enum(fileRequestPurposes),
+  relatedPersonId: z.string().guid().nullable().optional(),
+  classGroupId: z.string().guid().nullable().optional(),
+});
+
 export const schoolFileIdInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
 });
 
 export const schoolFileIdsInputSchema = z.object({
-  ids: z.array(z.string().uuid()).min(1).max(60),
+  ids: z.array(z.string().guid()).min(1).max(60),
 });
 
 export const renameSchoolFileInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   name: z.string().trim().min(1).max(180),
 });
 
 export const updateSchoolFileMetaInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   title: z.string().trim().min(1).max(180).optional(),
   description: z.string().trim().max(800).optional().nullable(),
   category: fileCategorySchema.optional(),
   documentDate: z.string().trim().optional().nullable(),
   referenceCode: z.string().trim().max(80).optional().nullable(),
-  relatedUserId: z.string().uuid().optional().nullable(),
-  relatedPersonId: z.string().uuid().optional().nullable(),
+  relatedUserId: z.string().guid().optional().nullable(),
+  relatedPersonId: z.string().guid().optional().nullable(),
   visibility: fileVisibilitySchema.optional(),
   area: fileAreaSchema.optional(),
 });
 
 export const linkSchoolFileToClassInputSchema = z.object({
-  id: z.string().uuid(),
-  classGroupId: z.string().uuid().nullable(),
+  id: z.string().guid(),
+  classGroupId: z.string().guid().nullable(),
 });
 
 export const setSchoolFileVisibilityInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   visibility: fileVisibilitySchema,
 });
 
 export const logSchoolFileEventInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   action: fileEventActionSchema,
   detail: z.string().trim().max(240).optional(),
 });
 
 export const listSchoolFileActivityInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   limit: z.number().int().min(1).max(40).default(20),
 });
 

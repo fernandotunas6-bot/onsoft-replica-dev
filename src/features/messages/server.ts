@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
@@ -107,10 +108,14 @@ async function loadCargoByUserId(
  *  que o chat (chat-server.ts) use a mesma regra sem chamar um server fn de
  *  dentro de outro. */
 export async function loadSchoolColleagues(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  client: Awaited<ReturnType<typeof loadSgaAdminClient>>,
   membership: NonNullable<Awaited<ReturnType<typeof resolveSgaMembershipAdmin>>>,
   viewerId: string,
 ): Promise<SchoolColleague[]> {
+  // Todas as contas, por páginas, e os `.in(...)` em lotes: com algumas centenas de
+  // contas (alunos e encarregados também as têm) a lista de ids passava o tamanho do
+  // URL e o chat deixava de listar colegas.
+  const db = pagedReadClient(client);
   const { data: rows, error } = await db
     .from("school_memberships")
     .select("id, user_id, status")

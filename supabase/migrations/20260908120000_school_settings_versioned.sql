@@ -5,66 +5,58 @@
 -- src/features/finance/server.ts, src/features/academic/server-legacy.ts, e o
 -- fluxo de e-mails institucionais (src/features/auth/reset-password-server.ts).
 --
--- Schema confirmado pelo uso real (não pelo script manual, que não define DDL
--- desta tabela): `version` (integer, incrementado manualmente pela aplicação a
--- cada UPDATE) e `changed_by` (não `updated_by`/trigger automática — a
--- primeira versão desta migration inventou essas colunas sem checar o uso
--- real e teria quebrado school/server.ts, spotlight/server.ts, etc. com
--- "column does not exist" em qualquer ambiente aplicado do zero).
+-- A forma abaixo foi **lida do catálogo da produção** a 2026-10-21 (consulta
+-- só-leitura a information_schema e pg_catalog), não reconstruída a partir do
+-- TypeScript. A primeira versão deste ficheiro foi escrita a partir do uso e
+-- divergia em sete pontos, sendo o mais relevante a restrição de unicidade:
+-- declarava `UNIQUE (school_id, domain)`, e a produção tem
+-- `UNIQUE (school_id, domain, version)`. Como `CREATE TABLE IF NOT EXISTS` não
+-- altera uma tabela existente, a divergência nunca se corrigia sozinha — vivia
+-- no ficheiro e enganava quem desenhasse a partir dele.
 
 CREATE TABLE IF NOT EXISTS public.school_settings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  -- Sem ON DELETE CASCADE: a produção não o tem. Apagar uma escola com
+  -- definições falha na chave estrangeira, em vez de as levar atrás.
+  school_id uuid NOT NULL REFERENCES public.schools(id),
   domain text NOT NULL,
-  value jsonb NOT NULL DEFAULT '{}'::jsonb,
-  version integer NOT NULL DEFAULT 1,
-  changed_by uuid REFERENCES auth.users(id),
+  -- `version` e `value` não têm omissão na produção: quem escreve indica sempre
+  -- as duas. `changed_by` é obrigatório — a autoria de cada alteração não é
+  -- opcional.
+  version integer NOT NULL CHECK (version > 0),
+  value jsonb NOT NULL,
+  changed_by uuid NOT NULL REFERENCES auth.users(id),
   created_at timestamptz NOT NULL DEFAULT now(),
-  -- Sem `updated_at`: esta tabela guarda versões, não o estado actual. Cada
-  -- alteração acrescenta uma linha com `version` mais alto e o seu `changed_by`;
-  -- uma linha nunca é editada, logo não há o que actualizar. A declaração tinha
-  -- a coluna e a produção não, e como `CREATE TABLE IF NOT EXISTS` não altera
-  -- uma tabela existente, a divergência nunca se resolveria por aqui.
-  UNIQUE (school_id, domain)
+  -- A restrição é sobre o trio: a tabela **aceita** várias versões do mesmo
+  -- domínio. Mas nenhuma escrita as usa — a 2026-10-21, em 55 registos, nenhum
+  -- domínio tem mais linhas do que escolas, e o `version` sobe na própria linha
+  -- (onze vezes no print_templates). O convénio a correr é o do
+  -- `updateSettingsDomainValue`: UPDATE da linha única com `version` como trava
+  -- optimista, e `readSettingsRow` a ler com `.maybeSingle()`, que tolera zero
+  -- ou uma linha — não duas. Ver tests/sql/school-settings-row-convention.mjs.
+  UNIQUE (school_id, domain, version)
 );
 
-CREATE INDEX IF NOT EXISTS school_settings_school_id_idx
-  ON public.school_settings (school_id);
-
-GRANT SELECT ON public.school_settings TO authenticated;
-GRANT ALL ON public.school_settings TO service_role;
+-- O índice que a produção tem. A primeira versão deste ficheiro declarava
+-- `school_settings_school_id_idx (school_id)`, que não existe na base; este é
+-- usado pela sonda de prontidão em 20260908210000_capture_all_db_functions.sql.
+CREATE INDEX IF NOT EXISTS school_settings_school_domain_idx
+  ON public.school_settings (school_id, domain, version DESC);
 
 ALTER TABLE public.school_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.school_settings FORCE ROW LEVEL SECURITY;
 
--- Nota: toda a escrita hoje passa por loadSgaAdminClient() (service_role, que
--- ignora RLS) — nenhum destes fluxos de aplicação depende destas policies de
--- INSERT/UPDATE. Ficam como defesa em profundidade caso algum acesso futuro
--- use um client autenticado como utilizador em vez do admin.
-DROP POLICY IF EXISTS "School members can read own settings" ON public.school_settings;
-CREATE POLICY "School members can read own settings"
-  ON public.school_settings FOR SELECT TO authenticated
-  USING (school_id = (SELECT public.current_school_id()));
-
-DROP POLICY IF EXISTS "School admins can update own settings" ON public.school_settings;
-CREATE POLICY "School admins can update own settings"
-  ON public.school_settings FOR UPDATE TO authenticated
-  USING (
-    school_id = (SELECT public.current_school_id())
-    AND (SELECT public.current_profile_role()) = 'Administrador'
-  )
-  WITH CHECK (
-    school_id = (SELECT public.current_school_id())
-    AND (SELECT public.current_profile_role()) = 'Administrador'
-  );
-
-DROP POLICY IF EXISTS "School admins can insert own settings" ON public.school_settings;
-CREATE POLICY "School admins can insert own settings"
-  ON public.school_settings FOR INSERT TO authenticated
-  WITH CHECK (
-    school_id = (SELECT public.current_school_id())
-    AND (SELECT public.current_profile_role()) = 'Administrador'
-  );
-
-COMMENT ON TABLE public.school_settings IS
-  'Configurações por domínio/escola (JSON em value), versionadas manualmente pela aplicação (version + changed_by, sem trigger). Domínios conhecidos: branding (logo_url, primary_color), banking, agt, spotlight, pedagogy, academic, school (finance), documents. Acesso restrito à própria escola via current_school_id().';
+-- As políticas que a produção tem hoje — `settings_select_member`,
+-- `settings_insert_authorized` e a restritiva `school_web_content_server_only`
+-- (esta última declarada em 20261021051004) — dependem de `private.is_aal2()`,
+-- `private.has_permission()` e `private.user_member_school_ids()`, que não
+-- existem neste ponto da sequência. Não são declaradas aqui.
+--
+-- A primeira versão deste ficheiro criava três políticas («School members can
+-- read own settings», «School admins can update own settings», «School admins
+-- can insert own settings») que **não existem na produção**. Foram retiradas:
+-- reaplicar este ficheiro criava-as por cima das reais.
+--
+-- Privilégios efectivos na produção, a 2026-10-21: anon nada; authenticated
+-- SELECT e INSERT; service_role SELECT, INSERT e UPDATE. Não há GRANT explícito
+-- nesta tabela — vêm por herança de papel — por isso também não se declaram.

@@ -41,7 +41,11 @@ import {
   type PrintTemplateKey,
 } from "./print-catalog";
 import { parsePrintSettings } from "./print-settings";
-import { updateSettingsDomainValue } from "@/features/school/settings-domains";
+import { requireDocumentRequestRelations } from "./request-relations";
+import {
+  readSettingsDomainRow,
+  updateSettingsDomainValue,
+} from "@/features/school/settings-domains";
 
 /**
  * Há dois vocabulários de estado, e só o servidor deve conhecer os dois.
@@ -99,6 +103,18 @@ export const nextSgaStatus: Record<string, string | null> = {
   rejected: null,
   cancelled: null,
 };
+
+/**
+ * Mudanças permitidas a partir de cada estado (vocabulário da base): o passo seguinte,
+ * ou recusar/cancelar enquanto o pedido está aberto. Antes, qualquer estado ia para
+ * qualquer outro — um pedido cancelado voltava a «aprovado» (e a declaração saía), um
+ * entregue voltava a «em análise», e dois cliques em «Avançar» saltavam um passo.
+ */
+export function canChangeDocumentRequestStatus(from: string, to: string): boolean {
+  const next = nextSgaStatus[from];
+  if (next == null) return false;
+  return to === next || to === "rejected" || to === "cancelled";
+}
 
 export const listDocumentWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -173,14 +189,17 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
       }),
     );
     const studentIds = students.map((student) => student.id);
-    const { data: enrollments } = studentIds.length
+    const { data: enrollments, error: enrollmentsError } = studentIds.length
       ? await db
           .from("enrollments")
           .select("student_id, class_group_id")
           .eq("school_id", membership.schoolId)
           .in("student_id", studentIds)
           .eq("status", "active")
-      : { data: [] as Array<{ student_id: string; class_group_id: string | null }> };
+      : { data: [] as Array<{ student_id: string; class_group_id: string | null }>, error: null };
+    if (enrollmentsError) {
+      throw publicDatabaseError(enrollmentsError, "Não foi possível carregar as matrículas.");
+    }
     const classIds = [
       ...new Set(
         (enrollments ?? [])
@@ -188,9 +207,16 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
           .filter((id): id is string => Boolean(id)),
       ),
     ];
-    const { data: classGroups } = classIds.length
-      ? await db.from("class_groups").select("id, name").in("id", classIds)
-      : { data: [] as Array<{ id: string; name: string }> };
+    const { data: classGroups, error: classesError } = classIds.length
+      ? await db
+          .from("class_groups")
+          .select("id, name")
+          .eq("school_id", membership.schoolId)
+          .in("id", classIds)
+      : { data: [] as Array<{ id: string; name: string }>, error: null };
+    if (classesError) {
+      throw publicDatabaseError(classesError, "Não foi possível carregar as turmas.");
+    }
     const classNameById = new Map((classGroups ?? []).map((row) => [row.id, row.name]));
     const classNameByStudentId = new Map(
       (enrollments ?? []).map((row) => [
@@ -245,6 +271,9 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
             student_name: student?.full_name ?? "Aluno",
             registration_number: student?.registration_number ?? "Sem processo",
             class_name: classNameByStudentId.get(request.student_id) ?? null,
+            // Matrícula activa: as declarações desta página dizem «é aluno(a) desta
+            // instituição no ano lectivo…».
+            enrolled: classNameByStudentId.has(request.student_id),
             request_number: request.purpose || request.id.slice(0, 8),
             status: statusToUi[request.status] ?? "queued",
             // Em vocabulário da interface, como o resto do que sai daqui.
@@ -272,16 +301,11 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: template, error: templateError } = await db
-      .from("document_templates")
-      .select("id, name, document_type")
-      .eq("id", data.templateId)
-      .eq("school_id", membership.schoolId)
-      .maybeSingle();
-    if (templateError) {
-      throw publicDatabaseError(templateError, "Não foi possível validar o modelo.");
-    }
-    if (!template) throw new Error("Modelo de documento não encontrado.");
+    const template = await requireDocumentRequestRelations(db, {
+      schoolId: membership.schoolId,
+      studentId: data.studentId,
+      templateId: data.templateId,
+    });
 
     const purposeParts = [
       data.requestNumber ? `Nº ${data.requestNumber}` : null,
@@ -335,6 +359,12 @@ export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
       throw new Error(`Estado de pedido desconhecido: ${data.status}.`);
     }
 
+    if (!canChangeDocumentRequestStatus(existing.status, estadoSga)) {
+      throw new Error(
+        `O pedido está «${statusToUi[existing.status] ?? existing.status}» e não pode passar a «${data.status}». Actualize a lista.`,
+      );
+    }
+
     const agora = new Date().toISOString();
     const { data: updated, error } = await db
       .from("document_requests")
@@ -348,9 +378,12 @@ export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
       })
       .eq("id", data.requestId)
       .eq("school_id", membership.schoolId)
+      // Só se ninguém o mudou entretanto (dois cliques, duas pessoas).
+      .eq("status", existing.status)
       .select("id, status")
-      .single();
+      .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado do pedido.");
+    if (!updated) throw new Error("O pedido mudou entretanto. Actualize a lista.");
     return updated;
   });
 
@@ -359,19 +392,6 @@ const MAX_TEMPLATE_CHARS = 80_000;
 
 type JsonMap = Record<string, unknown>;
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
-
-async function readSettingDomain(db: AdminDb, schoolId: string, domain: string) {
-  const { data, error } = await db
-    .from("school_settings")
-    .select("id, domain, version, value")
-    .eq("school_id", schoolId)
-    .eq("domain", domain)
-    .maybeSingle();
-  if (error && !/schema cache|does not exist|42P01|PGRST/i.test(error.message)) {
-    throw publicDatabaseError(error, `Não foi possível ler settings:${domain}.`);
-  }
-  return data as { id: string; domain: string; version: number; value: JsonMap } | null;
-}
 
 function assertPrintKey(key: string): PrintTemplateKey {
   if (!isPrintTemplateKey(key)) throw new Error("Modelo de impressão não reconhecido.");
@@ -413,7 +433,11 @@ export const listPrintTemplates = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
-    const row = await readSettingDomain(db, membership.schoolId, PRINT_SETTINGS_DOMAIN);
+    const row = await readSettingsDomainRow<JsonMap>(
+      db,
+      membership.schoolId,
+      PRINT_SETTINGS_DOMAIN,
+    );
     const settings = parsePrintSettings(row?.value);
     return {
       issue: settings.issue && isPrintTemplateKey(settings.issue) ? settings.issue : null,
@@ -443,7 +467,7 @@ export const getPrintTemplate = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const [bundled, row] = await Promise.all([
       readBundledTemplate(key),
-      readSettingDomain(db, membership.schoolId, PRINT_SETTINGS_DOMAIN),
+      readSettingsDomainRow<JsonMap>(db, membership.schoolId, PRINT_SETTINGS_DOMAIN),
     ]);
     const settings = parsePrintSettings(row?.value);
     const override = settings.overrides?.[key];

@@ -17,6 +17,8 @@ const IDS = {
   tenantId: "11111111-1111-1111-1111-111111111111",
   schoolId: "22222222-2222-2222-2222-222222222222",
   adminUserId: "33333333-3333-3333-3333-333333333333",
+  adminMembershipId: "44444444-4444-4444-4444-444444444444",
+  adminRoleId: "55555555-5555-5555-5555-555555555555",
 };
 
 /** Base falsa onde cada tabela devolve a contagem que lhe dermos. */
@@ -67,6 +69,47 @@ describe("findProvisioningGaps", () => {
         tabela,
       ).toEqual([peca]);
     }
+  });
+
+  it("filtra o vínculo activo e o papel/grants exactos do novo administrador", async () => {
+    const captured: Record<string, Record<string, string>> = {};
+    const db = {
+      from(table: string) {
+        const filters: Record<string, string> = {};
+        captured[table] = filters;
+        const chain: Record<string, unknown> = {
+          select: () => chain,
+          eq: (column: string, value: string) => {
+            filters[column] = value;
+            return chain;
+          },
+          then: (resolve: (value: unknown) => unknown) =>
+            Promise.resolve({ count: (COMPLETO as Record<string, number>)[table] ?? 0 }).then(
+              resolve,
+            ),
+        };
+        return chain;
+      },
+    };
+    expect(await findProvisioningGaps(db, IDS)).toEqual([]);
+    expect(captured["profiles"]).toMatchObject({
+      id: IDS.adminUserId,
+      school_id: IDS.schoolId,
+    });
+    expect(captured["school_memberships"]).toMatchObject({
+      school_id: IDS.schoolId,
+      user_id: IDS.adminUserId,
+      status: "active",
+    });
+    expect(captured["member_roles"]).toMatchObject({
+      school_id: IDS.schoolId,
+      membership_id: IDS.adminMembershipId,
+      role_id: IDS.adminRoleId,
+    });
+    expect(captured["role_permissions"]).toMatchObject({
+      school_id: IDS.schoolId,
+      role_id: IDS.adminRoleId,
+    });
   });
 
   it("exige mais do que um papel — o bootstrap cria os padrão", async () => {
@@ -152,6 +195,13 @@ describe("o script de auditoria da frota não se separa da verificação em runt
         (m) => m[1],
       ),
     );
+
+  it("a auditoria distingue escolas arquivadas de falhas operacionais", () => {
+    const source = readFileSync(resolve(raiz, "scripts/siga/audit-provisioning.mjs"), "utf8");
+    expect(source).toContain("s.status       as estado_escola");
+    expect(source).toContain("e.estado_escola,");
+    expect(source).toContain('if (escola.estado_escola === "archived")');
+  });
 
   it("o script cobre todas as peças verificadas na criação", () => {
     const runtime = pecasDe("src/features/saas/provisioning-verify.ts");

@@ -19,6 +19,19 @@ export const STEP_UP_PREFIX = "Confirme a sua identidade para continuar";
 
 export const STEP_UP_REQUIRED_EVENT = "siga:step-up-required";
 
+// React.lazy pode montar o diálogo depois de uma acção crítica emitir o evento.
+// Conservar apenas o pedido mais recente, em memória e por pouco tempo, evita
+// perdê-lo durante o import sem guardar informações em cookies/localStorage.
+const PENDING_STEP_UP_TTL_MS = 30_000;
+let pendingStepUp: { action: string; requestedAt: number } | null = null;
+
+export function consumePendingStepUpAction(now = Date.now()): string | null {
+  const pending = pendingStepUp;
+  pendingStepUp = null;
+  if (!pending || now - pending.requestedAt > PENDING_STEP_UP_TTL_MS) return null;
+  return pending.action;
+}
+
 type AmrEntry = { method?: unknown; timestamp?: unknown };
 
 /** Hora (segundos) da verificação mais recente registada no token, ou null. */
@@ -80,6 +93,7 @@ export function reportPossibleStepUp(error: unknown): boolean {
   if (!isStepUpRequiredMessage(message)) return false;
   if (typeof window !== "undefined") {
     const action = message.slice(STEP_UP_PREFIX.length).replace(/^:\s*/, "").replace(/\.$/, "");
+    pendingStepUp = { action, requestedAt: Date.now() };
     window.dispatchEvent(new CustomEvent(STEP_UP_REQUIRED_EVENT, { detail: { action } }));
   }
   return true;

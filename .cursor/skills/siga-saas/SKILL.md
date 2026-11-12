@@ -17,8 +17,9 @@ UI destino: ADMIN (`siga-admin`, `/tenants`) e wizard WEB (`siga-web`, `/start`)
 - Ponte pública: `criar-escola.tsx` → `getCreateSchoolUrl()` (WEB `/start`)
 - Servidor: `src/features/saas/server.ts` (`requirePlatformAdmin`, `getSaaSStats`,
   `listTenants`, `provisionSchoolTenant`, `updateTenantStatusFn`)
-- Cliente: `src/lib/saas/provisioning-service.ts` — wrappers finos + fallback
-  demo se o servidor falhar (tabelas em falta, sem ser platform admin, etc.)
+- Cliente: o ADMIN lê pela API `/api/saas/*` (`platform-ops.ts`). O antigo
+  `src/lib/saas/provisioning-service.ts` saiu na auditoria 14: não tinha
+  utilizadores e, quando o servidor falhava, mostrava números inventados.
 - SQL: `supabase/APPLY_SAAS_PLATFORM.sql` (terceiro a aplicar no SGA, depois
   de `APPLY_IN_SQL_EDITOR.sql` e `APPLY_ENROLLMENT_AND_PREMIUM.sql`)
 - Multi-tenant por subdomínio (opcional, já montado em `__root.tsx`):
