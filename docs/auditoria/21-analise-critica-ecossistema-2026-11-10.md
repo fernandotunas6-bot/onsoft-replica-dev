@@ -159,7 +159,10 @@ apps, favicon `image/png` em rota aninhada, sem mensagens do GTM na consola.
 ### Engenharia (próximas PRs, por ordem)
 
 1. **CSP do SIGA** continua `Report-Only` com `unsafe-inline`. Tirar scripts em linha ou usar
-   _nonces_, e só então passar a obrigatória.
+   _nonces_, e só então passar a obrigatória. Feito a 11/11: o hCaptcha da entrada passou a
+   estar na política (sem ele, a CSP obrigatória impedia todas as entradas por senha) e o
+   website escolar tem política própria. Antes de a tornar obrigatória, ler os relatórios
+   `[csp]` dos logs do Worker durante alguns dias.
 2. **Ficheiros gerados:** decidir se `site-pages.generated.json` deixa de ser versionado (e o
    teste o gera) ou se fica com um teste de coerência; corrigir o comentário do
    `deploy-production.yml`.
@@ -269,6 +272,29 @@ lista de versões compatíveis, para as edições e publicações das escolas se
 
 **Verificado neste lote:** suite completa (6045 testes, 850 ficheiros), `tsc`, lint (0
 erros), `check:style`, build do SIGA e do DOC (sem ligações mortas).
+
+## Continuação — 11/11/2026, terceiro lote
+
+**Publicação da #441 (`9548301`).** «Deploy produção» run 43025337038: verificação, as 5
+apps (13:07–13:09 UTC), DNS e serviços; «Publicar website escolar ISPAB» verde (o Pages
+`siga-ispab` já tem o «Terminar sessão» e a privacidade corrigidos).
+
+**CSP — dois achados medidos em Chromium com a política real (`eed1189`, `6e5ed7b`).**
+
+- **hCaptcha fora da política.** A entrada por senha carrega `js.hcaptcha.com` (o Supabase
+  exige o captcha), e a CSP não o tinha em directiva nenhuma. Em modo de relatório gerava um
+  relatório por visita à entrada; com a CSP obrigatória, o captcha não carregava e ninguém
+  entrava por senha. Acrescentado a `script-src`, `style-src`, `frame-src` e `connect-src`,
+  como a documentação do hCaptcha pede. `tests/security/csp-external-scripts.test.ts` obriga
+  cada script externo que o código injecta a passar no `script-src`.
+- **Website escolar: 9 relatórios por página vista.** O modelo carrega DM Sans e Manrope do
+  Google Fonts, e as páginas levavam a política do SIGA: 63 relatórios em 7 visitas, cada um
+  um pedido ao Worker. O website tem agora política própria (a do SIGA mais
+  `fonts.googleapis.com` e `fonts.gstatic.com`): 0 relatórios. A política do SIGA não muda.
+
+Alternativa a ponderar pelo proprietário: servir as duas letras a partir do próprio site, como
+o SIGA faz com a Inter. Tira os pedidos ao Google (privacidade dos visitantes, menos duas
+ligações) e muda o texto da privacidade («O site carrega fontes do Google Fonts»).
 
 ## Limites desta análise
 

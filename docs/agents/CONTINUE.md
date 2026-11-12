@@ -34,6 +34,9 @@ PR #438 publicada (run 42882698702, verde; produção = `main`). Ramo
   forem as mesmas, juntar a versão anterior à lista `upgrade` de
   `features/school-website/content-model.ts` (e a `template-upgrade.test.ts`), senão o editor
   recusa os rascunhos das escolas.
+- **CSP:** uma política por superfície (`src/lib/csp.ts`): a do SIGA e a do website escolar
+  (`SCHOOL_WEBSITE_CONTENT_SECURITY_POLICY`, enviada por `site-http.ts`). Um script novo de
+  outro domínio tem de entrar no `script-src` (`tests/security/csp-external-scripts.test.ts`).
 - Pendências novas (análise 21, «Engenharia» 8–9): resumo SHA-256 das chaves das catracas
   (migração revista) e tecto para `/_serverFn` depois de medir os carregamentos.
 
