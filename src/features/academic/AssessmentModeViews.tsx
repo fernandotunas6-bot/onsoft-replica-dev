@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { Button } from "@/components/ui/button";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import type { ConsistencyCheckReport } from "@/features/academic/consistency-check";
@@ -5,7 +6,7 @@ import { formatScore } from "@/lib/angola-academic";
 
 /** Vistas do Centro de Avaliação que só mostram dados: avaliações, recursos, exames e fecho. */
 
-type StudentRef = { id: string; student_name: string };
+type StudentRef = { id: string; student_name: string; registration_number?: string | null };
 
 export function AssessmentItemsList({
   available,
@@ -70,7 +71,14 @@ export function AssessmentRecoveryTable({
         <tbody>
           {rows.map((row) => (
             <tr key={row.student.id} className="border-t">
-              <td className="px-3 py-2 font-semibold">{row.student.student_name}</td>
+              <td className="px-3 py-2">
+                <span className="block font-semibold">{row.student.student_name}</span>
+                <IdentifierValue
+                  value={row.student.registration_number}
+                  variant="plain"
+                  className="text-muted-foreground"
+                />
+              </td>
               <td className="px-3 py-2">{subjectName}</td>
               <td className="px-3 py-2 text-right">{formatScore(row.average)}</td>
               <td className="px-3 py-2 text-right">{formatScore(row.recurso)}</td>
@@ -109,7 +117,14 @@ export function AssessmentExamTable({
         <tbody>
           {rows.map((row) => (
             <tr key={row.student.id} className="border-t">
-              <td className="px-3 py-2 font-semibold">{row.student.student_name}</td>
+              <td className="px-3 py-2">
+                <span className="block font-semibold">{row.student.student_name}</span>
+                <IdentifierValue
+                  value={row.student.registration_number}
+                  variant="plain"
+                  className="text-muted-foreground"
+                />
+              </td>
               <td className="px-3 py-2">{subjectName}</td>
               <td className="px-3 py-2">Exame</td>
               <td className="px-3 py-2 text-right">{formatScore(row.exame)}</td>

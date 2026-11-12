@@ -6,5 +6,8 @@ pnpm-lock.yaml
 package-lock.json
 bun.lock
 routeTree.gen.ts
+# Gerados (Lovable / siga:gen-types): reescritos sem formatação a cada geração.
+src/integrations/supabase/types.ts
+src/integrations/supabase/types.sga.ts
 # Código de terceiros copiado só para estudo
 estudo/

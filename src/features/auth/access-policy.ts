@@ -29,7 +29,7 @@ export const GRANT_ELEVATABLE_ROLES: readonly ApplicationRole[] = [
  * aceita pelo cargo — RH e folha salarial (`requireHrReader`,
  * `requirePayrollAdmin`) e as configurações da escola (só Administrador).
  */
-const roleOnlyPrefixes = ["/financeiro/rh", "/configuracoes"] as const;
+const roleOnlyPrefixes = ["/financeiro/rh", "/configuracoes", "/website"] as const;
 
 export const accessModules = [
   { key: "dashboard", label: "Dashboard", prefixes: ["/", "/portal"] },
@@ -57,7 +57,7 @@ export const accessModules = [
   {
     key: "gestao",
     label: "Acessos / Config",
-    prefixes: ["/acessos", "/configuracoes", "/catracas"],
+    prefixes: ["/acessos", "/configuracoes", "/catracas", "/website"],
   },
   { key: "arquivos", label: "Arquivos", prefixes: ["/arquivos"] },
   { key: "importacao", label: "Importar Dados", prefixes: ["/importar"] },
@@ -70,7 +70,7 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
   },
   { prefixes: ["/alumni"], roles: ["Administrador", "Secretaria"] },
   { prefixes: ["/acessos", "/catracas"], roles: ["Administrador", "Secretaria"] },
-  { prefixes: ["/configuracoes"], roles: ["Administrador"] },
+  { prefixes: ["/configuracoes", "/website"], roles: ["Administrador"] },
   { prefixes: ["/tesouraria"], roles: ["Administrador", "Tesouraria"] },
   {
     prefixes: ["/faturas", "/relatorios/financeiros"],

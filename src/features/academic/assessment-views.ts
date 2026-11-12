@@ -42,6 +42,52 @@ export function buildStudentDossier(
   });
 }
 
+/**
+ * O dossier só com as disciplinas que o aluno tem: as que já têm notas lançadas
+ * para a matrícula. Com todas as disciplinas da escola, o boletim listava 30 e
+ * tal disciplinas que o aluno nunca teve, como «Pendente».
+ */
+export function buildEnrolledStudentDossier(
+  grades: DossierGrade[],
+  subjects: DossierSubject[],
+  enrollmentId: string,
+  passingGrade: number,
+) {
+  const taken = new Set(
+    grades.filter((row) => row.enrollment_id === enrollmentId).map((row) => row.subject_id),
+  );
+  return buildStudentDossier(
+    grades,
+    subjects.filter((subject) => taken.has(subject.id)),
+    enrollmentId,
+    passingGrade,
+  );
+}
+
+/**
+ * Resumo do boletim a partir de todas as disciplinas, não de uma só: média das
+ * MFA com valor e «Transita» só quando todas estão aprovadas. Uma reprovada ou
+ * sem nota deixa «Pendente» — a transição decide-se no resultado final.
+ */
+export function boletimSummary(rows: Array<{ mfa: number | null; status: string }>) {
+  const values = rows
+    .map((row) => row.mfa)
+    .filter((value): value is number => value != null && Number.isFinite(value));
+  const average = values.length
+    ? values.reduce((sum, value) => sum + value, 0) / values.length
+    : null;
+  const allApproved =
+    rows.length > 0 &&
+    rows.every((row) => row.mfa != null && !/reprov|não trans|pendente/i.test(row.status));
+  return {
+    average,
+    status: allApproved ? "Transita" : "Pendente",
+    approved: rows.filter(
+      (row) => row.mfa != null && !/reprov|não trans|pendente/i.test(row.status),
+    ).length,
+  };
+}
+
 export function buildClassCourseMap(
   groups: Array<{
     id: string;
@@ -92,7 +138,7 @@ export function changeHistoryLines(
     updated_at?: unknown;
   }>,
   items: Array<{ id: unknown; name: unknown }>,
-  students: Array<{ id: string; student_name: string }>,
+  students: Array<{ id: string; student_name: string; registration_number?: string | null }>,
 ) {
   return scores
     .filter((row) => row.previous_score != null)
@@ -102,6 +148,7 @@ export function changeHistoryLines(
       return {
         id: `${row.item_id}-${row.enrollment_id}-${row.updated_at}`,
         studentName: student?.student_name ?? "Aluno",
+        studentNumber: student?.registration_number ?? null,
         itemName: String(item?.name ?? "Avaliação"),
         previous: Number(row.previous_score),
         current: row.score == null ? null : Number(row.score),

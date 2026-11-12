@@ -1,3 +1,4 @@
+import { listSchoolShifts } from "@/features/academic/advanced-academic-server";
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import {
@@ -84,6 +85,7 @@ import { TurmasWorkspaceTab } from "@/features/pedagogica/components/TurmasWorks
 import { SchoolNowWidget } from "@/features/academic/components/SchoolNowWidget";
 import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { toast } from "@/lib/toast";
+import { errorMessage } from "@/lib/error-message";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
 import { distinctOptionLabels, resolveOptionId } from "@/lib/option-label";
 import { subjectsOfClass } from "@/features/academic/pauta-subjects";
@@ -303,6 +305,12 @@ function PedagogicaPage() {
     [school?.pedagogy?.teachingLevels],
   );
 
+  const shiftsQuery = useQuery({
+    queryKey: ["academic", "school-shifts", account.schoolId],
+    queryFn: () => listSchoolShifts(),
+    enabled: canReadAcademic && Boolean(account.schoolId),
+    retry: false,
+  });
   const workspaceQuery = useQuery({
     queryKey: ["academic", "pedagogical-workspace", selectedYearId],
     queryFn: () =>
@@ -1370,6 +1378,7 @@ function PedagogicaPage() {
                   <ScheduleWorkspace
                     initialClassGroupId={turmaFromSearch}
                     initialTeacherId={professorFromSearch}
+                    proposalShifts={shiftsQuery.data ?? []}
                     activeYearLabel={activeYearLabel}
                     activeYearId={selectedYearId ?? undefined}
                     canManage={canManageAcademic}
@@ -1407,6 +1416,23 @@ function PedagogicaPage() {
                     onDeleteSlot={async (slotId) => {
                       await deleteScheduleSlot({ data: { slotId } });
                       await refreshAcademic();
+                    }}
+                    yearEndsOn={calendarYear?.endsOn ?? null}
+                    onCreateSlots={async (lessons) => {
+                      // Uma a uma: cada aula passa pelas validações e conflitos do servidor,
+                      // e uma recusa não desfaz as anteriores. Uma só actualização no fim.
+                      let created = 0;
+                      const failed: string[] = [];
+                      for (const lesson of lessons) {
+                        try {
+                          await createAdvancedScheduleSlot({ data: lesson });
+                          created += 1;
+                        } catch (error) {
+                          failed.push(errorMessage(error, "Aula recusada."));
+                        }
+                      }
+                      await refreshAcademic();
+                      return { created, failed };
                     }}
                     onPublishSchedule={async (classGroupId) => {
                       if (!selectedYearId) {

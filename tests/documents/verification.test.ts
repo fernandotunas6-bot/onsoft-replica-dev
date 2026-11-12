@@ -135,3 +135,14 @@ describe("disciplinas com o nome à data da emissão", () => {
     expect(read("src/routes/verificar.tsx")).toMatch(/query\.data\.subjects\.join/);
   });
 });
+
+describe("âmbito da emissão docente", () => {
+  it("recusa contexto ausente, turmas alheias e listas mistas", async () => {
+    const { assertDocumentClassScope } = await import("@/features/documents/verification");
+    expect(() => assertDocumentClassScope([], ["a"])).toThrow(/turmas atribuídas/);
+    expect(() => assertDocumentClassScope(["b"], ["a"])).toThrow();
+    expect(() => assertDocumentClassScope(["a", "b"], ["a"])).toThrow();
+    expect(() => assertDocumentClassScope(["a"], ["a", "c"])).not.toThrow();
+    expect(() => assertDocumentClassScope(["a"], [])).toThrow();
+  });
+});

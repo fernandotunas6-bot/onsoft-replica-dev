@@ -122,6 +122,8 @@ const restricoes = query(
    join pg_class c on c.oid = con.conrelid
    join pg_namespace n on n.oid = c.relnamespace
    where n.nspname='public' and c.relname in (${lista})
+     -- 't' é um gatilho de restrição (CREATE CONSTRAINT TRIGGER): não cabe no CREATE TABLE.
+     and con.contype <> 't'
    order by c.relname, con.contype, con.conname`,
 );
 

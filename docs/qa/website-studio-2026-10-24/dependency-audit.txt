@@ -1,0 +1,33 @@
+Dependency audit — 2026-10-24
+Baseline: local pre-Studio HEAD e211ef50 (same tree as remote 5049398b).
+Command: bun audit --audit-level=high
+Current: Puck 0.23.0; Happy DOM override 21.0.4.
+Baseline/current audit output identical: True
+Both exit nonzero due to the three existing high-severity dependency advisories below.
+No audit exemptions added.
+
+bun audit v1.4.4 (38afee6c8)
+
+body-parser@2.3.0
+  @lovable.dev/mcp-js > @modelcontextprotocol/sdk > express > body-parser
+  high: body-parser vulnerable to Denial of Service via trailing bytes after a compressed request body (>=2.0.0 <2.4.0) - https://github.com/advisories/GHSA-27r3-jxmh-p828
+
+undici@7.29.1
+  @ai-sdk/openai > @ai-sdk/provider-utils > undici
+  ai > @ai-sdk/gateway > @ai-sdk/provider-utils > undici
+  high: undici vulnerable to Denial of Service via unhandled error on excessive content-encodings (>=7.18.0 <7.30.1) - https://github.com/advisories/GHSA-xjj6-f33q-929c
+
+zod@3.25.76, 4.6.5
+  (direct dependency)
+  @ai-sdk/openai > zod
+  @hookform/resolvers > zod
+  @lovable.dev/mcp-js > zod
+  @tanstack/router-plugin > @tanstack/router-generator > zod
+  ai > @ai-sdk/provider-utils > zod
+  @tanstack/react-start > @tanstack/start-plugin-core > @tanstack/router-generator > zod
+  high: Zod can exhaust memory while validating oversized constrained collections (<4.6.6) - https://github.com/advisories/GHSA-mrhx-c7xc-m3w5
+
+3 vulnerabilities (3 high)
+
+  bun audit fix           upgrade the vulnerable packages within their ranges
+  bun audit fix --latest  also cross major versions

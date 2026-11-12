@@ -1,3 +1,9 @@
+> **12/11/2026 — integração dos PRs abertos** no ramo `claude/modest-shannon-46v4v1`:
+> o que entrou, o que ficou para decisão e as condições antes de fundir em
+> [HANDOFF_INTEGRACAO_PRS_2026-11-12.md](HANDOFF_INTEGRACAO_PRS_2026-11-12.md).
+> A #345 (com a #338) já está nesse ramo; não repetir a integração. Migração académica
+> nova e validação autenticada continuam pendentes antes da promoção.
+
 # Handoff — continuar o SIGA
 
 ## Continuação: publicação, desempenho do WEB e limpeza do modelo — 11/11/2026
@@ -167,6 +173,68 @@ estado por área, plano por ordem (1. funcionar sem rede, 2. faltas por discipli
 - **Sincronizar 14 dias (QR):** a Secretaria passava a verificação do servidor e a RPC recusava
   («Insufficient HR permission»); agora só Administração/Tesouraria, com mensagem clara.
 
+## Correcções pedagógicas consolidadas — 26/10/2026
+
+Ler [o candidato acumulado, os testes e os bloqueios reais](HANDOFF_PEDAGOGY_CONSOLIDATED_2026-10-26.md).
+Preserva o trabalho da #338, acrescenta integridade transaccional e turnos
+configurados. 4.983 testes aprovados no candidato acumulado; refinamentos posteriores
+têm validação específica descrita no handoff. Envio remoto autorizado e publicado no
+PR #345. Não aplicar SQL nem anunciar produção actualizada com base neste handoff.
+
+## Backend: portais na agenda publicada e presenças repetíveis — 2026-10-25
+
+`getMyStudentAgenda`, `getMyStudentTimetable` e `getMyTeacherTimetable` usam agora
+`loadAcademicAgendaForRequest`. A próxima aula vem de uma ocorrência real nos
+próximos 93 dias; os horários semanais usam segunda a domingo da semana corrente
+em Luanda. Sem retorno a slots brutos quando há erro, férias ou falta de publicação.
+Mantêm-se os contratos dos consumidores; `portal-agenda.ts` concentra a projecção.
+Domingo da base (7) passa a domingo do portal (0). A agenda resolve também sala
+por `room_id`, nome/tipo de avaliação e data de publicação, sempre na escola.
+
+O cabeçalho do aluno não escolhe uma pré-matrícula futura. Inscrições em unidades
+curriculares funcionam sem matrícula de turma, mas não reabrem matrículas
+canceladas ou encerradas sem data final. Vários períodos válidos da mesma turma
+são respeitados. `studentId` explícito força o âmbito de educando mesmo em contas
+com vários papéis; não é ignorado para devolver a agenda da escola.
+
+`getLessonDetail` verifica a ocorrência autorizada da mesma agenda antes de
+devolver os detalhes ao aluno/encarregado, também nas cadeiras sem matrícula
+ordinária. IDs directos de outras aulas são recusados e os lookups ficam na
+escola; um pedido explícito de educando não devolve permissão de edição de staff.
+
+`agenda-sessions.ts` usa `upsert` com `ignoreDuplicates` no índice único já
+existente `(school_id,timetable_slot_id,lesson_date)`, em lotes de 500 e com
+contagem exacta. Preserva sessões existentes e permite retomar após uma falha
+entre lotes. Nenhuma migração adicional foi necessária. O ensaio SQL de publicação
+verifica agora também conflito sem sobrescrever uma sessão concluída, sob
+`service_role`, e termina em ROLLBACK. Contagens antes/depois: 42 alunos,
+4 docentes, 43 matrículas, 233 turmas e 192 sessões de presença.
+
+Sem alterações de componentes nem deploy da aplicação. Contrato e limites na
+[continuação da agenda](../architecture/ACADEMIC_AGENDA.md#refinamento-portais-e-ressincronização-de-presenças--25102026).
+
+## Backend: publicação atómica e aulas do dia — 2026-10-25 (continuação)
+
+`listDayAgendaLessons` passou para `calendar/day-lessons-server.ts`, consumindo a
+mesma agenda publicada do FullCalendar. Mantém o contrato anterior e limita a
+lista depois da autorização; domingo=7 e datas civis validadas. O DTO passa também
+os nomes de turma, disciplina e docente, sem contactos. Tesouraria conserva a
+leitura de agenda, com grants pedagógicos; a publicação exige gestão + MFA.
+
+`academic/schedule-publication.ts` usa `publish_academic_schedule_atomic`, só do
+servidor: validar → arquivar anterior → criar versão/snapshot → associar slots →
+auditar, numa transacção. Migração **20261025121012 aplicada**, com carimbo real.
+Uma falha provocada na associação confirmou rollback integral, também sob a role
+`service_role`; ensaio em `supabase/tests/academic_schedule_publication_test.sql`.
+Contagens de alunos/docentes/matrículas/turmas preservadas.
+
+`syncPublishedAcademicSchedule` permite repetir as presenças sem republicar.
+Presenças/notificações seguem o commit; uma falha de presenças é comunicada como
+tal. Retry só para deadlock/serialização com rollback confirmado. Não reaplicar
+funções antigas para compensar ausência deste RPC: o chamador não tem fallback
+para as várias escritas soltas. Sem alterações visuais nem deploy da aplicação.
+[Contrato e evidências](../architecture/ACADEMIC_AGENDA.md#continuação-publicação-atómica-e-consulta-diária--25102026).
+
 ## Backend: horários, agenda e matrículas — 2026-10-25
 
 Pedido deste ciclo: só backend. [Contrato, pesquisa comparativa e migrações](../architecture/ACADEMIC_AGENDA.md).
@@ -212,6 +280,17 @@ alteraram ecrãs ou dependências para encobrir essas falhas. TypeScript e ESLin
 aprovados; a verificação final de 130 testes em 15 ficheiros e os
 carimbos reais das nove migrações estão na
 [evidência deste ciclo](../architecture/academic-agenda-evidence-2026-10-25.json).
+
+## Reconciliação da PR #200 — 2026-10-24
+
+Continuar no motor `src/features/school-website`. A proposta antiga `school-site`
+não deve ser fundida no mesmo domínio `school_website`: usa outro schema e múltiplas
+linhas por versão, incompatíveis com os leitores actuais. A política actual mantém
+conteúdo server-only. Guardas explícitas de cargo Administrador e AAL2 nas mutações,
+escola activa nas APIs públicas e validação de recursos públicos foram reforçadas.
+[Correcções, matriz e ensaio real pendente](../school-sites/RECONCILIATION_200.md).
+Sem migração nem deploy neste incremento. Não declarar sessão real, fidelidade
+pixel-perfect ou domínio canário validados por causa dos testes locais.
 
 ## Navegação contextual e superfícies discretas — 2026-10-22
 

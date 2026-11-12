@@ -9,6 +9,7 @@ import {
 } from "../engine/normalize";
 import type { AuditEntry, ImportCommitContext } from "../engine/types";
 import { normalizePersonNif } from "@/lib/angola-identity";
+import { normalizeStoredPhone } from "@/lib/angola-phone";
 import { selectAllPages } from "../engine/paged";
 
 export type PersonCandidate = {
@@ -64,7 +65,9 @@ export function personCandidateFromRow(row: Record<string, unknown>): PersonCand
     full_name: fullName,
     national_id: idRaw ? (normalizePersonNif(idRaw) ?? idRaw) : null,
     email: normalizeText(row["email"] ?? row["e-mail"] ?? row["E-mail"]) || null,
-    phone: normalizePhoneDigits(row["phone"] ?? row["telefone"] ?? row["Telefone"]),
+    // O texto da folha: resolveOrCreatePerson grava-o no formato do SIGA. Só os
+    // últimos 9 dígitos fazia de um +351 912… um número angolano.
+    phone: normalizeText(row["phone"] ?? row["telefone"] ?? row["Telefone"]) || null,
     birth_date: normalizeDate(
       row["birth_date"] ?? row["data_nascimento"] ?? row["Data de Nascimento"],
     ),
@@ -88,6 +91,18 @@ export async function resolveOrCreatePerson(
   match: DuplicateMatch<ExistingPersonRow> | null;
   audits: AuditEntry[];
 }> {
+  // No formato do resto do SIGA: telefone «+244…» (normalizeStoredPhone) e BI
+  // compacto. Alguns importadores passavam o texto da folha tal e qual, e um
+  // BI com espaços nunca batia com o mesmo BI escrito junto noutro sítio.
+  candidate = {
+    ...candidate,
+    phone: candidate.phone
+      ? (normalizeStoredPhone(candidate.phone) ?? normalizePhoneDigits(candidate.phone))
+      : null,
+    national_id: candidate.national_id
+      ? (normalizePersonNif(candidate.national_id) ?? candidate.national_id)
+      : null,
+  };
   const match = findBestPersonMatch(candidate, existingPeople);
 
   if (match && ctx.duplicateStrategy !== "create_new") {

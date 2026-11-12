@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, type KeyboardEvent } from "react";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { initialsFromName, parsePautaScore } from "@/lib/angola-academic";
@@ -129,7 +130,7 @@ export function AssessmentGrid({
               Aluno
             </th>
             <th className="w-24 border-b px-2 py-2 text-left text-[11px] font-bold text-muted-foreground">
-              Proc.
+              Nº de aluno
             </th>
             {columns.map((column) => (
               <th
@@ -185,8 +186,8 @@ export function AssessmentGrid({
                     <span className="font-semibold">{student.student_name}</span>
                   </div>
                 </td>
-                <td className="border-b px-2 py-1.5 text-xs text-muted-foreground">
-                  {student.registration_number ?? "—"}
+                <td className="border-b px-2 py-1.5">
+                  <IdentifierValue value={student.registration_number} />
                 </td>
                 {columns.map((column, col) => {
                   const value = rowValues[column.key] ?? "";

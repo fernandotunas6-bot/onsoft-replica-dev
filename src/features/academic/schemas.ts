@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { civilDateSchema } from "@/features/calendar/agenda-schemas";
 import { optionalHttpUrlSchema } from "@/lib/safe-url";
 import { gradingProfileSchema } from "@/features/school/schemas";
 
@@ -592,18 +593,22 @@ export const saveTeacherAvailabilityInputSchema = z.object({
 });
 export type SaveTeacherAvailabilityInput = z.infer<typeof saveTeacherAvailabilityInputSchema>;
 
-export const publishAcademicScheduleInputSchema = z.object({
-  classGroupId: z.string().guid(),
-  academicYearId: z.string().guid(),
-  name: optionalText,
-  validFrom: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
-  validTo: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
-  syncToCalendar: z.boolean().default(true),
-});
+export const publishAcademicScheduleInputSchema = z
+  .object({
+    classGroupId: z.string().guid(),
+    academicYearId: z.string().guid(),
+    name: z
+      .string()
+      .trim()
+      .max(160)
+      .transform((value) => value || undefined)
+      .optional(),
+    validFrom: civilDateSchema.optional(),
+    validTo: civilDateSchema.optional(),
+    syncToCalendar: z.boolean().default(true),
+  })
+  .refine((value) => !value.validFrom || !value.validTo || value.validTo >= value.validFrom, {
+    message: "O fim da validade tem de ser igual ou posterior ao início.",
+    path: ["validTo"],
+  });
 export type PublishAcademicScheduleInput = z.infer<typeof publishAcademicScheduleInputSchema>;

@@ -47,6 +47,7 @@ export type FinalResultLine = {
   enrollmentId: string;
   studentId: string;
   studentName: string;
+  studentNumber: string | null;
   before: FinalResult;
   after: FinalResult;
   examSubjects: number;
@@ -171,6 +172,7 @@ async function buildClassFinalResults(
       enrollmentId: row.enrollmentId,
       studentId: who?.studentId ?? "",
       studentName: who?.name ?? "Aluno",
+      studentNumber: who?.studentNumber ?? null,
       before: computeFinalResult(subjects, row.absencePercentage, rule, row.sheetIncomplete),
       after: computeFinalResult(finals, row.absencePercentage, rule, row.sheetIncomplete),
       examSubjects: graded.length,

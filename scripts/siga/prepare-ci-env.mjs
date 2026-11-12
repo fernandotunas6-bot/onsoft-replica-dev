@@ -14,7 +14,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const secret = process.env.SUPABASE_SECRET_KEY?.trim();
 if (!secret) {
   if (process.env.SIGA_E2E_LIVE === "1" || process.env.SIGA_E2E_LIVE === "true") {
-    console.error("prepare-ci-env: staging incompleto — SUPABASE_SECRET_KEY obrigatório em @live.");
+    console.error(
+      "prepare-ci-env: staging incompleto — SUPABASE_SECRET_KEY é obrigatório em @live.",
+    );
     process.exit(1);
   }
   console.log("prepare-ci-env: omitido (SUPABASE_SECRET_KEY não definido; sem @live)");

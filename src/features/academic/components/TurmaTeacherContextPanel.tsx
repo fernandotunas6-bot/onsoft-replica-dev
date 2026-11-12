@@ -31,7 +31,7 @@ export function TurmaTeacherContextPanel({
   return (
     <aside
       aria-label="Contexto do professor"
-      className="min-w-0 space-y-4 xl:sticky xl:top-4 xl:col-start-2 xl:row-start-1 xl:row-span-5 xl:self-start"
+      className="min-w-0 space-y-4 xl:sticky xl:top-4 xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:self-start"
     >
       <section className="rounded-xl border border-border bg-card p-4 shadow-soft">
         <h2 className="text-sm font-semibold">Contexto do professor</h2>

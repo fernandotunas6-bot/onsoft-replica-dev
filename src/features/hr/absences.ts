@@ -15,7 +15,6 @@ import {
   type HrRemunerationModel,
   type HrValidationStatus,
 } from "@/features/hr/schemas";
-import { baseSalaryOn, estimateAbsenceDeduction, type SalaryAmendment } from "./absence-deduction";
 
 const ABSENCE_ADMIN_ROLES = new Set(["Administrador", "Tesouraria"]);
 
@@ -52,11 +51,31 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
     const membership = await requireAbsenceAdmin(context.userId);
     const db = await loadSgaAdminClient();
 
-    const { data: absences, error } = await db
+    const columns =
+      "id, employment_id, contract_id, absence_date, absence_type, duration_minutes, deduction_multiplier, reason, evidence_ref, validation_status";
+    // As pendentes todas (em páginas) e as 250 mais recentes do histórico. Só com o
+    // histórico, uma falta pendente mais antiga saía da lista e ficava por validar.
+    const pending: Array<Record<string, unknown>> = [];
+    for (let page = 0; page < 20; page += 1) {
+      const { data: rows, error: pendingError } = await db
+        .from("hr_absence_events")
+        .select(columns)
+        .eq("school_id", membership.schoolId)
+        .eq("validation_status", "pending")
+        .is("deleted_at", null)
+        .order("absence_date", { ascending: false })
+        .order("id", { ascending: true })
+        .range(page * 1000, page * 1000 + 999);
+      if (pendingError) {
+        if (isMissingHrTable(pendingError)) return [];
+        throw publicDatabaseError(pendingError, "Não foi possível carregar as faltas.");
+      }
+      pending.push(...((rows ?? []) as Array<Record<string, unknown>>));
+      if (!rows || rows.length < 1000) break;
+    }
+    const { data: recent, error } = await db
       .from("hr_absence_events")
-      .select(
-        "id, employment_id, contract_id, absence_date, absence_type, duration_minutes, deduction_multiplier, reason, evidence_ref, validation_status",
-      )
+      .select(columns)
       .eq("school_id", membership.schoolId)
       .is("deleted_at", null)
       .order("absence_date", { ascending: false })
@@ -66,7 +85,16 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
       if (isMissingHrTable(error)) return [];
       throw publicDatabaseError(error, "Não foi possível carregar as faltas.");
     }
-    if (!absences?.length) return [];
+    const seen = new Set(pending.map((row) => String(row.id)));
+    const absences = [
+      ...pending,
+      ...((recent ?? []) as Array<Record<string, unknown>>).filter(
+        (row) => !seen.has(String(row.id)),
+      ),
+    ].sort((a, b) => String(b.absence_date).localeCompare(String(a.absence_date))) as NonNullable<
+      typeof recent
+    >;
+    if (!absences.length) return [];
 
     const employmentIds = [...new Set(absences.map((row) => String(row.employment_id)))];
     const contractIds = [
@@ -91,7 +119,7 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
 
     let contracts: Array<Record<string, unknown>> = [];
     let policies: Array<Record<string, unknown>> = [];
-    const amendmentsByContract = new Map<string, SalaryAmendment[]>();
+    let amendments: Array<Record<string, unknown>> = [];
     if (contractIds.length) {
       const { data: contractRows, error: contractError } = await db
         .from("hr_contracts")
@@ -122,27 +150,23 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
       }
       policies = (policyRows ?? []) as Array<Record<string, unknown>>;
 
-      // A folha desconta com o salário em vigor na data da falta.
+      // O salário em vigor no dia da falta, como a folha o calcula
+      // (hr_calculate_payroll_item): a última alteração com efeito até esse dia;
+      // sem nenhuma, o salário base do contrato.
       const { data: amendmentRows, error: amendmentError } = await db
         .from("hr_contract_salary_amendments")
-        .select("contract_id, new_base_salary_kz, effective_on, created_at")
+        .select("contract_id, effective_on, new_base_salary_kz, created_at")
         .eq("school_id", membership.schoolId)
-        .in("contract_id", contractIds);
+        .in("contract_id", contractIds)
+        .order("effective_on", { ascending: false })
+        .order("created_at", { ascending: false });
       if (amendmentError && !isMissingHrTable(amendmentError)) {
         throw publicDatabaseError(
           amendmentError,
           "Não foi possível carregar as alterações salariais.",
         );
       }
-      for (const row of amendmentRows ?? []) {
-        const list = amendmentsByContract.get(String(row.contract_id)) ?? [];
-        list.push({
-          new_base_salary_kz: row.new_base_salary_kz,
-          effective_on: String(row.effective_on),
-          created_at: String(row.created_at ?? ""),
-        });
-        amendmentsByContract.set(String(row.contract_id), list);
-      }
+      amendments = (amendmentRows ?? []) as Array<Record<string, unknown>>;
     }
 
     const personIds = [...new Set((employments ?? []).map((row) => String(row.person_id)))];
@@ -166,6 +190,13 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
     const peopleMap = new Map(people.map((row) => [String(row.id), String(row.full_name ?? "")]));
     const contractMap = new Map(contracts.map((row) => [String(row.id), row]));
     const policyMap = new Map(policies.map((row) => [String(row.contract_id), row]));
+    const salaryOn = (contractId: string, date: string, contract: Record<string, unknown>) => {
+      // `amendments` vem por data descendente: a primeira com efeito até ao dia.
+      const inForce = amendments.find(
+        (a) => String(a.contract_id) === contractId && String(a.effective_on) <= date,
+      );
+      return Number(inForce?.new_base_salary_kz ?? contract.base_salary_kz ?? 0);
+    };
 
     return absences.map((row) => {
       const employment = employmentMap.get(String(row.employment_id));
@@ -183,17 +214,14 @@ export const listHrAbsencesForReview = createServerFn({ method: "GET" })
         const divisor = Number(policy.monthly_divisor_days ?? 0);
         const workday = Number(policy.standard_workday_minutes ?? 0);
         if (shouldDeduct && divisor > 0 && workday > 0) {
-          estimatedDeductionKz = estimateAbsenceDeduction({
-            baseSalary: baseSalaryOn(
-              contract.base_salary_kz,
-              amendmentsByContract.get(String(contractId)) ?? [],
-              String(row.absence_date),
-            ),
-            monthlyDivisorDays: divisor,
-            standardWorkdayMinutes: workday,
-            durationMinutes: Number(row.duration_minutes),
-            multiplier: Number(row.deduction_multiplier ?? 1),
-          });
+          estimatedDeductionKz =
+            Math.round(
+              ((salaryOn(contractId!, String(row.absence_date), contract) / divisor) *
+                (Number(row.duration_minutes) / workday) *
+                Number(row.deduction_multiplier ?? 1) +
+                Number.EPSILON) *
+                100,
+            ) / 100;
         } else if (!shouldDeduct) {
           estimatedDeductionKz = 0;
         }
