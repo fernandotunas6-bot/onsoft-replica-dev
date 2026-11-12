@@ -50,7 +50,7 @@ function personFieldsMatch(person: Row, term: string): boolean {
   ].some((field) => includesTerm(person[field], term));
 }
 
-function personRow(person: Row, roles: string[]) {
+function personRow(person: Row, roles: string[], studentNumber: string | null = null) {
   return {
     id: String(person["id"]),
     full_name: String(person["full_name"] ?? ""),
@@ -66,14 +66,26 @@ function personRow(person: Row, roles: string[]) {
     address: (person["address"] as string | null) ?? null,
     updated_at: String(person["updated_at"] ?? ""),
     roles: personRoleOptions.filter((role) => roles.includes(role)),
+    /** Nº de aluno, quando a pessoa é aluno desta escola: é por ele que a secretaria a reconhece. */
+    student_number: studentNumber,
   };
 }
 
-async function personRoleMap(db: AdminDb, schoolId: string, ids: string[], role?: string) {
+async function personRoleMap(
+  db: AdminDb,
+  schoolId: string,
+  ids: string[],
+  requiresDeclaredRoles = false,
+) {
   const roles = new Map<string, Set<string>>();
-  if (!ids.length) return roles;
+  const studentNumbers = new Map<string, string>();
+  if (!ids.length) return { roles, studentNumbers };
   const [students, teachers, guardians, declared] = await Promise.all([
-    db.from("students").select("person_id").eq("school_id", schoolId).in("person_id", ids),
+    db
+      .from("students")
+      .select("person_id, student_number")
+      .eq("school_id", schoolId)
+      .in("person_id", ids),
     db.from("teachers").select("person_id").eq("school_id", schoolId).in("person_id", ids),
     db
       .from("student_guardians")
@@ -93,7 +105,7 @@ async function personRoleMap(db: AdminDb, schoolId: string, ids: string[], role?
       throw publicDatabaseError(result.error, "Não foi possível verificar vínculos.");
   }
   // Evita devolver um filtro institucional incompleto quando falta a tabela.
-  if (declared.error && role && ROLE_DEPENDENT.has(role)) {
+  if (declared.error && requiresDeclaredRoles) {
     throw publicDatabaseError(
       declared.error,
       "Não foi possível consultar os vínculos institucionais.",
@@ -101,7 +113,7 @@ async function personRoleMap(db: AdminDb, schoolId: string, ids: string[], role?
   }
   if (
     declared.error &&
-    !/person_roles|42P01|42703|schema cache|PGRST/i.test(declared.error.message ?? "")
+    !["42P01", "42703", "PGRST204", "PGRST205"].includes(declared.error.code ?? "")
   ) {
     throw publicDatabaseError(
       declared.error,
@@ -115,11 +127,14 @@ async function personRoleMap(db: AdminDb, schoolId: string, ids: string[], role?
     set.add(value);
     roles.set(key, set);
   }
-  for (const row of students.data ?? []) add(row.person_id, "aluno");
+  for (const row of students.data ?? []) {
+    add(row.person_id, "aluno");
+    if (row.student_number) studentNumbers.set(String(row.person_id), String(row.student_number));
+  }
   for (const row of teachers.data ?? []) add(row.person_id, "professor");
   for (const row of guardians.data ?? []) add(row.guardian_person_id, "encarregado");
   for (const row of declared.data ?? []) add(row.person_id, String(row.role ?? ""));
-  return roles;
+  return { roles, studentNumbers };
 }
 
 async function readPeople(
@@ -176,16 +191,21 @@ export async function searchPeopleDirectoryPage(
   async function hydrate(rows: Row[]) {
     const candidates =
       term && !searchedRole ? rows.filter((person) => personFieldsMatch(person, term)) : rows;
-    const roleMap = await personRoleMap(
+    const { roles: roleMap, studentNumbers } = await personRoleMap(
       db,
       membership.schoolId,
       candidates.map((p) => String(p["id"])),
-      roleFilter,
+      Boolean(roleFilter && ROLE_DEPENDENT.has(roleFilter)) ||
+        (searchedRole && personInstitutionRoleOptions.some((role) => role.includes(term))),
     );
     return candidates
       .map((record) => ({
         fieldsMatch: personFieldsMatch(record, term),
-        person: personRow(record, [...(roleMap.get(String(record["id"])) ?? [])]),
+        person: personRow(
+          record,
+          [...(roleMap.get(String(record["id"])) ?? [])],
+          studentNumbers.get(String(record["id"])) ?? null,
+        ),
       }))
       .filter(
         ({ person, fieldsMatch }) =>

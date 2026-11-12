@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 'Verificar configuração do staging (falhar se estiver incompleto)'
+      - name: "Verificar configuração do staging (falhar se estiver incompleto)"
         id: secrets
         env:
           STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
@@ -106,6 +106,8 @@ jobs:
         if: steps.secrets.outputs.skip != 'true'
         env:
           SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
+          # A limpeza canónica das escolas de ensaio (e2e-cleanup-lib) usa a Management API.
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
           SIGA_E2E_LIVE: "1"
           CI: "true"
         run: node scripts/siga/e2e-ecosystem-live.mjs

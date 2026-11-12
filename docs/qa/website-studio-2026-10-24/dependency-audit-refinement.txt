@@ -1,0 +1,16 @@
+bun audit v1.4.4 (38afee6c8)
+
+zod@3.25.76, 4.6.5
+  (direct dependency)
+  @ai-sdk/openai > zod
+  @hookform/resolvers > zod
+  @lovable.dev/mcp-js > zod
+  @tanstack/router-plugin > @tanstack/router-generator > zod
+  ai > @ai-sdk/provider-utils > zod
+  @tanstack/react-start > @tanstack/start-plugin-core > @tanstack/router-generator > zod
+  high: Zod can exhaust memory while validating oversized constrained collections (<4.6.6) - https://github.com/advisories/GHSA-mrhx-c7xc-m3w5
+
+1 vulnerability (1 high)
+
+  bun audit fix           upgrade the vulnerable packages within their ranges
+  bun audit fix --latest  also cross major versions

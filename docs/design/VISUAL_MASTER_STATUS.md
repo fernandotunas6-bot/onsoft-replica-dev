@@ -1,3 +1,21 @@
+**29/10/2026 — segunda passagem de Pessoas e Turmas (implementado em PR, por validar):**
+menus de acções móveis em Pessoas, opções contextuais da turma e exportação CSV;
+horário com filtro por dia e testes puros; atalho da disciplina corrigido para a
+pauta no contexto da turma. Acesso a acções continua delimitado pelos papéis.
+Nenhum dado alterado. CI da revisão, QA autenticado, dispositivos e deploy
+continuam por validar. Ver
+[handoff](../agents/HANDOFF_PESSOAS_TURMA_VISUAL_2026-10-29.md).
+
+**29/10/2026 — Pessoas e Ficha da Turma (implementado no ramo, por validar):**
+o cabeçalho de Pessoas agrupa exportações e importação em «Mais opções»;
+professores e pessoas ganham menus de linha e ligação à ficha. A Ficha da Turma
+passa a ter cartões compactos, colunas independentes, listas progressivas,
+ligações a professores/disciplinas e relações recolhíveis. Não há SQL nem
+alterações de permissões. **CI, QA autenticado, dispositivos e publicação
+pendentes**. Provas e roteiro em
+[handoff do refinamento](../agents/HANDOFF_PESSOAS_TURMA_VISUAL_2026-10-29.md).
+As outras páginas continuam parciais e não foram modificadas nesta PR.
+
 # Execução do padrão visual — 23/10/2026
 
 **10/11/2026 — mudar e recuperar a senha com 2FA (implementado, sem validação visual autenticada):**
@@ -23,6 +41,13 @@ novo nem alteração de identidade. WEB `/start`: o assistente de configuração
 primeira escolha. ADMIN: «Website da escola» e «Portal SIGA Plus» em vez de «Abrir no SIGA».
 Evidência: testes de URLs e do servidor de endereços, `typecheck`, lint, `check:style` e
 `check:a11y` passaram. Captura autenticada e dispositivos físicos ainda pendentes.
+**29/10/2026 — Acessos e documentos (implementado em ramo de revisão):**
+cache de contas/equipa/grants/convites/cargos por conta, escola e cargo, sem dados
+provisórios; diálogo pequeno para preparar WhatsApp e botão explícito para abrir,
+sem envio automático nem dependência do Clipboard. A verificação pública distingue
+registo da emissão de validação dos dados impressos. Testes DOM de troca de escola
+e menu/diálogo aprovados; aparelhos, sessões reais e homologação da migração académica
+continuam pendentes. Evidências em `docs/agents/HANDOFF_AUDIT_CONSOLIDATION_2026-10-29.md`.
 
 **30/10/2026 — secções verticais e auditoria (implementado):** padrão aplicado a 15 consumidores; ficha de Pessoas também vertical no telemóvel. Corrigidos scroll que podia deslocar a página, nomes extensos e contraste activo (6,65:1 claro / 7,92:1 escuro no ensaio controlado). 557 testes aprovados em 76 ficheiros, seis excepções preexistentes de contraste decorativo ignoradas. Tipos e lint dos ficheiros alterados aprovados; conferência Chromium em seis larguras e temas claro/escuro. Script reproduzível: `node scripts/qa/vertical-navigation.mjs`. Validação autenticada e publicação pendentes; push anterior bloqueado pela revisão automática. Evidência e limites em `docs/agents/HANDOFF_VERTICAL_NAV_2026-10-30.md`.
 
@@ -64,6 +89,29 @@ da pesquisa sem resultados. Nenhum endpoint, permissão, matrícula ou dado foi 
 Evidência: 8 testes de render da ficha e 492 testes académicos passaram localmente;
 lint sem erros. Publicação e ensaio autenticado desta versão ainda pendentes.
 Não comprova dispositivos físicos nem isolamento remoto entre escolas.
+**27/10/2026 — refinamento contextual da PR #375 (revisão em curso):**
+a vista Auditoria passa a usar apenas os últimos `audit_logs` autenticados da
+escola, sem exibir valores de produtividade definidos de forma constante.
+A vista Financeiro recebe quatro valores do overview (recebido, facturado,
+por receber e em atraso), com dados em falta representados por «—».
+Os separadores deixam de reutilizar indistintamente os mesmos gráficos:
+Visão Geral, Desempenho, Financeiro e Auditoria mostram conteúdo contextual.
+O botão de auditoria exige `capabilities.audit` e os outros portais não mudam.
+Testes de apresentação são acrescentados. O CI anterior falhou em oito
+erros Prettier já corrigidos em novo commit; a validação mais recente ainda
+precisa de ser confirmada.
+
+**27/10/2026 — pesquisa global e Início operacional (PR #375 em revisão):**
+pesquisa visual de Canvas, Moodle, Linear, Notion e Stripe registada em
+[Dashboard Home Research](DASHBOARD_HOME_RESEARCH_2026-10-27.md).
+Mantendo a PR #372 já integrada, a entrada administrativa mostra prioridades
+também no mobile, através de variante compacta, e reutiliza as operações
+autorizadas no desktop. Os cartões estatísticos deixam de ampliar no hover,
+conforme a directriz de interacções discretas; o cabeçalho verifica também
+`grants`. Não altera portais de professor/aluno/encarregado, dados ou RLS.
+Teste de regressão em `tests/dashboard/home-visual-layout.test.tsx`.
+**CI, testes em dispositivos reais, contas multi-escola, merge e deploy ainda
+não validados.** A PR foi aberta como rascunho.
 
 **27/10/2026 — botões discretos e cabeçalho semitransparente (PR em revisão):**
 o componente global `Button` conserva estados hover, loading, disabled e foco
@@ -100,6 +148,10 @@ ausência de overflow. Sem redesenho. [Matriz, evidências e limites](../qa/syst
 As restantes fases continuam parciais. O proprietário indicou o Colégio Adventista
 — Huambo para testes; isolamento de staging não confirmado.
 **27/10/2026 — sidebar persistente e flyout recolhido:** o novo pedido do proprietário substitui o compacto por omissão. Em ramo de revisão: expandido por omissão no desktop, botão com alternância fixa por utilizador/escola, subfunções em flyout por hover apenas quando recolhida e acordeão actual preservado quando expandida. Cobertura adicionada em Vitest/jsdom; execução de CI, dispositivo físico e produção ainda **não validadas**.
+**26/10/2026 — proposta de horários configurada: implementado.**
+Turno institucional e limite diário explícitos no painel existente, sem novo modal.
+Testes DOM e de domínio aprovados; sem validação em conta real ou aparelho.
+[Handoff e limites](../agents/HANDOFF_HORARIOS_CONFIGURADOS_2026-10-26.md).
 
 **25/10/2026 — backend de horários/calendário:** agenda autenticada, sincronização
 de presenças e migrações verificadas; [evidência e limites](../architecture/ACADEMIC_AGENDA.md).
@@ -271,6 +323,30 @@ Caixa ou o painel do Alumni. Os ficheiros passaram a `financeiro_.rh_.*.tsx` e `
 os endereços são os mesmos e cada página mostra o seu ecrã, sem estilos novos.
 `tests/routes/route-nesting-contract.test.ts` falha se uma página voltar a ficar dentro de outra
 sem `<Outlet />`.
+Na continuação de 25/10, a consulta diária passou para a agenda publicada e a
+publicação de horários ganhou uma transacção única, MFA e repetição independente
+das presenças. [Ensaio e limites](../architecture/ACADEMIC_AGENDA.md#continuação-publicação-atómica-e-consulta-diária--25102026).
+Continua a ser trabalho apenas de backend, sem nova validação visual.
+
+**26/10/2026 — horário semanal (Fase 6, Professores/Académico): `implementado`.**
+`StudentTimetableCard` (portais do aluno, encarregado e professor; Pedagógica) ganha
+cor por disciplina (`subject-tone.ts`, matiz oklch com luminosidade fixa, sem
+gradientes nem sombras fortes), um dia de cada vez abaixo de `lg` com selector de
+44 px, aula em curso, aulas passadas e intervalos. Evidência: Vitest
+`tests/dashboard/student-timetable-card.test.tsx` e `tests/calendar/subject-tone.test.ts`;
+capturas do componente real com o servidor simulado (dados da turma DH26-10A) a
+[390 claro](evidence/2026-10-26/horario/390-claro.png),
+[390 escuro](evidence/2026-10-26/horario/390-escuro.png),
+[1024](evidence/2026-10-26/horario/1024-claro.png) e
+[1440](evidence/2026-10-26/horario/1440-claro.png), sem scroll horizontal em 390/768/1024/1440.
+Falta: validar em dispositivo físico e dentro do portal autenticado, depois de
+correr `supabase/SEED_DEMO_HORARIOS_2026.sql`.
+
+**26/10/2026 — funções de horários (Fase 6, Académico/Professores): `implementado`.**
+Ferramentas do horário na Pedagógica (análise, disponibilidade, exportação, proposta
+automática) em página, por separadores, sem modais novos; no portal, semanas, próxima aula,
+feriados, legenda com destaque, exportar e imprimir. Evidência e limites em
+[HORARIOS_2026.md](../specs/HORARIOS_2026.md). Falta a validação em dispositivo físico.
 
 ## Diagnóstico por prioridade
 
@@ -288,24 +364,24 @@ sem `<Outlet />`.
 
 ## Cobertura das fases
 
-| Fase                            | Estado      | Evidência e próximo passo                                                                                                                                                                                                                                                   |
-| ------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 — auditoria integral          | parcial     | Branch/HEAD/estado inicial limpos, arquitectura e handoff lidos; 18 módulos/186 ficheiros do inventário verificados. Falta auditoria runtime completa de todos os módulos.                                                                                                  |
-| 2.1 — superfícies               | parcial     | Definições em página, coluna menor; PremiumModal mais discreto; rever cartões, bordas, sombras, composição e alinhamentos em cada módulo.                                                                                                                                   |
-| 2.2 — tipografia/nitidez        | parcial     | **Medido em 30/10/2026:** 78 pares de contraste, 16 falhas, 10 corrigidas; restam 6 isenções com razão escrita (bordas decorativas). Raiz do portátil alinhada com a do monitor por decisão do proprietário — **sem efeito no texto**: a escala tem piso em px (`max(11px, 0.75rem)`), pelo que `text-xs` mede 11px e não 8,25px; medição corrigida em 30/10. Regressão em `tests/ui/theme-token-contrast.test.ts`. Faltam imagens, nitidez de SVG, pesos e hierarquia página a página. [Relatório](VISUAL_2026-10-30_FASE_2-2.md). |
-| 2.3 — componentes universais    | parcial     | Modais refinados. **Alvo de toque e foco medidos em 30/10/2026:** 3 controlos falhavam a SC 2.5.8 (caixa de verificação e rádio a 12px, interruptor a 15px) e foram corrigidos com área de toque em pseudo-elemento, sem mudar tamanho visual; geometria verificada no browser. Divergência campo/selector resolvida por decisão do proprietário: o selector alinha pelo campo (`lg:h-9 lg:py-1 lg:text-sm lg:leading-5`), medido a 25,88px nos dois. Regressão em `tests/ui/target-size-contract.test.ts`. **Listas e filtros medidos em 30/10:** área quase toda limpa — corrigida uma falha de SC 4.1.3 (a contagem de resultados não era anunciada); duplicação de 31 tabelas cruas contra 19 partilhadas e dois componentes partilhados sem consumidor ficam como decisão. Faltam notificações, estados e dashboards. [Relatório](VISUAL_2026-10-30_FASE_2-3.md). |
-| 3 — navegação contextual        | parcial     | Menu compacto, sem expansão automática; preferências institucionais; guardas de acesso mantidas. Falta validar todos os contextos, cabeçalhos, escola activa, rotas e teclado virtual.                                                                                      |
-| 4.1 — interacções               | parcial     | Pendência local e bloqueio de envios em três formulários; faltam estados, skeletons, scroll, cache de filtros e feedback dos outros consumidores.                                                                                                                           |
-| 4.2 — animações                 | parcial     | Não foi adicionado vídeo nem alterado o logótipo. Falta medir durações/frames e movimento reduzido em todas as superfícies.                                                                                                                                                 |
-| 4.3 — toque                     | parcial     | Categorias ≥44 px no ensaio; envios repetidos bloqueados nos componentes cobertos. Faltam sobreposições, scroll, foco, menus e duplo envio nos restantes formulários.                                                                                                       |
-| 5.1 — frontend                  | parcial     | Build e inventário de preloads disponíveis. Falta baseline de produção comparável, profiling de render, imagens/fontes, listas grandes, imports, cache e cálculos. Sem novos pacotes.                                                                                       |
-| 5.2 — backend/dados             | bloqueado   | Nenhum SQL/API/RLS alterado. Falta acesso de teste autorizado para medir consultas, índices, cache, payload e integrações sem escrever em escolas reais.                                                                                                                    |
-| 5.3 — objectivos mensuráveis    | bloqueado   | Comparação geométrica abaixo. INP/LCP/CLS p75 e FPS reais ainda não medidos; exigem ambiente instrumentado e amostra adequada.                                                                                                                                              |
-| 6 — módulos                     | parcial     | Melhorias partilhadas propagam aos consumidores; auditoria individual no inventário abaixo ainda não está concluída.                                                                                                                                                        |
-| 7 — dispositivos e browsers     | parcial     | Chromium headless: 390/767/768/1023/1024/1440 px no componente isolado. Android/iOS/tablets/Windows/macOS físicos, Safari/Edge/Firefox, orientação, zoom e rede lenta continuam por validar. Flutter não alterado neste incremento Web; não usar Mobile V4 como substituto. |
-| 8 — acessibilidade/segurança    | parcial     | Testes de guardas, fecho, foco de Radix e bloqueio de envios; sem alterações a auth/RLS/regras de negócio. Faltam leitores de ecrã/contraste AA e isolamento remoto com duas escolas e múltiplos perfis.                                                                    |
-| 9 — regressão e percursos reais | parcial     | Testes e ensaio reproduzível abaixo. Auth/MFA/escolha de escola/matrículas/notas/pagamentos/arquivo/pesquisa completos exigem contas de ensaio; não executados em produção.                                                                                                 |
-| 10 — entrega                    | parcial     | Contrato completo ligado a AGENTS.md, evidências e matriz versionados; commits e PR devem acompanhar o estado final. Sem deploy ou migrações.                                                                                                                               |
+| Fase                            | Estado    | Evidência e próximo passo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 — auditoria integral          | parcial   | Branch/HEAD/estado inicial limpos, arquitectura e handoff lidos; 18 módulos/186 ficheiros do inventário verificados. Falta auditoria runtime completa de todos os módulos.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 2.1 — superfícies               | parcial   | Definições em página, coluna menor; PremiumModal mais discreto; rever cartões, bordas, sombras, composição e alinhamentos em cada módulo.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 2.2 — tipografia/nitidez        | parcial   | **Medido em 30/10/2026:** 78 pares de contraste, 16 falhas, 10 corrigidas; restam 6 isenções com razão escrita (bordas decorativas). Raiz do portátil alinhada com a do monitor por decisão do proprietário — **sem efeito no texto**: a escala tem piso em px (`max(11px, 0.75rem)`), pelo que `text-xs` mede 11px e não 8,25px; medição corrigida em 30/10. Regressão em `tests/ui/theme-token-contrast.test.ts`. Faltam imagens, nitidez de SVG, pesos e hierarquia página a página. [Relatório](VISUAL_2026-10-30_FASE_2-2.md).                                                                                                                                                                                                                                                                                                                                    |
+| 2.3 — componentes universais    | parcial   | Modais refinados. **Alvo de toque e foco medidos em 30/10/2026:** 3 controlos falhavam a SC 2.5.8 (caixa de verificação e rádio a 12px, interruptor a 15px) e foram corrigidos com área de toque em pseudo-elemento, sem mudar tamanho visual; geometria verificada no browser. Divergência campo/selector resolvida por decisão do proprietário: o selector alinha pelo campo (`lg:h-9 lg:py-1 lg:text-sm lg:leading-5`), medido a 25,88px nos dois. Regressão em `tests/ui/target-size-contract.test.ts`. **Listas e filtros medidos em 30/10:** área quase toda limpa — corrigida uma falha de SC 4.1.3 (a contagem de resultados não era anunciada); duplicação de 31 tabelas cruas contra 19 partilhadas e dois componentes partilhados sem consumidor ficam como decisão. Faltam notificações, estados e dashboards. [Relatório](VISUAL_2026-10-30_FASE_2-3.md). |
+| 3 — navegação contextual        | parcial   | Menu compacto, sem expansão automática; preferências institucionais; guardas de acesso mantidas. Falta validar todos os contextos, cabeçalhos, escola activa, rotas e teclado virtual.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 4.1 — interacções               | parcial   | Pendência local e bloqueio de envios em três formulários; faltam estados, skeletons, scroll, cache de filtros e feedback dos outros consumidores.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 4.2 — animações                 | parcial   | Não foi adicionado vídeo nem alterado o logótipo. Falta medir durações/frames e movimento reduzido em todas as superfícies.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 4.3 — toque                     | parcial   | Categorias ≥44 px no ensaio; envios repetidos bloqueados nos componentes cobertos. Faltam sobreposições, scroll, foco, menus e duplo envio nos restantes formulários.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 5.1 — frontend                  | parcial   | Build e inventário de preloads disponíveis. Falta baseline de produção comparável, profiling de render, imagens/fontes, listas grandes, imports, cache e cálculos. Sem novos pacotes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 5.2 — backend/dados             | bloqueado | Nenhum SQL/API/RLS alterado. Falta acesso de teste autorizado para medir consultas, índices, cache, payload e integrações sem escrever em escolas reais.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 5.3 — objectivos mensuráveis    | bloqueado | Comparação geométrica abaixo. INP/LCP/CLS p75 e FPS reais ainda não medidos; exigem ambiente instrumentado e amostra adequada.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 6 — módulos                     | parcial   | Melhorias partilhadas propagam aos consumidores; auditoria individual no inventário abaixo ainda não está concluída.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| 7 — dispositivos e browsers     | parcial   | Chromium headless: 390/767/768/1023/1024/1440 px no componente isolado. Android/iOS/tablets/Windows/macOS físicos, Safari/Edge/Firefox, orientação, zoom e rede lenta continuam por validar. Flutter não alterado neste incremento Web; não usar Mobile V4 como substituto.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 8 — acessibilidade/segurança    | parcial   | Testes de guardas, fecho, foco de Radix e bloqueio de envios; sem alterações a auth/RLS/regras de negócio. Faltam leitores de ecrã/contraste AA e isolamento remoto com duas escolas e múltiplos perfis.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 9 — regressão e percursos reais | parcial   | Testes e ensaio reproduzível abaixo. Auth/MFA/escolha de escola/matrículas/notas/pagamentos/arquivo/pesquisa completos exigem contas de ensaio; não executados em produção.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 10 — entrega                    | parcial   | Contrato completo ligado a AGENTS.md, evidências e matriz versionados; commits e PR devem acompanhar o estado final. Sem deploy ou migrações.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ## Inventário por módulo
 
@@ -425,6 +501,26 @@ Estado: alterações submetidas à revisão/CI; **não concluir QA autenticada n
 declarar deploy de produção sem resultados reais**. O inventário restante de
 modais grandes e o ensaio de diferentes escolas continuam pendentes.
 
+## Website Studio dedicado — 24/10/2026
+
+Estado global do módulo: **parcial**. Primeiro incremento em `/website/editor`,
+com Puck 0.23.0 carregado apenas no cliente. Páginas à esquerda, preview isolado,
+inspector de conteúdo e aparência por página, largura/zoom e vistas móveis.
+Os atalhos de Website nas Definições abrem o estúdio; as configurações completas
+anteriores e o blog mantêm-se acessíveis.
+
+Validação local: testes de adaptador, Puck real em DOM, comandos editoriais,
+conflitos/falhas, cancelamento ao mudar escola, acesso por cargo/módulo e Chrome
+com fixtures em seis larguras. O template público não foi redesenhado.
+[Evidência e medições](../qa/website-studio-2026-10-24/README.md).
+
+Faltam CI remoto, sessão real AAL2, duas instituições em staging, Worker canário,
+dispositivos físicos e Web Vitals p75. A selecção de elementos por clique/teclado foi implementada com ponte opaca
+restrita e testada localmente. A alteração livre da estrutura continua fora do
+contrato. Desfazer/refazer (20 estados em memória), comparação com publicação
+e revisão explícita antes de publicar também foram acrescentados. Não considerar
+a execução integral do padrão global concluída por causa deste incremento.
+
 ## Flyouts laterais compactos — referência Claude IDE (24/10/2026)
 
 Incremento na [PR #274](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/274), sincronizado com `main` `057d4aa7`, **sem substituir** a sidebar das PRs #252/#262/#271 ou os modais simples do projecto.
@@ -536,6 +632,21 @@ visita primeiro. No Android o cartão «SIGA Plus para Android» (APK de 64 bits
 para o de 32 bits, passos e certificado recolhidos) vem em cima e destacado; no computador fica
 por baixo com o botão em contorno. Definições → «Apps do SIGA»; no ecrã de entrada a ligação
 «Transferir a app do SIGA» aparece em todos os tamanhos (fora da app de computador).
+
+**29/10/2026 — Continuação do CRUD (implementado em ramo independente):**
+labels/erros/datalists por instância de formulário, bloqueio dos campos durante
+gravação e recuperação em falha, BI obrigatório quando configurado, selecção
+preservada após resultados parciais em Acessos. Sem alteração de layout, fontes
+ou cores. Testes DOM e verificadores estáticos aprovados; QA autenticado,
+dispositivos e assistivas continuam pendentes. Evidência em
+`docs/agents/HANDOFF_CRUD_CONTINUATION_2026-10-29.md`.
+
+**29/10/2026 — Selectores dependentes (implementado em ramo de revisão #405):**
+valores iniciais e avisos acompanham as escolhas reais; listas actualizadas
+preservam opções ainda válidas. Mantidos select nativo, labels, teclado e nomes
+de campo. 30 testes dirigidos, TypeScript e build aprovados; dispositivos e
+homologação autenticada continuam pendentes. Evidência no handoff da continuação
+CRUD de 29/10/2026.
 
 ## Contraste dos tokens e tamanho tipográfico (30/10/2026)
 
@@ -774,7 +885,7 @@ lido no código. Conta de Administrador, ISPAB, 1440×900.
 - **O ecrã de entrada tem 3794px: 4,2 ecrãs de scroll.** O maior bloco isolado é
   o «Arranque da escola», com **549px — 14% da página** — a listar 11 passos dos
   quais 9 estavam feitos.
-- **Corrigido:** o guia só ficava compacto quando *todos* os passos estavam
+- **Corrigido:** o guia só ficava compacto quando _todos_ os passos estavam
   concluídos. Passa a abrir minimizado a partir de 80%, sem escolha guardada.
   Ficam o progresso e o próximo passo com a sua acção; recolhe só a lista
   exaustiva, e a escolha de quem minimiza ou expande continua a mandar.
@@ -796,11 +907,11 @@ lido no código. Conta de Administrador, ISPAB, 1440×900.
 
 ### 28/10/2026 — Financeiro: lista por aluno
 
-| Fase / módulo | Estado | Evidência | Próximo passo |
-| --- | --- | --- | --- |
+| Fase / módulo                        | Estado       | Evidência                                                                                                                             | Próximo passo                                        |
+| ------------------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | Faturas / lista financeira por aluno | implementado | StudentLedgerPanel; filtros partilhados, estados centralizados, tabela paginada, erros e carregamento; testes DOM de filtros/selecção | Ensaio visual desktop/tablet/Android, teclado e zoom |
-| Fluidez / desempenho da lista | parcial | Chunk e consulta carregados só ao abrir; cache por escola/ano; 25 linhas por página; backend por páginas e ids | Medir rede lenta, latência e Web Vitals reais |
-| Isolamento e perfis | parcial | Guarda financeira, school_id em todas as consultas; testes com duas escolas simuladas | Testar sessões e RLS reais |
+| Fluidez / desempenho da lista        | parcial      | Chunk e consulta carregados só ao abrir; cache por escola/ano; 25 linhas por página; backend por páginas e ids                        | Medir rede lenta, latência e Web Vitals reais        |
+| Isolamento e perfis                  | parcial      | Guarda financeira, school_id em todas as consultas; testes com duas escolas simuladas                                                 | Testar sessões e RLS reais                           |
 
 Refinamento da lista financeira: selecção/desmarcação por página, contador de
 dívida seleccionada e exportação só dos devedores escolhidos. Estado implementado;
@@ -809,9 +920,9 @@ entre páginas e limite de 60. Layout em aparelhos continua por validar.
 
 ### 28/10/2026 — lista financeira em navegador
 
-| Âmbito | Estado | Evidência | Limite / próximo passo |
-| --- | --- | --- | --- |
-| Lista móvel e toque | validado em Chromium controlado | Cartões abaixo de 768 px; alvos de 44 px; nove viewports, 320–1440 px | Ensaiar aparelhos reais |
+| Âmbito                          | Estado                          | Evidência                                                                                                      | Limite / próximo passo                                      |
+| ------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Lista móvel e toque             | validado em Chromium controlado | Cartões abaixo de 768 px; alvos de 44 px; nove viewports, 320–1440 px                                          | Ensaiar aparelhos reais                                     |
 | Teclado, contexto, CSV, diálogo | validado em Chromium controlado | `scripts/qa/finance-student-ledger.mjs`; foco/Escape em 320 × 800 e 640 × 360; descarga real CSV; API fictícia | Sessão/servidor real, leitores de ecrã e restantes browsers |
 
 Detalhes e limites: `docs/qa/finance/STUDENT_LEDGER_BROWSER_2026-10-28.md`.
@@ -820,9 +931,27 @@ pagamentos. A vista de tablet/desktop e os estados do dinheiro foram preservados
 
 ### 28/10/2026 — cartão de pagamento
 
-| Âmbito | Estado | Evidência | Próximo passo |
-| --- | --- | --- | --- |
-| Referência/confirmar/cópia | validado em Chromium controlado | 320/390/768/1440 px; alvos de 44 px, recálculo bloqueado, clipboard e confirmação única com API fictícia | Sessões reais e aparelhos |
-| Sucesso após recibo | implementado e testado local | Estado do recibo, cache/PDF separados da liquidação em Faturas, Caixa e ficha | Ensaio operacional com Tesouraria |
+| Âmbito                     | Estado                          | Evidência                                                                                                | Próximo passo                     |
+| -------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Referência/confirmar/cópia | validado em Chromium controlado | 320/390/768/1440 px; alvos de 44 px, recálculo bloqueado, clipboard e confirmação única com API fictícia | Sessões reais e aparelhos         |
+| Sucesso após recibo        | implementado e testado local    | Estado do recibo, cache/PDF separados da liquidação em Faturas, Caixa e ficha                            | Ensaio operacional com Tesouraria |
 
 Ver `docs/agents/HANDOFF_PAYMENT_CONFIRMATION_2026-10-28.md` para os limites.
+
+## Website Studio — reconciliação com main (25/10/2026)
+
+A base das PRs #275/#277 foi reconciliada com `50b90afe`, preservando as categorias
+Identidade Digital/Pedagógico e a migração Zod 4. O editor permite recarregar a
+versão guardada após erro/conflito com confirmação de descarte, cancelamento por
+contexto e rejeição de respostas de outra escola antes de actualizar a cache.
+[Evidência e limites](../qa/website-studio-2026-10-24/SYNC_2026-10-25.md).
+Continuam pendentes CI integral e ensaios reais em staging/canário; sem rollout.
+
+## Agenda dos portais — refinamento de backend (25/10/2026)
+
+As APIs dos horários de aluno/encarregado/docente passam a usar a agenda publicada,
+com semana civil, domingo e inscrições por cadeira. Presenças repetíveis sem
+sobrescrever chamadas. Componentes, dimensões, navegação e preferências visuais
+preservados. Este ciclo não constitui validação visual nem deploy da aplicação.
+Contrato, ensaio SQL revertido e verificações:
+[refinamento da agenda](../architecture/ACADEMIC_AGENDA.md#refinamento-portais-e-ressincronização-de-presenças--25102026).

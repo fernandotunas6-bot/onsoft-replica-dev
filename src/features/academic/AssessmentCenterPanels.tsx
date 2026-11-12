@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { Button } from "@/components/ui/button";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { formatScore, pautaSituations } from "@/lib/angola-academic";
@@ -147,6 +148,7 @@ export function AssessmentDocumentsPanel({
 export type AssessmentHistoryLine = {
   id: string;
   studentName: string;
+  studentNumber?: string | null;
   itemName: string;
   previous: number | null;
   current: number | null;
@@ -166,8 +168,18 @@ export function AssessmentHistoryPanel({ lines }: { lines: ReadonlyArray<Assessm
         <ul className="space-y-1 text-sm">
           {lines.slice(0, 12).map((line) => (
             <li key={line.id}>
-              <span className="font-semibold">{line.studentName}</span> · {line.itemName}:{" "}
-              {formatScore(line.previous)} → {formatScore(line.current)}
+              <span className="font-semibold">{line.studentName}</span>
+              {line.studentNumber ? (
+                <>
+                  {" "}
+                  <IdentifierValue
+                    value={line.studentNumber}
+                    variant="plain"
+                    className="text-muted-foreground"
+                  />
+                </>
+              ) : null}{" "}
+              · {line.itemName}: {formatScore(line.previous)} → {formatScore(line.current)}
             </li>
           ))}
         </ul>

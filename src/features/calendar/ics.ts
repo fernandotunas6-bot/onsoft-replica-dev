@@ -15,6 +15,8 @@ export type CalendarIcsTimedEvent = {
   starts_at: string;
   ends_at?: string | null;
   location?: string | null;
+  /** Repete todas as semanas até este dia (inclusive, hora de Luanda): aulas do horário. */
+  weekly_until?: string | null;
 };
 
 function icsEscape(value: string) {
@@ -123,6 +125,9 @@ export function toIcsTimedCalendar(
       `DTSTAMP:${stamp}`,
       `DTSTART:${start}`,
       `DTEND:${end}`,
+      ...(event.weekly_until
+        ? [`RRULE:FREQ=WEEKLY;UNTIL=${icsDate(event.weekly_until)}T225959Z`]
+        : []),
       `SUMMARY:${icsEscape(event.title)}`,
       `DESCRIPTION:${icsEscape(String(event.description ?? ""))}`,
       ...(event.location ? [`LOCATION:${icsEscape(event.location)}`] : []),

@@ -1,3 +1,5 @@
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useFollowSelectedTerm } from "@/features/auth/use-follow-selected-term";
 import { useState } from "react";
 import { AlertTriangle, BookOpen, ChevronRight, Layers, Trophy } from "lucide-react";
 import { IconChip } from "@/components/ui/icon-chip";
@@ -32,7 +34,15 @@ export function DisciplinePerformanceHeatmap({
   data: dataProp = [],
   dataByTerm,
 }: DisciplinePerformanceHeatmapProps) {
-  const [selectedTerm, setSelectedTerm] = useState("t1");
+  // Começa no período escolhido no cabeçalho (ou t1) e segue-o quando muda.
+  const { selectedTerm: globalTerm } = useSchoolSettings();
+  const globalSequence = globalTerm?.sequence;
+  const [selectedTerm, setSelectedTerm] = useState(() =>
+    globalSequence && globalSequence <= 3 ? `t${globalSequence}` : "t1",
+  );
+  useFollowSelectedTerm((sequence) => {
+    if (sequence >= 1 && sequence <= 3) setSelectedTerm(`t${sequence}`);
+  });
 
   const data = dataByTerm ? (dataByTerm[selectedTerm] ?? []) : dataProp;
 

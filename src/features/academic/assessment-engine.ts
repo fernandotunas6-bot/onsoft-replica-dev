@@ -103,7 +103,8 @@ export function decidePromotionStatus(
   const passes = overallAvg >= passing && withinFailures;
 
   if (rule.requiresPap) {
-    const hasPap = papGrade !== undefined && papGrade !== null;
+    // NaN ou infinito (folha mal preenchida) contam como nota em falta.
+    const hasPap = typeof papGrade === "number" && Number.isFinite(papGrade);
     if (hasPap && papGrade < passing) return "NÃO APTO (PAP)";
     // Sem a nota da PAP não há aptidão: a média positiva só diz que falta a prova.
     // Antes saía «APTO (PAP)» para toda a turma técnica, porque nenhum consumidor

@@ -125,11 +125,16 @@ afterEach(() => {
   server.tasks.mockReset();
 });
 
-function open(search: Record<string, unknown> = {}, role = "Secretaria", id = TURMA) {
+function open(
+  search: Record<string, unknown> = {},
+  role = "Secretaria",
+  id = TURMA,
+  grants: Record<string, string> = {},
+) {
   server.workspace.mockResolvedValue(workspace);
   setRouteParams({ turmaId: id });
   setRouteSearch(search);
-  setCurrentAccount({ role, roles: [role] });
+  setCurrentAccount({ role, roles: [role], grants });
   renderRoute(Page);
 }
 
@@ -249,16 +254,44 @@ describe("/pedagogica/turmas/$turmaId", () => {
     expect(server.tasks).toHaveBeenCalledWith({ data: { classGroupId: TURMA } });
     expect(screen.getByRole("link", { name: "Ver trabalhos e entregas" })).toBeDefined();
     expect(screen.getByRole("link", { name: "Presenças e aulas realizadas" })).toBeDefined();
-    expect(screen.queryByRole("button", { name: "Editar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Mais opções/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Professor" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Aplicar currículo do curso" })).toBeNull();
   });
 
   it("a Secretaria mantém gestão de turma e não carrega o painel do professor", async () => {
     open();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Editar" })).toBeDefined());
+    // A gestão da turma (editar, currículo, exportar) está no menu «Mais opções».
+    const menu = await screen.findByRole("button", { name: /Mais opções/ });
+    fireEvent.keyDown(menu, { key: "Enter" });
+    expect(await screen.findByRole("menuitem", { name: /Editar dados da turma/ })).toBeDefined();
     expect(screen.queryByRole("complementary", { name: "Contexto do professor" })).toBeNull();
     expect(server.tasks).not.toHaveBeenCalled();
+  });
+
+  it("o professor vê os alunos da turma sem ligações nem menu para /alunos, que não abre", async () => {
+    server.tasks.mockResolvedValue({ available: true, open: [], closed: [] });
+    open({}, "Professor");
+    await waitFor(() => expect(screen.getByText("Ana Paula Silva")).toBeDefined());
+    expect(screen.queryByRole("link", { name: /Ana Paula Silva/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Acções de Ana Paula Silva" })).toBeNull();
+  });
+
+  it("com permissão de Pessoas, o professor volta a ter a ficha do aluno", async () => {
+    server.tasks.mockResolvedValue({ available: true, open: [], closed: [] });
+    open({}, "Professor", TURMA, { pessoas: "Leitura" });
+    await waitFor(() =>
+      expect(screen.getByRole("link", { name: /Ana Paula Silva/ })).toBeDefined(),
+    );
+    expect(screen.getByRole("button", { name: "Acções de Ana Paula Silva" })).toBeDefined();
+  });
+
+  it("a Secretaria abre a ficha e o menu de cada aluno", async () => {
+    open();
+    await waitFor(() =>
+      expect(screen.getByRole("link", { name: /Ana Paula Silva/ })).toBeDefined(),
+    );
+    expect(screen.getByRole("button", { name: "Acções de Ana Paula Silva" })).toBeDefined();
   });
 
   it("aluno e encarregado não pedem a turma", async () => {

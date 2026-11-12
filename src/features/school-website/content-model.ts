@@ -26,16 +26,41 @@ export const websiteTemplate = manifestJson as { version: string; fields: Websit
 const fields = new Map(websiteTemplate.fields.map((field) => [field.key, field]));
 export const WEBSITE_DOMAIN = "school_website";
 
+/**
+ * Editorial URLs must remain public without bearer credentials. This is a
+ * syntactic boundary, not a DNS/redirect or ownership verification service.
+ */
 export function safePublicUrl(value: string, image = false): boolean {
   if ([...value].some((char) => char.charCodeAt(0) <= 32 || char === "\\")) return false;
-  if (value.startsWith("/") && !value.startsWith("//")) return true;
+  const local = value.startsWith("/") && !value.startsWith("//");
   try {
-    const url = new URL(value);
-    return (
-      !url.username &&
-      !url.password &&
-      (url.protocol === "https:" || (!image && ["mailto:", "tel:"].includes(url.protocol)))
-    );
+    const url = new URL(value, local ? "https://website.invalid" : undefined);
+    if (url.username || url.password) return false;
+    if (!local && !image && ["mailto:", "tel:"].includes(url.protocol)) return true;
+    if (url.protocol !== "https:") return false;
+    if (!local) {
+      const host = url.hostname.toLowerCase().replace(/\.$/, "");
+      // Public editorial media uses DNS names, never IP literals or intranet names.
+      if (
+        !host.includes(".") ||
+        host.includes(":") ||
+        /^[0-9.]+$/.test(host) ||
+        /(?:^|\.)(?:localhost|local|internal|lan|home|invalid)$/.test(host)
+      )
+        return false;
+    }
+    const path = decodeURIComponent(url.pathname).toLowerCase();
+    if (/\/storage\/v1\/object\/(?:sign|authenticated)(?:\/|$)/.test(path)) return false;
+    if (image && local && path.startsWith("/api/")) return false;
+    for (const name of url.searchParams.keys()) {
+      if (
+        /^(?:token|access_token|refresh_token|authorization|signature|sig|key-pair-id|x-amz-.+|x-goog-.+)$/i.test(
+          name,
+        )
+      )
+        return false;
+    }
+    return true;
   } catch {
     return false;
   }
@@ -43,7 +68,8 @@ export function safePublicUrl(value: string, image = false): boolean {
 export function websiteOrigin(value: string): string | null {
   try {
     const url = new URL(value);
-    return url.protocol === "https:" &&
+    return safePublicUrl(value) &&
+      url.protocol === "https:" &&
       !url.username &&
       !url.password &&
       !url.search &&

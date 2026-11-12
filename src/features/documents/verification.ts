@@ -19,8 +19,9 @@ import {
   assertTenantAllowsWrites,
   loadSgaAdminClient,
   resolveSgaMembershipAdmin,
+  requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
-import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
+import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import {
   isPrintTemplateKey,
@@ -28,6 +29,13 @@ import {
   PRINT_TEMPLATE_META,
   type PrintTemplateKey,
 } from "./print-catalog";
+
+export function assertDocumentClassScope(requested: readonly string[], allowed: readonly string[]) {
+  const permitted = new Set(allowed);
+  if (!requested.length || requested.some((id) => !permitted.has(id))) {
+    throw new Error("Escolha apenas turmas atribuídas ao professor para emitir este documento.");
+  }
+}
 
 export const ISSUED_DOCUMENT_ACTION = "documents.issued";
 const ISSUER_ROLES = ["Administrador", "Secretaria", "Tesouraria", "Professor"];
@@ -133,6 +141,7 @@ const registerInputSchema = z.object({
   reference: z.string().trim().max(80).optional(),
   amountLabel: z.string().trim().max(60).optional(),
   /** Disciplinas tal como impressas (printed-subjects.ts): o nome à data da emissão. */
+  classGroupIds: z.array(z.string().guid()).max(100).optional(),
   subjects: z.array(z.string().trim().min(1).max(120)).max(40).optional(),
 });
 
@@ -159,14 +168,32 @@ export const registerIssuedDocument = createServerFn({ method: "POST" })
     // módulo «pessoas»: os recibos são da Tesouraria, que pode não ter esse módulo.
     await assertTenantAllowsWrites(membership.schoolId);
     const rateLimitKey = `document_issue:${context.userId}`;
-    if (!isRateLimitBypassed(rateLimitKey)) {
-      if (!checkRateLimit([rateLimitKey], ISSUE_RATE_LIMIT)) {
-        throw new Error("Demasiados documentos emitidos numa hora. Tente mais tarde.");
-      }
-      recordRateLimitAttempt([rateLimitKey], ISSUE_RATE_LIMIT);
+    if (
+      !isRateLimitBypassed(rateLimitKey) &&
+      !(await consumeRateLimit([rateLimitKey], ISSUE_RATE_LIMIT))
+    ) {
+      throw new Error("Demasiados documentos emitidos numa hora. Tente mais tarde.");
     }
 
     const db = await loadSgaAdminClient();
+    if (issuerRole === "Professor") {
+      // Sem a lista de cargos, o guarda só aceita Administração/Secretaria/Tesouraria
+      // e recusava todos os professores sem permissão extra na Pedagógica.
+      await requireSgaWriterForWrite("pedagogica", context.userId, ["Professor"]);
+      const { resolveUserLinkedEntities } = await import("@/features/auth/server");
+      const { resolveVerifiedAccountEmail, teacherClassGroupIds } =
+        await import("@/features/students/student-scope");
+      const linked = await resolveUserLinkedEntities(
+        db,
+        membership.schoolId,
+        context.userId,
+        await resolveVerifiedAccountEmail(db, context.userId),
+      );
+      const allowed = linked.teacher_id
+        ? await teacherClassGroupIds(db, membership.schoolId, linked.teacher_id)
+        : [];
+      assertDocumentClassScope(data.classGroupIds ?? [], allowed);
+    }
     const code = generateVerificationCode();
     const issuedAt = new Date().toISOString();
     // Ao contrário do resto da auditoria, esta escrita não pode falhar em
@@ -182,6 +209,8 @@ export const registerIssuedDocument = createServerFn({ method: "POST" })
         title: verifiedDocumentTitle(templateKey, data.title),
         // O que o browser pediu, só para a auditoria (não aparece na verificação).
         requested_title: data.title,
+        verification_scope: "issuance_registration",
+        class_group_ids: data.classGroupIds ?? [],
         holder: data.holderName ?? null,
         template: templateKey,
         issuer_role: issuerRole,

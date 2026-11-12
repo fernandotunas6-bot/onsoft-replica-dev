@@ -1,0 +1,67 @@
+{
+  "dateLuanda": "2026-10-25",
+  "project": "xodgfmxiaunpamctfeea",
+  "migration": {
+    "file": "supabase/migrations/20261025121012_atomic_academic_schedule_publication.sql",
+    "version": "20261025121012",
+    "applied": true
+  },
+  "database": {
+    "anonExecute": false,
+    "authenticatedExecute": false,
+    "counts": {
+      "class_groups": 233,
+      "enrollments": 43,
+      "students": 42,
+      "teachers": 4
+    },
+    "invoker": true,
+    "serviceExecute": true
+  },
+  "snapshot": {
+    "capturedAt": "2026-10-25T12:10:14.192Z",
+    "tables": 211,
+    "rlsTables": 211
+  },
+  "validation": {
+    "build": "passed",
+    "typecheck": "passed",
+    "eslint": "passed",
+    "initialBackendRun": {
+      "numPassedTests": 1174,
+      "numFailedTests": 1,
+      "numPendingTests": 1
+    },
+    "resolvedFailure": "Privilege debt gate: documented the service-only publication RPC in PRIVILEGIO_POR_DESENHO without increasing the ceiling. Subsequent checks passed.",
+    "focusedRetest": {
+      "filesPassed": 16,
+      "testsPassed": 95
+    },
+    "sql": {
+      "passed": true,
+      "role": "service_role",
+      "rolledBack": true,
+      "scenarios": [
+        "V1 and V2 publication",
+        "one published version",
+        "lesson snapshot",
+        "late slot-link failure restores previous publication and links",
+        "weekly workload rejection",
+        "validity rejection",
+        "no browser execute privilege"
+      ]
+    },
+    "concurrentTwoSessionWriteTest": "not performed"
+  },
+  "securityAdvisors": {
+    "beforeAndAfterUnchanged": true,
+    "informationalNoPolicies": 84,
+    "warningsAuthenticatedDefinerFunctions": 18,
+    "warningsLeakedPasswordProtection": 1
+  },
+  "scope": {
+    "uiChanged": false,
+    "applicationDeployed": false,
+    "code": "workspace; migration applied to SGA"
+  }
+}

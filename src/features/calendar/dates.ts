@@ -1,7 +1,9 @@
+import { schoolTodayIso } from "@/lib/school-date";
+
 /** Datas civis do calendário lectivo (fuso Africa/Luanda). Sem Date local ambíguo. */
 
 export function todayInLuanda(now = new Date()) {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Luanda" }).format(now);
+  return schoolTodayIso(now);
 }
 
 export function isoDate(year: number, month: number, day: number) {

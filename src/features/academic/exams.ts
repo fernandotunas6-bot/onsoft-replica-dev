@@ -338,6 +338,7 @@ export type ExamRegistration = {
 export type ExamStudentLine = {
   enrollmentId: string;
   studentName: string;
+  studentNumber: string | null;
   absencePercentage: number | null;
   subjects: SubjectFinal[];
   eligibility: Eligibility;
@@ -424,6 +425,7 @@ export const getExamClassDetail = createServerFn({ method: "GET" })
       return {
         enrollmentId: row.enrollmentId,
         studentName: names.get(row.enrollmentId)?.name ?? "Aluno",
+        studentNumber: names.get(row.enrollmentId)?.studentNumber ?? null,
         absencePercentage: row.absencePercentage,
         subjects,
         eligibility: examEligibility(

@@ -90,7 +90,14 @@ async function parseXlsxBuffer(buffer: Buffer): Promise<ParsedFile> {
 
 function cellToPrimitive(value: unknown): ImportCellValue {
   if (value === null || value === undefined) return null;
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (value instanceof Date) {
+    // Uma célula só com hora chega como 1899-12-30T07:30Z (época do Excel): guardar só a
+    // data apagava a hora e cada linha de um horário era recusada.
+    if (value.getUTCFullYear() === 1899 && value.getUTCMonth() === 11) {
+      return value.toISOString().slice(11, value.getUTCSeconds() === 0 ? 16 : 19);
+    }
+    return value.toISOString().slice(0, 10);
+  }
   if (typeof value === "object") {
     const v = value as Record<string, unknown>;
     if ("richText" in v && Array.isArray(v["richText"])) {

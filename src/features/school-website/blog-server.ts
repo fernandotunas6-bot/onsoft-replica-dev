@@ -18,6 +18,9 @@ import {
   type PublicSchoolBlogPost,
 } from "./blog-model";
 
+import { requireAal2 } from "@/features/hr/require-aal2";
+import { requireSchoolWebsiteAdministrator } from "./editor-access";
+
 export const listSchoolBlog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
@@ -30,6 +33,7 @@ export const listSchoolBlog = createServerFn({ method: "GET" })
     const member = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
+    requireSchoolWebsiteAdministrator(member.appRole);
     const db = await loadSgaAdminClient();
     await requireSchoolWebStorage(db);
     const result = await db
@@ -52,6 +56,8 @@ export const changeSchoolBlog = createServerFn({ method: "POST" })
     const member = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
+    requireSchoolWebsiteAdministrator(member.appRole);
+    requireAal2(context.claims, "Alterar blog institucional");
     const db = await loadSgaAdminClient();
     await requireSchoolWebStorage(db);
     const audit = await db.from("audit_logs").insert({

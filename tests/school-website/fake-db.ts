@@ -30,11 +30,20 @@ export function schoolWebsiteTestDb(tables: Record<string, Record<string, unknow
         call.filters.push([key, value]);
         return chain;
       },
+      // `.is(col, null)` equivale a igualdade com null nas tabelas falsas.
+      is: (key: string, value: unknown) => {
+        call.filters.push([key, value]);
+        return chain;
+      },
       like: (_key: string, value: string) => {
         call.filters.push(["$prefix", value.replace(/\\_/g, "_").replace(/%$/, "")]);
         return chain;
       },
       order: () => chain,
+      limit: (count: number) => {
+        end = start + count - 1;
+        return chain;
+      },
       range: (first: number, last: number) => {
         start = first;
         end = last;

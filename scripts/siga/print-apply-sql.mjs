@@ -90,6 +90,7 @@ export const SQL_CHECKLIST = {
       "Sem isto: arquivos, mensagens, planos de aula, catracas, importar falham ou degradam",
       "Ciclo 56: RH/folha/assiduidade — migrations 20260906*_hr_* + hardening 190000",
       "Ciclo 57: Núcleo académico avançado — migration 20260908180000_advanced_academic_core.sql",
+      "Publicação atómica: aplicar migrations/20261025121012_atomic_academic_schedule_publication.sql; RPC reservado ao servidor, depois das colunas de horários de 20261022",
       "Ciclo 64: Backfill papéis Huambo (20260908200000) + captura 149 funções BD (20260908210000)",
       "Ciclo 64: Auditoria RBAC-v2 confirmada: ambas escolas têm 8 papéis × permissões correctas (510 linhas total)",
       "Agenda unificada: após as actualizações de horários, aplicar migrations/20261025070215_academic_agenda_backend.sql (períodos continuam em terms)",

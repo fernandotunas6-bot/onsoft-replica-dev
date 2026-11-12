@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
@@ -320,7 +321,15 @@ export function CompetenciesTab() {
                       key={s.enrollmentId}
                       className="flex flex-wrap items-center justify-between gap-3 py-2"
                     >
-                      <span className="text-sm">{s.name}</span>
+                      <span className="text-sm">
+                        {s.name}{" "}
+                        <IdentifierValue
+                          value={s.studentNumber}
+                          variant="plain"
+                          emptyLabel=""
+                          className="text-xs text-muted-foreground"
+                        />
+                      </span>
                       <span className="flex items-center gap-3">
                         <span className="text-xs text-muted-foreground">
                           {m?.assessed

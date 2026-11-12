@@ -71,6 +71,14 @@ describe("resolução e propriedade dos websites escolares", () => {
     expect(await loadSchoolSite(url)).toBeNull();
     expect(await loadSchoolSite(new Request("https://unknown.example/"))).toBeNull();
   });
+  it("um tipo de domínio desconhecido não ganha acesso nem origem pública por ter verificação", async () => {
+    tables.tenant_domains[1].type = "unknown";
+    expect(await loadSchoolSite(new Request("https://www.escola-b.ao/"))).toBeNull();
+    const links = await schoolSiteLinks(schoolWebsiteTestDb(tables) as never, "school-b");
+    expect(links?.websiteUrl).toBe(links?.fallbackUrl);
+    const shared = await loadSchoolSite(new Request(`https://${domain}/escolas/escola-b/`));
+    expect(shared?.allowedOrigins).toEqual([]);
+  });
   it("bloqueios do tenant e arquivo da escola também se aplicam ao site", async () => {
     tables.tenants[0].status = "suspended";
     expect(await loadSchoolSite(new Request(`https://escola-a.${domain}/`))).toBeNull();

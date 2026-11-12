@@ -120,7 +120,8 @@ export function meetingRoomLink(
 
 export function whatsappHref(phoneRaw: string, message?: string) {
   const digits = phoneRaw.replace(/\D/g, "");
-  if (!digits) return "https://wa.me/";
+  if (!digits)
+    return message ? `https://wa.me/?text=${encodeURIComponent(message)}` : "https://wa.me/";
   if (!message) return `https://wa.me/${digits}`;
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 }

@@ -118,6 +118,7 @@ export const requestGradeChange = createServerFn({ method: "POST" })
 export type GradeChangeRequest = {
   gradeScoreId: string;
   studentName: string;
+  studentNumber: string | null;
   className: string;
   subjectName: string;
   component: string;
@@ -193,7 +194,7 @@ export const listGradeChangeRequests = createServerFn({ method: "GET" })
         .in("id", ids("subject_id", (cs ?? []) as Row[])),
       db
         .from("students")
-        .select("id, person_id")
+        .select("id, person_id, student_number")
         .in("id", ids("student_id", (enrollments ?? []) as Row[])),
     ]);
     const requesterIds = ids("pending_requested_by", rows);
@@ -236,6 +237,7 @@ export const listGradeChangeRequests = createServerFn({ method: "GET" })
         return {
           gradeScoreId: str(r["id"]),
           studentName: str(personById.get(str(student?.["person_id"]))?.["full_name"]) || "Aluno",
+          studentNumber: str(student?.["student_number"]) || null,
           className: str(groupById.get(str(book?.["class_group_id"]))?.["name"]) || "Turma",
           subjectName:
             str(subjectById.get(str(classSubject?.["subject_id"]))?.["name"]) || "Disciplina",

@@ -24,6 +24,12 @@ describe("readAllPages", () => {
     expect(data).toEqual([]);
   });
 
+  it("não apresenta como completa uma consulta que atingiu o tecto", async () => {
+    await expect(
+      readAllPages(() => Promise.resolve({ data: [{ id: 1 }], error: null }), 1),
+    ).rejects.toThrow("limite de leitura completa");
+  });
+
   it("os pedidos do painel e das mensagens já não usam um limite acima de 1000", async () => {
     const { readFileSync } = await import("node:fs");
     for (const file of [

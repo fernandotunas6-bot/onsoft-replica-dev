@@ -141,6 +141,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     terms,
     selectedTermId,
     selectedTermLabel,
+    currentTermId,
     setSelectedTermId,
   } = useSchoolSettings();
   const activeYearLabel = activeYear?.label ?? selectedYearLabel;
@@ -352,7 +353,8 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   {terms.map((term) => (
                     <DropdownMenuItem key={term.id} onClick={() => setSelectedTermId(term.id)}>
                       {term.label}
-                      {term.id === selectedTermId ? " (Actual)" : ""}
+                      {/* «Actual» é o período em que hoje cai, não o seleccionado. */}
+                      {term.id === currentTermId ? " (Actual)" : ""}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>

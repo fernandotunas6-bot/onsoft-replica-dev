@@ -52,9 +52,10 @@ const REVISTAS: Record<string, string> = {
   deleteChatMessage: 'apaga só a própria mensagem: .eq("sender_id", context.userId)',
 };
 
-// Sinais de que a função verifica mais do que a pertença.
+// Sinais de que a função verifica mais do que a pertença. `ownTeacherId` lê a
+// ficha de professor com `.eq("user_id", userId)`: só a da própria conta.
 const VERIFICA =
-  /appRole|assertCanSee|loadStudentScope|requireSga|isStaff|STAFF|canManage|assertTeacher|teacher_id|user_id", context\.userId|\.eq\("user_id"|created_by", context|isPlatformAdmin|hasPermission|has_permission|roleCode|role_code|linked\./;
+  /ownTeacherId\(|appRole|assertCanSee|loadStudentScope|requireSga|isStaff|STAFF|canManage|assertTeacher|teacher_id|user_id", context\.userId|\.eq\("user_id"|created_by", context|isPlatformAdmin|hasPermission|has_permission|roleCode|role_code|linked\./;
 
 function funcoesSoComPertenca() {
   const files = execSync("git ls-files src", { encoding: "utf8" })

@@ -4,6 +4,7 @@ import {
   calculateDisciplineFinalAverage as engineDisciplineFinalAverage,
   decidePromotionStatus,
 } from "@/features/academic/assessment-engine";
+import { roundHalfUp } from "@/lib/angola-academic";
 
 export const MAX_GRADE = 20;
 export const MIN_GRADE = 0;
@@ -24,8 +25,7 @@ export function normalizeGrade(value: number | null | undefined): number | null 
 }
 
 export function roundGrade(value: number, decimals = 1): number {
-  const factor = 10 ** decimals;
-  return Math.round((value + Number.EPSILON) * factor) / factor;
+  return roundHalfUp(value, decimals);
 }
 
 /**

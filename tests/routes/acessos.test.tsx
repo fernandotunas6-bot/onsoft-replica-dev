@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentType } from "react";
-import { renderRoute, resetPersistedFilters, routeComponentOf } from "./_harness";
+import {
+  renderRoute,
+  resetPersistedFilters,
+  routeComponentOf,
+  setCurrentAccount,
+  resetCurrentAccount,
+} from "./_harness";
 import type {
   listSystemAccounts,
   listSchoolInvitations,
@@ -35,6 +42,10 @@ vi.setConfig({ testTimeout: 20_000 });
 vi.mock("@tanstack/react-router", async () => (await import("./_harness")).reactRouterMock());
 vi.mock("@/components/layout/AppShell", async () => (await import("./_harness")).appShellMock());
 vi.mock("@/components/ui/media-frame", async () => (await import("./_harness")).mediaFrameMock());
+
+vi.mock("@/features/auth/use-current-account", async () =>
+  (await import("./_harness")).currentAccountMock(),
+);
 
 const listSystemAccountsMock = vi.fn();
 const listStaffDirectoryMock = vi.fn();
@@ -95,9 +106,45 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   resetPersistedFilters();
+  resetCurrentAccount();
 });
 
 describe("/acessos — render", () => {
+  it("não conserva as contas anteriores durante a troca de escola", async () => {
+    const account = {
+      id: "acc-a",
+      full_name: "Conta da escola A",
+      email: "a@example.test",
+      cargo: "Secretaria",
+      disabled: false,
+      is_self: false,
+      last_sign_in_at: null,
+    } as SystemAccount;
+    seed({ accounts: [account] });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    const tree = () => (
+      <QueryClientProvider client={client}>
+        <Acessos />
+      </QueryClientProvider>
+    );
+    const view = render(tree());
+    await screen.findByText("Conta da escola A");
+    let finish!: (rows: SystemAccount[]) => void;
+    listSystemAccountsMock.mockImplementationOnce(
+      () =>
+        new Promise<SystemAccount[]>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    setCurrentAccount({ schoolId: "escola-b" });
+    view.rerender(tree());
+    expect(screen.queryByText("Conta da escola A")).toBeNull();
+    expect(screen.getByText("A carregar contas…")).toBeDefined();
+    finish([{ ...account, id: "acc-b", full_name: "Conta da escola B" }]);
+    await screen.findByText("Conta da escola B");
+    expect(screen.queryByText("Conta da escola A")).toBeNull();
+  });
+
   it("atravessa a transição loading → carregado sem rebentar", async () => {
     seed({
       accounts: [

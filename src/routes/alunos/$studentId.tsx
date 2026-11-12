@@ -671,6 +671,7 @@ function StudentDetail() {
     const academicYear = studentPrintSchool.academicYear || "";
     await issuePrintDocument({
       tipo: "Boletim escolar",
+      classGroupIds: student.class_group_id ? [student.class_group_id] : [],
       school: studentPrintSchool,
       student: {
         fullName: student.full_name,

@@ -16,6 +16,7 @@ import type {
   buildClassCourseMap,
   buildStudentDossier,
 } from "@/features/academic/assessment-views";
+import { boletimSummary } from "@/features/academic/assessment-views";
 import { exportCsv } from "@/lib/export-csv";
 import type { OfficialPautaMeta } from "@/lib/export-pdf";
 import { exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
@@ -32,7 +33,7 @@ export type AssessmentDocType = "pauta" | "boletim" | "mapa" | "relacao" | "acta
 
 export type AssessmentDocumentContext = {
   contextKind: "curso" | "turma" | "aluno" | "disciplina";
-  group: { name?: string; grade_name?: string } | null | undefined;
+  group: { id?: string; name?: string; grade_name?: string } | null | undefined;
   subjectName: string | undefined;
   school: Parameters<typeof issuePrintDocument>[0]["school"];
   meta: OfficialPautaMeta;
@@ -92,6 +93,7 @@ export function exportAssessmentDocument(
     void issuePrintDocument({
       tipo: "Acta do conselho de notas",
       school,
+      classGroupIds: group?.id ? [group.id] : ctx.classMap.map((item) => item.id),
       overlay: overlayActa({
         teacherName: school.directorName ?? undefined,
         decisions: officialRows.map((row) => ({
@@ -116,6 +118,7 @@ export function exportAssessmentDocument(
     void issuePrintDocument({
       tipo: "Relatório de validação",
       school,
+      classGroupIds: group?.id ? [group.id] : ctx.classMap.map((item) => item.id),
       overlay: overlayValidacao(
         officialRows.map((row) => ({
           item: `${row.aluno} · ${subjectName ?? "Disciplina"}`,
@@ -150,6 +153,7 @@ export function exportAssessmentDocument(
       void issuePrintDocument({
         tipo: "Relação de alunos",
         school,
+        classGroupIds: group?.id ? [group.id] : ctx.classMap.map((item) => item.id),
         overlay: overlayServico({
           name: "Relação de alunos",
           areaLabel: "Pedagógica",
@@ -206,6 +210,7 @@ export function exportAssessmentDocument(
       void issuePrintDocument({
         tipo: "Mapa estatístico",
         school,
+        classGroupIds: group?.id ? [group.id] : ctx.classMap.map((item) => item.id),
         overlay: overlayMapa(
           ctx.classMap.map((row) => ({
             classGroup: row.name,
@@ -252,6 +257,7 @@ export function exportAssessmentDocument(
       void issuePrintDocument({
         tipo: "Boletim escolar",
         school,
+        classGroupIds: group?.id ? [group.id] : ctx.classMap.map((item) => item.id),
         student: {
           fullName: selectedStudent.student.student_name,
           academicNumber: selectedStudent.student.registration_number ?? "—",
@@ -268,8 +274,17 @@ export function exportAssessmentDocument(
             mfa: formatScore(row.mfa),
             status: row.situacao.label,
           })),
-          status: selectedStudent.situacao.label,
-          average: formatScore(selectedStudent.average),
+          // Do aluno (todas as disciplinas), não da disciplina e período seleccionados.
+          ...(() => {
+            const summary = boletimSummary(
+              ctx.dossier.map((row) => ({ mfa: row.mfa, status: row.situacao.label })),
+            );
+            return {
+              status: summary.status,
+              approved: summary.approved,
+              ...(summary.average != null ? { average: formatScore(summary.average) } : {}),
+            };
+          })(),
         }),
         fallback: () =>
           exportOfficialPautaPdf(
@@ -297,6 +312,7 @@ export function exportAssessmentDocument(
     void issuePrintDocument({
       tipo: contextKind === "disciplina" ? "Pauta disciplinar" : "Pauta geral da turma",
       school,
+      classGroupIds: group?.id ? [group.id] : ctx.classMap.map((item) => item.id),
       overlay: overlayPauta({
         subjectName,
         students: officialRows.map((row) => ({

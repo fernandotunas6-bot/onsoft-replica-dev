@@ -1,5 +1,8 @@
 # Website escolar: edição no SIGA e sincronização pública
 
+> Evolução prevista do editor: [SIGA Website Studio — contrato mestre](../school-sites/WEBSITE_STUDIO_MASTER.md).
+> Primeiro incremento Puck em `/website/editor`, validado localmente; sem rollout de produção.
+
 O administrador da escola abre **Definições → Website escolar** (`/configuracoes?painel=website`). O editor mantém o desenho do website e permite alterar os campos das páginas públicas existentes: navegação, rodapé, textos, imagens, links, metadados, cursos, notícias, agenda, serviços e perguntas frequentes. Não permite HTML, JavaScript ou CSS arbitrários, nem altera dados privados do portal académico.
 
 ## Publicação
@@ -75,7 +78,6 @@ npm --prefix painel/escolas test
 ```
 
 Os testes usam dados fictícios e dependências controladas; não activam a integração nem alteram a base de produção. A activação real depende do endereço e da implantação SIGA da escola e da configuração do website.
-
 
 ## Blog de cada escola
 

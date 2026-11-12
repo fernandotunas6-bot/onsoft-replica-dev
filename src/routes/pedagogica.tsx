@@ -1,3 +1,4 @@
+import { listSchoolShifts } from "@/features/academic/advanced-academic-server";
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import {
@@ -75,6 +76,7 @@ import { gradeMatchesTeachingLevels, initialsFromName } from "@/lib/angola-acade
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canWriteModule } from "@/features/auth/access-policy";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useFollowSelectedTerm } from "@/features/auth/use-follow-selected-term";
 import { cn } from "@/lib/utils";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
@@ -83,6 +85,7 @@ import { TurmasWorkspaceTab } from "@/features/pedagogica/components/TurmasWorks
 import { SchoolNowWidget } from "@/features/academic/components/SchoolNowWidget";
 import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { toast } from "@/lib/toast";
+import { errorMessage } from "@/lib/error-message";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
 import { distinctOptionLabels, resolveOptionId } from "@/lib/option-label";
 import { subjectsOfClass } from "@/features/academic/pauta-subjects";
@@ -286,6 +289,10 @@ function PedagogicaPage() {
     "pedagogica",
     pedagogicaFilterDefaults,
   );
+  // Período escolhido no cabeçalho → filtro de trimestre deste ecrã.
+  useFollowSelectedTerm((sequence) => {
+    if (sequence >= 1 && sequence <= 3) setFilter("trimestre", String(sequence));
+  });
 
   const canManageAcademic = canWriteModule(account.role, "pedagogica", account.grants);
   const canLaunchGrades = canManageAcademic || account.role === "Professor";
@@ -298,6 +305,12 @@ function PedagogicaPage() {
     [school?.pedagogy?.teachingLevels],
   );
 
+  const shiftsQuery = useQuery({
+    queryKey: ["academic", "school-shifts", account.schoolId],
+    queryFn: () => listSchoolShifts(),
+    enabled: canReadAcademic && Boolean(account.schoolId),
+    retry: false,
+  });
   const workspaceQuery = useQuery({
     queryKey: ["academic", "pedagogical-workspace", selectedYearId],
     queryFn: () =>
@@ -1365,6 +1378,7 @@ function PedagogicaPage() {
                   <ScheduleWorkspace
                     initialClassGroupId={turmaFromSearch}
                     initialTeacherId={professorFromSearch}
+                    proposalShifts={shiftsQuery.data ?? []}
                     activeYearLabel={activeYearLabel}
                     activeYearId={selectedYearId ?? undefined}
                     canManage={canManageAcademic}
@@ -1402,6 +1416,23 @@ function PedagogicaPage() {
                     onDeleteSlot={async (slotId) => {
                       await deleteScheduleSlot({ data: { slotId } });
                       await refreshAcademic();
+                    }}
+                    yearEndsOn={calendarYear?.endsOn ?? null}
+                    onCreateSlots={async (lessons) => {
+                      // Uma a uma: cada aula passa pelas validações e conflitos do servidor,
+                      // e uma recusa não desfaz as anteriores. Uma só actualização no fim.
+                      let created = 0;
+                      const failed: string[] = [];
+                      for (const lesson of lessons) {
+                        try {
+                          await createAdvancedScheduleSlot({ data: lesson });
+                          created += 1;
+                        } catch (error) {
+                          failed.push(errorMessage(error, "Aula recusada."));
+                        }
+                      }
+                      await refreshAcademic();
+                      return { created, failed };
                     }}
                     onPublishSchedule={async (classGroupId) => {
                       if (!selectedYearId) {
