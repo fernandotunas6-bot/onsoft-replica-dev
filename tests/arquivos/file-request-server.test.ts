@@ -116,6 +116,18 @@ describe("contrato central de arquivos: limites de segurança", () => {
     expect(fn).toContain("else if (!changed)");
   });
 
+  it("só apaga uma pasta vazia, antes de mexer no armazenamento", () => {
+    const start = server.indexOf("export const deleteSchoolFile = createServerFn");
+    expect(start).toBeGreaterThan(0);
+    const fn = server.slice(start, server.indexOf("\nexport const ", start + 10));
+    const guard = fn.indexOf('.eq("parent_id", data.id)');
+    expect(guard).toBeGreaterThan(0);
+    expect(fn).toContain("A pasta não está vazia");
+    // A verificação vem antes de remover o objecto e a linha.
+    expect(guard).toBeLessThan(fn.indexOf(".remove(["));
+    expect(guard).toBeLessThan(fn.indexOf(".delete()"));
+  });
+
   it("fallback de consulta preserva sempre os atributos críticos de autorização", () => {
     for (const constant of ["FILE_SELECT_CLASS", "FILE_SELECT_BASIC"]) {
       const select = server.match(new RegExp(`const ${constant} =\\s*"(.*?)"`))?.[1];

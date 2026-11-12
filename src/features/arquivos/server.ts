@@ -1785,6 +1785,18 @@ export const deleteSchoolFile = createServerFn({ method: "POST" })
     if (!canDelete || !canWriteFileArea(membership.appRole, area)) {
       throw new Error("Sem permissão para apagar este ficheiro.");
     }
+    // Uma pasta só se apaga vazia: a chave parent_id leva consigo o que está dentro —
+    // ficheiros de outras pessoas, privados ou do sistema, que este utilizador não podia
+    // apagar um a um, e cujos objectos ficavam no armazenamento sem registo (#128).
+    const { count: childCount, error: childError } = await db
+      .from("siga_files")
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", membership.schoolId)
+      .eq("parent_id", data.id);
+    if (childError) throw publicDatabaseError(childError, "Não foi possível apagar o ficheiro.");
+    if (childCount) {
+      throw new Error("A pasta não está vazia: mova ou apague primeiro o que está dentro.");
+    }
     try {
       await recordFileEvent(db, {
         schoolId: membership.schoolId,

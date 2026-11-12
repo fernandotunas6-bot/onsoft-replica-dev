@@ -54,7 +54,12 @@ describe("taxa de presença do histórico do aluno (auditoria 14)", () => {
     const { computeAttendanceRate } = await import("@/features/pedagogica/attendance-server");
     expect(computeAttendanceRate([{ status: "present" }, { status: "absent" }])).toBe(50);
     const source = readFileSync("src/features/pedagogica/attendance-server.ts", "utf8");
-    expect(source).toContain('record.status !== "not_registered"');
-    expect(source).toContain("computeAttendanceRate(counted)");
+    const start = source.indexOf("export const getStudentAttendanceHistory = createServerFn");
+    const history = source.slice(start, source.indexOf("\nexport ", start + 10));
+    // A lista e as contagens deixam de fora «não registado»; as contagens são de todo
+    // o histórico, não só dos últimos 100 registos.
+    expect(history).toContain('.neq("status", "not_registered")');
+    expect(history).toContain('count: "exact", head: true');
+    expect(history).toContain('"early_exit"');
   });
 });

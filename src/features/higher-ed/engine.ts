@@ -269,6 +269,18 @@ export function checkUnitEnrollment(params: {
   ) {
     reasons.push(`Já está inscrito em «${unit.name}» neste ano lectivo.`);
   }
+  // A base só admite um registo por estudante, cadeira e ano
+  // (course_unit_enrollments_unique). Com outro registo neste ano (anulado,
+  // reprovado…) a inserção falhava com um erro genérico — e, na inscrição em
+  // lote, fazia falhar a turma inteira (#128).
+  else if (
+    !completed.has(unit.id) &&
+    records.some((r) => r.unitId === unit.id && r.academicYearId === academicYearId)
+  ) {
+    reasons.push(
+      `«${unit.name}» já tem um registo neste ano lectivo: só pode voltar a inscrever-se no próximo.`,
+    );
+  }
   if (
     records.some(
       (r) => r.unitId === unit.id && r.academicYearId !== academicYearId && r.status === "inscrito",

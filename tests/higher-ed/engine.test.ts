@@ -145,6 +145,23 @@ describe("inscrição em cadeiras", () => {
     ).toBe(false);
   });
 
+  it("outro registo da cadeira no mesmo ano (anulado, reprovado) impede nova inscrição nesse ano", () => {
+    // A base só admite um registo por estudante, cadeira e ano (course_unit_enrollments_unique).
+    const base = { plan, prerequisites: prereqs, regulation: reg };
+    const anulada = [rec("mat1", "anulado")];
+    const mesmoAno = checkUnitEnrollment({
+      ...base,
+      unit: plan[0]!,
+      records: anulada,
+      academicYearId: "y1",
+    });
+    expect(mesmoAno.ok).toBe(false);
+    expect(mesmoAno.reasons.join(" ")).toContain("já tem um registo neste ano lectivo");
+    expect(
+      checkUnitEnrollment({ ...base, unit: plan[0]!, records: anulada, academicYearId: "y2" }).ok,
+    ).toBe(true);
+  });
+
   it("limite de tentativas conta reprovações e exclusões", () => {
     const records = [
       rec("mat1", "reprovado", { attempt: 1 }),

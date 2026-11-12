@@ -870,6 +870,10 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
             "Esta chamada já foi fechada. Use «Corrigir chamada» e indique o motivo.",
           );
         }
+        // Aula cancelada não tem chamada: gravar presenças aqui contava-as na taxa (#128).
+        if (session.status === "cancelled") {
+          throw new Error("Esta aula foi cancelada: não tem chamada.");
+        }
 
         if (membership.appRole === "Professor") {
           const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
@@ -1317,7 +1321,9 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
         .from("siga_attendance_records")
         .update({ status: "excused", updated_at: new Date().toISOString() })
         .eq("school_id", membership.schoolId)
-        .eq("id", just.attendance_record_id);
+        .eq("id", just.attendance_record_id)
+        // Justificar não apaga uma presença: um registo «presente» fica como está (#128).
+        .neq("status", "present");
       if (excuseError) {
         throw publicDatabaseError(excuseError, "Justificação aprovada, mas a falta não mudou.");
       }
@@ -1372,8 +1378,28 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
       .select("id, session_id, status, notes, created_at")
       .eq("school_id", membership.schoolId)
       .eq("student_id", targetStudentId)
+      .neq("status", "not_registered")
       .order("created_at", { ascending: false })
       .limit(100);
+
+    // As contagens são de todo o histórico (a lista mostra só os últimos 100) e sem
+    // «não registado», como em computeAttendanceRate. Antes eram só dos últimos 100 e
+    // a taxa de um aluno com um ano de aulas saía de uma parte delas (#128).
+    const countStatus = async (status: AttendanceStatus) => {
+      const { count, error: countError } = await db
+        .from("siga_attendance_records")
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", membership.schoolId)
+        .eq("student_id", targetStudentId)
+        .eq("status", status);
+      if (countError) {
+        throw publicDatabaseError(countError, "Não foi possível contar as presenças.");
+      }
+      return count ?? 0;
+    };
+    const [present, absent, excused, late, earlyExit] = await Promise.all(
+      (["present", "absent", "excused", "late", "early_exit"] as const).map(countStatus),
+    );
 
     const sessionIds = [
       ...new Set((records ?? []).map((r: { session_id: string }) => r.session_id)),
@@ -1413,11 +1439,6 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
       ),
     );
 
-    let present = 0;
-    let absent = 0;
-    let excused = 0;
-    let late = 0;
-
     const formattedRecords = (records ?? []).map(
       (r: {
         id: string;
@@ -1429,11 +1450,6 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
         const sess = sessionMap.get(r.session_id);
         const subjectName = sess ? (subjectMap.get(sess.subject_id) ?? "Disciplina") : "Aula";
         const status = r.status as AttendanceStatus;
-
-        if (status === "present") present += 1;
-        else if (status === "absent") absent += 1;
-        else if (status === "excused") excused += 1;
-        else if (status === "late") late += 1;
 
         return {
           id: r.id,
@@ -1447,11 +1463,11 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
       },
     );
 
-    // A mesma taxa da ficha e da pauta (computeAttendanceRate, siga_recompute_attendance_rates):
-    // aulas «não registadas» não contam. Aqui contavam no total e a taxa saía mais baixa.
-    const counted = formattedRecords.filter((record) => record.status !== "not_registered");
-    const total = counted.length;
-    const rate = computeAttendanceRate(counted) ?? 100;
+    // A mesma regra da ficha e da pauta (computeAttendanceRate): presente,
+    // justificado, atrasado e saída antecipada contam a favor; «não registado» não conta.
+    const total = present + absent + excused + late + earlyExit;
+    const rate =
+      total > 0 ? Math.round(((present + excused + late + earlyExit) / total) * 100) : 100;
 
     return {
       records: formattedRecords,

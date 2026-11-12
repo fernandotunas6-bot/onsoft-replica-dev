@@ -38,11 +38,34 @@ function yearOfLessons() {
   };
 }
 
+/**
+ * As mesmas aulas, mas as das faltas (as últimas 300) gravadas sem ano lectivo, como
+ * as da chamada por disciplina: com o filtro pelo ano, as faltas desapareciam.
+ */
+function yearOfLessonsWithoutYear() {
+  const data = yearOfLessons();
+  data.siga_attendance_sessions = data.siga_attendance_sessions.map((session, n) =>
+    n >= 900 ? { ...session, academic_year_id: null as unknown as string } : session,
+  );
+  return data;
+}
+
 describe("absenceByEnrollment", () => {
   it("conta todas as aulas do ano, não só as primeiras 1000", async () => {
     const result = await absenceByEnrollment(fakeDb(yearOfLessons()), SCHOOL, YEAR, CLASS, [
       "enrollment-1",
     ]);
+    expect(result.get("enrollment-1")).toBe(25);
+  });
+
+  it("conta as aulas gravadas sem ano lectivo: a turma já é de um único ano", async () => {
+    const result = await absenceByEnrollment(
+      fakeDb(yearOfLessonsWithoutYear()),
+      SCHOOL,
+      YEAR,
+      CLASS,
+      ["enrollment-1"],
+    );
     expect(result.get("enrollment-1")).toBe(25);
   });
 
