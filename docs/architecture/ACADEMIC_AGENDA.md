@@ -16,14 +16,14 @@ de eventos; a biblioteca visual ainda não está instalada nem montada nas pági
 - `cancelAcademicAgendaEvent`: cancelamento sem apagar o registo. Edição e
   cancelamento exigem `expectedVersion`; uma gravação concorrente é recusada.
 
-| Origem | Verdade preservada | Resultado na agenda |
-| --- | --- | --- |
-| `terms` | Períodos e ano da escola | Intervalos de dia inteiro, com fim exclusivo no DTO |
-| `academic_schedules` + `timetable_slots` + `class_subjects` | Horário publicado, docente e disciplina da turma | Ocorrências com data e hora de Luanda |
-| `siga_assessment_items` | Avaliações existentes, data, hora e duração | Provas/avaliações sem expor notas |
-| `siga_class_tasks` | Tarefas publicadas da disciplina/turma | Prazos de entrega |
-| `siga_calendar_events` | Eventos complementares e interrupções aprovadas pela gestão | Reuniões, eventos, prazos e bloqueios de aulas |
-| `angola-holidays.ts` | Lista nacional já usada pelo produto, corrigida com 23 de Março | Feriados e exclusão de aulas nesses dias |
+| Origem                                                      | Verdade preservada                                              | Resultado na agenda                                 |
+| ----------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------- |
+| `terms`                                                     | Períodos e ano da escola                                        | Intervalos de dia inteiro, com fim exclusivo no DTO |
+| `academic_schedules` + `timetable_slots` + `class_subjects` | Horário publicado, docente e disciplina da turma                | Ocorrências com data e hora de Luanda               |
+| `siga_assessment_items`                                     | Avaliações existentes, data, hora e duração                     | Provas/avaliações sem expor notas                   |
+| `siga_class_tasks`                                          | Tarefas publicadas da disciplina/turma                          | Prazos de entrega                                   |
+| `siga_calendar_events`                                      | Eventos complementares e interrupções aprovadas pela gestão     | Reuniões, eventos, prazos e bloqueios de aulas      |
+| `angola-holidays.ts`                                        | Lista nacional já usada pelo produto, corrigida com 23 de Março | Feriados e exclusão de aulas nesses dias            |
 
 Não se copiam aulas para uma tabela de eventos. Não se criam sessões de presença
 em GET. A publicação com `syncToCalendar` usa esta mesma agenda para materializar
@@ -68,10 +68,9 @@ import { fullCalendarAcademicSource } from "@/features/calendar/fullcalendar-sou
 const options = {
   timeZone: "Africa/Luanda",
   editable: false,
-  events: fullCalendarAcademicSource(
-    (range) => listAcademicAgenda({ data: range }),
-    { classGroupId },
-  ),
+  events: fullCalendarAcademicSource((range) => listAcademicAgenda({ data: range }), {
+    classGroupId,
+  }),
 };
 ```
 
@@ -88,19 +87,19 @@ exclusivos. Arrastar eventos exige uma futura acção de negócio autenticada.
 Foi feita uma amostra de fontes primárias públicas; não é um inventário de todos
 os sistemas existentes no mundo, nem uma auditoria interna de fornecedores.
 
-| Referência consultada | Observação documentada | Aplicação ao SIGA |
-| --- | --- | --- |
-| [Frappe Education](https://docs.frappe.io/education/course-schedule) e [Student Group](https://docs.frappe.io/education/student-group) | Agenda relaciona curso, docente, grupo e sala; grupos podem representar coorte ou disciplina | Reutilizar turma/disciplina/docente e inscrições, sem duplicar pessoas |
-| [openSIS](https://help.opensis.com/portal/en/kb/articles/schedule-students) | Matrículas em secções consideram ano, período, datas e docente | Restringir a agenda pela matrícula e pelo turno da unidade curricular |
-| [UniTime](https://help.unitime.org/manuals/courses-solver.html) | Planeamento universitário considera procura discente, salas e disponibilidade docente | Manter validação de conflitos no núcleo; FullCalendar serve a apresentação |
-| [FET](https://lalescu.ro/liviu/fet/features.html) | Modela restrições de tempo/espaço para docentes e conjuntos de estudantes | Separar restrições de publicação e visualização; não adoptar um solver neste ciclo |
-| [aSc TimeTables](https://help.asctimetables.com/pdf/asc_timetables_en_L4.pdf) | Divisões/subgrupos e cargas de aulas precisam de consistência | Registar como evolução futura; não confundir uma turma inteira com um subgrupo |
-| [Untis](https://www.untis.at/en/products/untis-basic-software/calendar-and-full-year-planning-1) | O planeamento anual admite distribuição variável entre semanas | A validade publicada e o calendário são necessários; semanas A/B ficam por desenvolver |
-| [Fedena](https://fedena.com/feature-tour/timetable-management-system) | Turnos, atribuição de docentes, substituições e avisos integram o horário | Preservar os mecanismos de RH e notificações existentes; não duplicá-los na agenda |
-| [Moodle](https://docs.moodle.org/503/en/Calendar) | Eventos distinguem escola/site, curso, grupo e utilizador, incluindo prazos | Manter origem, âmbito e audiência no backend |
-| [MED / Acesso ETP](https://acessoetp.ao/) | O processo público relaciona inscrição, testes, matrícula, turmas e divulgação dos horários | Matrícula antecede o acesso ao horário; sem inferir APIs internas do portal |
-| [MESCTI — documentos oficiais](https://mescti.gov.ao/web/documentos?page=2&type=) | Publica o Decreto Executivo 135/26, calendário académico 2026/2027 | Separar referências do superior das do ensino geral; não impor um calendário único |
-| [Instituto Superior de Angola](https://isa.ao/ensino/calendario) | Publica semestres, provas de frequência, épocas de exame e pausas próprias | Não fixar três trimestres na agenda de leitura; respeitar os `terms` configurados |
+| Referência consultada                                                                                                                  | Observação documentada                                                                       | Aplicação ao SIGA                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [Frappe Education](https://docs.frappe.io/education/course-schedule) e [Student Group](https://docs.frappe.io/education/student-group) | Agenda relaciona curso, docente, grupo e sala; grupos podem representar coorte ou disciplina | Reutilizar turma/disciplina/docente e inscrições, sem duplicar pessoas                 |
+| [openSIS](https://help.opensis.com/portal/en/kb/articles/schedule-students)                                                            | Matrículas em secções consideram ano, período, datas e docente                               | Restringir a agenda pela matrícula e pelo turno da unidade curricular                  |
+| [UniTime](https://help.unitime.org/manuals/courses-solver.html)                                                                        | Planeamento universitário considera procura discente, salas e disponibilidade docente        | Manter validação de conflitos no núcleo; FullCalendar serve a apresentação             |
+| [FET](https://lalescu.ro/liviu/fet/features.html)                                                                                      | Modela restrições de tempo/espaço para docentes e conjuntos de estudantes                    | Separar restrições de publicação e visualização; não adoptar um solver neste ciclo     |
+| [aSc TimeTables](https://help.asctimetables.com/pdf/asc_timetables_en_L4.pdf)                                                          | Divisões/subgrupos e cargas de aulas precisam de consistência                                | Registar como evolução futura; não confundir uma turma inteira com um subgrupo         |
+| [Untis](https://www.untis.at/en/products/untis-basic-software/calendar-and-full-year-planning-1)                                       | O planeamento anual admite distribuição variável entre semanas                               | A validade publicada e o calendário são necessários; semanas A/B ficam por desenvolver |
+| [Fedena](https://fedena.com/feature-tour/timetable-management-system)                                                                  | Turnos, atribuição de docentes, substituições e avisos integram o horário                    | Preservar os mecanismos de RH e notificações existentes; não duplicá-los na agenda     |
+| [Moodle](https://docs.moodle.org/503/en/Calendar)                                                                                      | Eventos distinguem escola/site, curso, grupo e utilizador, incluindo prazos                  | Manter origem, âmbito e audiência no backend                                           |
+| [MED / Acesso ETP](https://acessoetp.ao/)                                                                                              | O processo público relaciona inscrição, testes, matrícula, turmas e divulgação dos horários  | Matrícula antecede o acesso ao horário; sem inferir APIs internas do portal            |
+| [MESCTI — documentos oficiais](https://mescti.gov.ao/web/documentos?page=2&type=)                                                      | Publica o Decreto Executivo 135/26, calendário académico 2026/2027                           | Separar referências do superior das do ensino geral; não impor um calendário único     |
+| [Instituto Superior de Angola](https://isa.ao/ensino/calendario)                                                                       | Publica semestres, provas de frequência, épocas de exame e pausas próprias                   | Não fixar três trimestres na agenda de leitura; respeitar os `terms` configurados      |
 
 O [calendário do MED publicado em fonte institucional](https://redeeiffel.ao/assets/calendario_2026.pdf)
 também evidencia que ensino geral e secundário pedagógico têm organização própria.
@@ -112,15 +111,15 @@ O feriado de 23 de Março foi confirmado no
 
 Esta é uma síntese de desenho derivada das referências, não uma nova norma legal:
 
-| Estrutura | Como representar no backend |
-| --- | --- |
-| Iniciação / pré-escolar | Grupo, educador, actividades, intervalos e calendário da instituição; não exigir uma pauta disciplinar do secundário |
-| Primário | Turma/coorte e monodocência quando configurada, admitindo docentes especializados |
-| Secundário geral | Disciplina por docente, carga semanal, turma, turno, salas e provas |
-| Técnico-profissional / magistério | Curso, módulos, aulas práticas/laboratórios e calendários próprios |
-| Adultos e modalidades diferenciadas | Estruturas e períodos configuráveis, incluindo regime nocturno; não deduzir regras pela idade |
-| Superior | Programa, unidade curricular, semestre, inscrição, turno e época de avaliação; agenda por disciplinas efectivamente inscritas |
-| Pós-graduação / formação curta | Coortes e blocos concentrados, com datas próprias; recorrência variável requer evolução adicional |
+| Estrutura                           | Como representar no backend                                                                                                   |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Iniciação / pré-escolar             | Grupo, educador, actividades, intervalos e calendário da instituição; não exigir uma pauta disciplinar do secundário          |
+| Primário                            | Turma/coorte e monodocência quando configurada, admitindo docentes especializados                                             |
+| Secundário geral                    | Disciplina por docente, carga semanal, turma, turno, salas e provas                                                           |
+| Técnico-profissional / magistério   | Curso, módulos, aulas práticas/laboratórios e calendários próprios                                                            |
+| Adultos e modalidades diferenciadas | Estruturas e períodos configuráveis, incluindo regime nocturno; não deduzir regras pela idade                                 |
+| Superior                            | Programa, unidade curricular, semestre, inscrição, turno e época de avaliação; agenda por disciplinas efectivamente inscritas |
+| Pós-graduação / formação curta      | Coortes e blocos concentrados, com datas próprias; recorrência variável requer evolução adicional                             |
 
 ## Migrações aplicadas e evidência
 
@@ -188,3 +187,106 @@ outra cópia através de `npx`.
 Os testes e a compilação deste ciclo estão registados no handoff
 [`docs/agents/CONTINUE.md`](../agents/CONTINUE.md) e na
 [evidência de execução](academic-agenda-evidence-2026-10-25.json).
+
+## Continuação: publicação atómica e consulta diária — 25/10/2026
+
+A consulta existente `listDayAgendaLessons` passa a consumir a mesma agenda
+publicada, mantendo os IDs de slot, nomes e horas exigidos pelos consumidores.
+Os filtros de docente e os períodos/feriados são resolvidos antes do limite da
+lista. Administrador, Secretaria, Professor e Tesouraria mantêm a consulta de
+aulas do dia com a guarda do módulo; a edição continua reservada à gestão. Não
+foram alterados componentes, dimensões ou navegação.
+
+`publishAcademicSchedule` exige MFA e chama agora um único RPC:
+`publish_academic_schedule_atomic`. Valida escola, turma, ano, períodos lectivos,
+datas, docentes activos, carga semanal e conflitos; arquiva a versão anterior,
+cria a nova, associa as aulas e regista a publicação na mesma transacção. A versão
+guarda um snapshot das aulas e atribuições. Uma falha posterior ao arquivo faz
+rollback de todo esse núcleo. As trancas reutilizam as chaves escola/dia dos
+RPCs existentes, começando pela chave 7 usada na aplicação em lote. A razão é
+a [coordenação transaccional do PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html).
+
+A migração adicional
+`20261025121012_atomic_academic_schedule_publication.sql` está aplicada no SGA;
+o ficheiro tem o carimbo efectivamente registado na base. A função é SECURITY
+INVOKER e só `service_role` a executa. O servidor verifica papel, grants, escola e
+MFA antes da chamada. Não se abriram privilégios para o browser nem se aumentou
+o limite do teste que controla o uso de clientes privilegiados; a necessidade do
+RPC reservado foi documentada na lista de desenho desse teste.
+
+Presenças e notificações correm **depois** do commit da publicação. Se as
+presenças falharem, a mensagem informa que o horário já foi publicado. A nova
+operação `syncPublishedAcademicSchedule` repete essa sincronização, com escola,
+turma, ano e MFA verificados, sem gerar outra versão. Só se repetem automaticamente
+erros SQL que garantem rollback (`40P01`/`40001`), nunca falhas de rede cujo commit
+seja incerto.
+
+O ensaio SQL permanente
+`supabase/tests/academic_schedule_publication_test.sql` verificou V1/V2, snapshot,
+arquivo, carga e validade, provocando uma falha ao associar as aulas. Correu
+também com a role `service_role` usada pelo servidor. Todas as pessoas, turmas,
+versões e auditorias de ensaio foram revertidas; as contagens da escola mantêm-se.
+O ficheiro de migração foi ensaiado duas vezes na mesma transacção antes de ser
+aplicado. Não se executou um ensaio de escrita concorrente com duas sessões.
+
+O build, TypeScript, ESLint e verificações deste complemento estão na
+[evidência da continuação](academic-schedule-publication-evidence-2026-10-25.json).
+O código da aplicação está no workspace; esta continuação não fez deploy.
+
+## Refinamento: portais e ressincronização de presenças — 25/10/2026
+
+As APIs existentes do aluno, encarregado e horário do docente deixam de consultar
+directamente a repetição de `timetable_slots`. Consomem a agenda autorizada e as
+projecções de `calendar/portal-agenda.ts`, preservando os campos usados pelos
+componentes. A próxima aula corresponde a uma data real nos próximos 93 dias;
+uma pausa lectiva não é convertida artificialmente numa aula na semana seguinte.
+As avaliações terminadas com hora/duração são excluídas, incluindo quando o fim
+vem em UTC; avaliações do dia sem hora permanecem visíveis. O limite de oito
+aplica-se depois dessa filtragem.
+
+O horário semanal corresponde à semana civil corrente de Luanda, de segunda
+inclusiva a segunda exclusiva. Domingo da base (7) é normalizado para o contrato
+do portal (0), sem perder a aula. Identificadores de slot, turma, disciplina,
+docente, sala e publicação acompanham a ocorrência. `room_id` resolve a sala
+actual dentro da escola, com o texto do slot como alternativa quando não existir.
+Se não houver ocorrências, devolve-se a lista vazia; não há fallback para rascunhos.
+O componente existente continua a usar a sua mensagem genérica de horário vazio;
+não foi redesenhado neste trabalho de backend.
+
+A turma/média do cabeçalho usa uma matrícula activa cuja data de entrada já
+chegou e cuja data de fim não passou, evitando que a pré-matrícula do próximo ano
+substitua a actual. A agenda continua a funcionar para unidades curriculares sem
+matrícula ordinária de turma. Quando essa matrícula existe, a inscrição na cadeira
+respeita os seus períodos de acesso e não reabre matrículas canceladas nem
+encerradas sem data final. Consideram-se todos os períodos válidos da turma,
+em vez da primeira matrícula encontrada. Um `studentId` explícito obriga a
+resolver o próprio aluno/educando; acumular um papel de funcionário não transforma
+esse pedido numa consulta da escola inteira.
+
+Os detalhes da aula seguem a mesma autorização. Para aluno/encarregado,
+`getLessonDetail` exige uma ocorrência do slot na agenda autorizada, desde o
+início da semana corrente e numa janela de 93 dias. Isto permite abrir a cadeira
+inscrita sem matrícula ordinária e recusa um ID directo de outra disciplina ou
+de um slot sem publicação válida. Nomes, contactos e outros lookups são filtrados
+pela escola. No pedido explícito de educando, um papel administrativo adicional
+não activa edição nem a visibilidade de contactos reservada ao pessoal.
+
+A sincronização de presenças passou da leitura seguida de INSERT para
+[`upsert` com `onConflict`, `ignoreDuplicates` e contagem exacta](https://supabase.com/docs/reference/javascript/upsert).
+Confirmou-se no catálogo de produção que o índice único
+`siga_attendance_sessions_school_slot_day_key` cobre exactamente escola, slot e
+data. A base arbitra conflitos sem actualizar sessões existentes. Os lotes têm
+até 500 linhas; cada lote conta apenas as sessões inseridas. Uma falha posterior
+a um lote não desfaz os anteriores: a operação informa a falha e uma repetição
+ignora os já gravados. Não se faz retry automático de falhas de rede incertas.
+
+O ensaio SQL permanente confirmou uma inserção, zero inserções no conflito e a
+preservação do ID, estado concluído e hora original. Correu como `service_role`
+e foi integralmente revertido. As contagens de produção mantiveram-se em 42
+alunos, 4 docentes, 43 matrículas, 233 turmas e 192 sessões. A concorrência foi
+testada no serviço com pedidos simultâneos simulados e a arbitragem do índice foi
+verificada em SQL; não se executou um ensaio com duas ligações de escrita reais.
+
+Este refinamento não acrescenta DDL, dependências ou interface FullCalendar.
+Usa as migrações já aplicadas. Verificações na
+[evidência do refinamento](academic-portal-refinement-evidence-2026-10-25.json).

@@ -16,6 +16,8 @@ export type ScheduleClassSubject = {
   class_group_id: string;
   subject_id: string;
   weekly_periods?: number | null;
+  /** Professor da disciplina nesta turma (a proposta automática precisa dele). */
+  teacher_id?: string | null;
 };
 
 export type ScheduleSubject = {

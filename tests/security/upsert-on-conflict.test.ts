@@ -41,6 +41,9 @@ const UNICOS_PRODUCAO: Record<string, string[]> = {
   // 2026-10-07: chave primária confirmada na produção (auditoria 13, conversas directas).
   siga_chat_members: ["conversation_id,user_id"],
   siga_attendance_records: ["id", "session_id,student_id"],
+  // 2026-10-25: siga_attendance_sessions_school_slot_day_key (20260929230000), total,
+  // confirmado na produção; as presenças e a agenda criam sessões por upsert.
+  siga_attendance_sessions: ["id", "lesson_date,school_id,timetable_slot_id"],
   siga_exam_registrations: ["id", "enrollment_id,session_id,subject_id"],
   siga_lesson_meetings: ["id", "external_meeting_id,provider", "attendance_session_id,provider"],
   siga_lesson_reminder_settings: ["school_id"],

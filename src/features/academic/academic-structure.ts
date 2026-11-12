@@ -2,6 +2,7 @@
  * Contagens reais do ano lectivo para o separador "Estrutura académica".
  * Só contagens (head: true), nunca dados de alunos. Pessoal da escola.
  */
+import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { readAllPages } from "@/integrations/supabase/read-all-pages";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -27,10 +28,15 @@ export const getAcademicStructureStatus = createServerFn({ method: "GET" })
     yearQuery = data.academicYearId
       ? yearQuery.eq("id", data.academicYearId)
       : yearQuery.eq("status", "active").order("starts_on", { ascending: false }).limit(1);
-    const { data: year } = await yearQuery.maybeSingle();
+    const { data: year, error: yearError } = await yearQuery.maybeSingle();
+    if (yearError) throw publicDatabaseError(yearError, "Não foi possível ler o ano lectivo.");
     const yearId = year?.id ? String(year.id) : null;
 
-    const n = (res: { count: number | null; error: unknown }) => (res.error ? 0 : (res.count ?? 0));
+    const n = (res: { count: number | null; error: { message: string } | null }) => {
+      if (res.error)
+        throw publicDatabaseError(res.error, "Não foi possível ler a estrutura académica.");
+      return res.count ?? 0;
+    };
     const head = { count: "exact" as const, head: true };
     const tally = (rows: Array<{ status: unknown }> | null) => {
       const out: Record<string, number> = {};
@@ -38,14 +44,18 @@ export const getAcademicStructureStatus = createServerFn({ method: "GET" })
       return out;
     };
 
-    const { data: groups } = yearId
-      ? await db
-          .from("class_groups")
-          .select("id")
-          .eq("school_id", schoolId)
-          .eq("academic_year_id", yearId)
-          .limit(1000)
-      : { data: [] as Array<{ id: string }> };
+    const { data: groups, error: groupsError } = yearId
+      ? await readAllPages((from, to) =>
+          db
+            .from("class_groups")
+            .select("id")
+            .eq("school_id", schoolId)
+            .eq("academic_year_id", yearId)
+            .order("id")
+            .range(from, to),
+        )
+      : { data: [] as Array<{ id: string }>, error: null };
+    if (groupsError) throw publicDatabaseError(groupsError, "Não foi possível ler as turmas.");
     const groupIds = (groups ?? []).map((g) => String(g.id));
     const hasGroups = groupIds.length > 0;
     const noGroup = ["00000000-0000-0000-0000-000000000000"];
@@ -142,12 +152,17 @@ export const getAcademicStructureStatus = createServerFn({ method: "GET" })
     let examSessions = 0;
     let examRegistrations = 0;
     if (yearId) {
-      const { data: sessions, error: sessionsError } = await db
-        .from("siga_exam_sessions")
-        .select("id")
-        .eq("school_id", schoolId)
-        .eq("academic_year_id", yearId)
-        .limit(200);
+      const { data: sessions, error: sessionsError } = await readAllPages((from, to) =>
+        db
+          .from("siga_exam_sessions")
+          .select("id")
+          .eq("school_id", schoolId)
+          .eq("academic_year_id", yearId)
+          .order("id")
+          .range(from, to),
+      );
+      if (sessionsError)
+        throw publicDatabaseError(sessionsError, "Não foi possível ler os exames.");
       if (!sessionsError && sessions?.length) {
         examSessions = sessions.length;
         examRegistrations = n(
@@ -164,6 +179,10 @@ export const getAcademicStructureStatus = createServerFn({ method: "GET" })
       }
     }
 
+    if (gradebooksRes.error)
+      throw publicDatabaseError(gradebooksRes.error, "Não foi possível ler os diários.");
+    if (gradeSheetsRes.error)
+      throw publicDatabaseError(gradeSheetsRes.error, "Não foi possível ler as pautas.");
     const activeRuleSets = n(ruleSetsRes);
     const subjects = n(subjectsRes);
     const terms = yearId ? n(termsRes) : 0;

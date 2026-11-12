@@ -14,6 +14,16 @@ import {
   evaluateAngolanStatus,
 } from "@/features/pedagogica/components/pautas/assessment";
 
+describe("PAP obrigatória", () => {
+  it("exige uma nota válida antes de dar aptidão", () => {
+    expect(decidePromotionStatus(15, 0, "tecnico")).toBe("PENDENTE");
+    expect(decidePromotionStatus(15, 0, "tecnico", null)).toBe("PENDENTE");
+    expect(decidePromotionStatus(15, 0, "tecnico", Number.NaN)).toBe("PENDENTE");
+    expect(decidePromotionStatus(15, 0, "tecnico", 0)).toBe("NÃO APTO (PAP)");
+    expect(decidePromotionStatus(15, 0, "tecnico", 15)).toBe("APTO (PAP)");
+  });
+});
+
 describe("SIGA AssessmentEngine — Fonte Única de Dados Académicos", () => {
   it("normalizes score inputs strictly between 0 and 20", () => {
     expect(normalizeScore(14)).toBe(14);

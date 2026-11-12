@@ -29,7 +29,13 @@ export type ClassGroupRef = {
 export type SubjectRef = { id: string; code: string; name: string };
 export type AcademicLevelRef = { id: string; code: string; name: string };
 export type AcademicYearRef = { id: string; name: string; starts_on: string; ends_on: string };
-export type TeacherRef = { id: string; employee_number: string; national_id: string | null };
+export type TeacherRef = {
+  id: string;
+  employee_number: string;
+  national_id: string | null;
+  /** Nome da ficha: as folhas de horário costumam trazer o nome, não o nº de agente. */
+  full_name?: string | null;
+};
 export type ClassSubjectRef = {
   id: string;
   class_group_id: string;
@@ -181,7 +187,7 @@ export async function loadTeacherRefs(db: SupabaseClient, schoolId: string): Pro
   const { data: people, error: peopleError } = personIds.length
     ? await db
         .from("people")
-        .select("id, national_id")
+        .select("id, national_id, full_name")
         .eq("school_id", schoolId)
         .in("id", personIds)
     : { data: [], error: null };
@@ -189,13 +195,20 @@ export async function loadTeacherRefs(db: SupabaseClient, schoolId: string): Pro
     throw new Error(
       `Não foi possível carregar identificadores dos professores: ${peopleError.message}`,
     );
-  const nationalIdByPerson = new Map(
-    (people ?? []).map((row) => [String(row.id), row.national_id ? String(row.national_id) : null]),
+  const personById = new Map(
+    (people ?? []).map((row) => [
+      String(row.id),
+      {
+        national_id: row.national_id ? String(row.national_id) : null,
+        full_name: row.full_name ? String(row.full_name) : null,
+      },
+    ]),
   );
   return (teachers ?? []).map((row) => ({
     id: String(row.id),
     employee_number: String(row.employee_number ?? ""),
-    national_id: nationalIdByPerson.get(String(row.person_id)) ?? null,
+    national_id: personById.get(String(row.person_id))?.national_id ?? null,
+    full_name: personById.get(String(row.person_id))?.full_name ?? null,
   }));
 }
 

@@ -30,5 +30,5 @@ export function takeUpcomingDayLessons(lessons: DayAgendaLesson[], nowHhMm: stri
 }
 
 export function dayAgendaWeekday(isoDate: string) {
-  return weekdayJsFromIso(isoDate);
+  return weekdayJsFromIso(isoDate) || 7;
 }

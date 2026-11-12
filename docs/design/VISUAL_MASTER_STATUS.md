@@ -150,6 +150,10 @@ ausência de overflow. Sem redesenho. [Matriz, evidências e limites](../qa/syst
 As restantes fases continuam parciais. O proprietário indicou o Colégio Adventista
 — Huambo para testes; isolamento de staging não confirmado.
 **27/10/2026 — sidebar persistente e flyout recolhido:** o novo pedido do proprietário substitui o compacto por omissão. Em ramo de revisão: expandido por omissão no desktop, botão com alternância fixa por utilizador/escola, subfunções em flyout por hover apenas quando recolhida e acordeão actual preservado quando expandida. Cobertura adicionada em Vitest/jsdom; execução de CI, dispositivo físico e produção ainda **não validadas**.
+**26/10/2026 — proposta de horários configurada: implementado.**
+Turno institucional e limite diário explícitos no painel existente, sem novo modal.
+Testes DOM e de domínio aprovados; sem validação em conta real ou aparelho.
+[Handoff e limites](../agents/HANDOFF_HORARIOS_CONFIGURADOS_2026-10-26.md).
 
 **25/10/2026 — backend de horários/calendário:** agenda autenticada, sincronização
 de presenças e migrações verificadas; [evidência e limites](../architecture/ACADEMIC_AGENDA.md).
@@ -321,6 +325,30 @@ Caixa ou o painel do Alumni. Os ficheiros passaram a `financeiro_.rh_.*.tsx` e `
 os endereços são os mesmos e cada página mostra o seu ecrã, sem estilos novos.
 `tests/routes/route-nesting-contract.test.ts` falha se uma página voltar a ficar dentro de outra
 sem `<Outlet />`.
+Na continuação de 25/10, a consulta diária passou para a agenda publicada e a
+publicação de horários ganhou uma transacção única, MFA e repetição independente
+das presenças. [Ensaio e limites](../architecture/ACADEMIC_AGENDA.md#continuação-publicação-atómica-e-consulta-diária--25102026).
+Continua a ser trabalho apenas de backend, sem nova validação visual.
+
+**26/10/2026 — horário semanal (Fase 6, Professores/Académico): `implementado`.**
+`StudentTimetableCard` (portais do aluno, encarregado e professor; Pedagógica) ganha
+cor por disciplina (`subject-tone.ts`, matiz oklch com luminosidade fixa, sem
+gradientes nem sombras fortes), um dia de cada vez abaixo de `lg` com selector de
+44 px, aula em curso, aulas passadas e intervalos. Evidência: Vitest
+`tests/dashboard/student-timetable-card.test.tsx` e `tests/calendar/subject-tone.test.ts`;
+capturas do componente real com o servidor simulado (dados da turma DH26-10A) a
+[390 claro](evidence/2026-10-26/horario/390-claro.png),
+[390 escuro](evidence/2026-10-26/horario/390-escuro.png),
+[1024](evidence/2026-10-26/horario/1024-claro.png) e
+[1440](evidence/2026-10-26/horario/1440-claro.png), sem scroll horizontal em 390/768/1024/1440.
+Falta: validar em dispositivo físico e dentro do portal autenticado, depois de
+correr `supabase/SEED_DEMO_HORARIOS_2026.sql`.
+
+**26/10/2026 — funções de horários (Fase 6, Académico/Professores): `implementado`.**
+Ferramentas do horário na Pedagógica (análise, disponibilidade, exportação, proposta
+automática) em página, por separadores, sem modais novos; no portal, semanas, próxima aula,
+feriados, legenda com destaque, exportar e imprimir. Evidência e limites em
+[HORARIOS_2026.md](../specs/HORARIOS_2026.md). Falta a validação em dispositivo físico.
 
 ## Diagnóstico por prioridade
 
@@ -920,3 +948,11 @@ versão guardada após erro/conflito com confirmação de descarte, cancelamento
 contexto e rejeição de respostas de outra escola antes de actualizar a cache.
 [Evidência e limites](../qa/website-studio-2026-10-24/SYNC_2026-10-25.md).
 Continuam pendentes CI integral e ensaios reais em staging/canário; sem rollout.
+## Agenda dos portais — refinamento de backend (25/10/2026)
+
+As APIs dos horários de aluno/encarregado/docente passam a usar a agenda publicada,
+com semana civil, domingo e inscrições por cadeira. Presenças repetíveis sem
+sobrescrever chamadas. Componentes, dimensões, navegação e preferências visuais
+preservados. Este ciclo não constitui validação visual nem deploy da aplicação.
+Contrato, ensaio SQL revertido e verificações:
+[refinamento da agenda](../architecture/ACADEMIC_AGENDA.md#refinamento-portais-e-ressincronização-de-presenças--25102026).
