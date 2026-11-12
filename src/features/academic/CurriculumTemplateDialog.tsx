@@ -123,9 +123,21 @@ export function CurriculumTemplateDialog({
     }
     setSaving(true);
     try {
+      // O validador do servidor usa `z.record(z.enum(níveis), …)`, que no Zod 4 é
+      // exaustivo: exige a chave de **todos** os níveis. O estado do diálogo só
+      // guarda os níveis tocados, e escolher apenas um (p. ex. o ensino superior)
+      // fazia o pedido falhar com «expected array, received undefined» — o botão
+      // «Criar estrutura» não criava nada. Enviamos o registo completo, com lista
+      // vazia nos níveis não escolhidos; o plano já os ignora.
+      const payload: TemplateSelection = {
+        ...selection,
+        courses: Object.fromEntries(
+          EDUCATION_LEVELS.map((level) => [level.id, selection.courses[level.id] ?? []]),
+        ) as Record<EducationLevelId, string[]>,
+      };
       const result = fromCatalog
         ? await applyCatalog({ data: catalogSelection })
-        : await apply({ data: selection });
+        : await apply({ data: payload });
       const c = result.created;
       toast.success("Estrutura criada", {
         description:
