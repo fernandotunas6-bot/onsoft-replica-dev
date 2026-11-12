@@ -1,4 +1,4 @@
-import { createHmac, randomInt } from "crypto";
+import { createHmac, randomInt, timingSafeEqual } from "crypto";
 import { OtpChannel, OtpPurpose, VerificationSession } from "./contracts";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 
@@ -186,7 +186,10 @@ export class OtpService {
     }
 
     const computedHash = this.hashCode(params.code, normalizedIdentifier);
-    if (computedHash === record.code_hash) {
+    const expectedHash = Buffer.from(String(record.code_hash ?? ""));
+    const givenHash = Buffer.from(computedHash);
+    // Comparação em tempo constante.
+    if (expectedHash.length === givenHash.length && timingSafeEqual(expectedHash, givenHash)) {
       // Na última tentativa o claim acima já o consumiu, e foi este pedido.
       if (isNowExhausted) return { valid: true };
       // Sucesso: consumir uma única vez (dois acertos em simultâneo não valem os dois).

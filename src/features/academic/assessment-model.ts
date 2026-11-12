@@ -1,3 +1,5 @@
+import { roundHalfUp } from "@/lib/angola-academic";
+
 /**
  * Modelos de avaliação (puro): a regra da escola, o modelo por omissão e as
  * validações que a base também faz (`siga_publish_assessment_rule`).
@@ -307,7 +309,7 @@ export function roundGrade(value: number, method: RoundingMethod, decimalPlaces:
   const scaled = Number((value * factor).toPrecision(12));
   switch (method) {
     case "nearest":
-      return Math.round(scaled) / factor;
+      return roundHalfUp(value, decimalPlaces);
     case "up":
       return Math.ceil(scaled) / factor;
     case "down":

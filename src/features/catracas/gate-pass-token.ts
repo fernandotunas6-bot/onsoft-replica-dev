@@ -1,3 +1,4 @@
+import { schoolTodayIso } from "@/lib/school-date";
 /**
  * Helpers puros para tokens de catraca / RFID (sem I/O).
  */
@@ -41,7 +42,7 @@ function secureDigits(count: number): string {
  * Math.random (900 mil hipóteses, as mesmas nos dois). Agora 12 dígitos
  * independentes em cada um (10^12).
  */
-export function generateAccessCardIdentifiers(year = new Date().getFullYear()) {
+export function generateAccessCardIdentifiers(year = Number(schoolTodayIso().slice(0, 4))) {
   return {
     cardNumber: `CARD-${year}-${secureDigits(12)}`,
     barcode: `STU${year}${secureDigits(12)}`,

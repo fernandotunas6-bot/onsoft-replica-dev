@@ -1,3 +1,4 @@
+import { allSchoolRows } from "./paged-rows";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { createServerFn } from "@tanstack/react-start";

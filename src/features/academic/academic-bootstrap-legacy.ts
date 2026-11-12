@@ -1,3 +1,4 @@
+import { schoolTodayIso } from "@/lib/school-date";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -18,7 +19,7 @@ export const DEFAULT_ACADEMIC_SUBJECTS = [
 ] as const;
 
 export function defaultAcademicYearLabel(referenceDate = new Date()): string {
-  const year = referenceDate.getFullYear();
+  const year = Number(schoolTodayIso(referenceDate).slice(0, 4));
   return `${year}/${year + 1}`;
 }
 
@@ -57,7 +58,7 @@ export async function bootstrapAcademicYearIfMissing(
     .maybeSingle();
   if (existing?.id) return { seeded: [] };
 
-  const year = new Date().getFullYear();
+  const year = Number(schoolTodayIso().slice(0, 4));
   const { error } = await db.from("academic_years").insert({
     school_id: input.schoolId,
     name: input.yearName ?? defaultAcademicYearLabel(),

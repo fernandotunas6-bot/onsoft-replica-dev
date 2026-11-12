@@ -14,6 +14,7 @@ import {
   mentoringMatchInputSchema,
   mentoringStatusInputSchema,
 } from "./schemas";
+import { adminContext } from "./admin-context";
 
 const pipelineListSchema = z.object({
   opportunityId: z.string().guid().optional(),
@@ -21,16 +22,6 @@ const pipelineListSchema = z.object({
   status: z.string().trim().max(40).optional(),
   limit: z.number().int().min(1).max(300).default(200),
 });
-
-async function adminContext(userId: string, mode: "read" | "write" = "read") {
-  const membership = await (mode === "write" ? requireSgaWriterForWrite : requireSgaWriterFor)(
-    "pessoas",
-    userId,
-    ["Administrador", "Secretaria"],
-  );
-  const db = await loadSgaAdminClient();
-  return { membership, db };
-}
 
 async function hydrateAlumni(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,

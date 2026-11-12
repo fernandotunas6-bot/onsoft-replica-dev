@@ -10,6 +10,7 @@ import {
 import { getPlatformDomain } from "@/lib/saas/platform-domain";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { requireTenantAccess, resolveBearerSession } from "@/features/saas/platform-guard";
+import { authErrorStatus } from "@/features/saas/auth-error-status";
 
 // style-check: route-exempt — gestão de rotas de e-mail institucional.
 
@@ -23,12 +24,6 @@ const APPS = ["web", "admin"] as const;
 async function authorizeTenant(request: Request, tenantId: string) {
   const { userId, aal } = await resolveBearerSession(request.headers.get("Authorization"));
   return requireTenantAccess(userId, tenantId, undefined, aal);
-}
-
-function authErrorStatus(message: string): number {
-  if (message === "Unauthorized" || message.includes("Sem permissão")) return 401;
-  if (message.includes("não encontrada")) return 404;
-  return 500;
 }
 
 const createRouteBodySchema = z.object({

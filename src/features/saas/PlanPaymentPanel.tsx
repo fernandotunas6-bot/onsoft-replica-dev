@@ -14,6 +14,7 @@ import {
   type SubscriptionOverview,
 } from "./subscription-server";
 import { planPriceKz } from "./subscription-view";
+import { fileToBase64 } from "@/lib/base64";
 
 const PAYMENT_IBAN = String(import.meta.env["VITE_PAYMENT_IBAN"] ?? "").trim();
 const PAYMENT_BANK = String(import.meta.env["VITE_PAYMENT_BANK"] ?? "").trim();
@@ -32,15 +33,6 @@ const formatDate = (iso: string) => {
   const [y, m, d] = iso.slice(0, 10).split("-");
   return y && m && d ? `${d}/${m}/${y}` : iso;
 };
-
-async function fileToBase64(file: File): Promise<string> {
-  const buffer = new Uint8Array(await file.arrayBuffer());
-  let binary = "";
-  for (let i = 0; i < buffer.length; i += 0x8000) {
-    binary += String.fromCharCode(...buffer.subarray(i, i + 0x8000));
-  }
-  return btoa(binary);
-}
 
 /**
  * Pagar o plano: (1) gerar a cobrança com referência própria no PayFlow — ou,
