@@ -1,8 +1,7 @@
-> **12/11/2026 — integração dos PRs abertos** no ramo `claude/modest-shannon-46v4v1`:
-> o que entrou, o que ficou para decisão e as condições antes de fundir em
+> **12/11/2026 — integração dos PRs abertos (#443, fundida e publicada):** o que entrou,
+> o que ficou para decisão, o seguimento e as obrigações em produção (migração académica
+> da #404 e horários publicados da #338) em
 > [HANDOFF_INTEGRACAO_PRS_2026-11-12.md](HANDOFF_INTEGRACAO_PRS_2026-11-12.md).
-> A #345 (com a #338) já está nesse ramo; não repetir a integração. Migração académica
-> nova e validação autenticada continuam pendentes antes da promoção.
 
 # Handoff — continuar o SIGA
 

@@ -2390,6 +2390,9 @@ export const upsertFeePlanSettings = createServerFn({ method: "POST" })
       context.userId,
       ["Administrador", "Tesouraria"],
     );
+    // Preços de propinas são escrita financeira: 2FA, como anular faturas ou
+    // registar despesas (o cliente privilegiado passa por cima das políticas aal2) (#128).
+    requireAal2(context.claims, "Esta operação financeira");
     const db = await loadSgaAdminClient();
 
     let planId: string;
@@ -2535,6 +2538,9 @@ export const saveGradeTuitionPrices = createServerFn({ method: "POST" })
       context.userId,
       ["Administrador", "Tesouraria"],
     );
+    // Preços de propinas são escrita financeira: 2FA, como anular faturas ou
+    // registar despesas (o cliente privilegiado passa por cima das políticas aal2) (#128).
+    requireAal2(context.claims, "Esta operação financeira");
     const db = await loadSgaAdminClient();
     const schoolId = membership.schoolId;
     if (!(await gradePricingAvailable(db))) {

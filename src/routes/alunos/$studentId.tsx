@@ -97,7 +97,11 @@ import {
 } from "@/features/students/student-sections";
 import { searchPeople } from "@/features/people/server";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
-import { buildStudentDossier, documentValidationCode } from "@/features/academic/assessment-views";
+import {
+  boletimSummary,
+  buildStudentDossier,
+  documentValidationCode,
+} from "@/features/academic/assessment-views";
 import {
   listPedagogicalWorkspace,
   getStudentAcademicHistory,
@@ -686,13 +690,23 @@ function StudentDetail() {
       },
       overlay: overlayBoletim({
         subjects: rows,
-        ...(rows[0]?.mfa ? { average: rows[0].mfa } : {}),
+        // Média e situação de todas as disciplinas (antes: a MFA da primeira, e
+        // «Transita» mesmo com disciplinas sem nota).
+        ...(() => {
+          const summary = boletimSummary(
+            rows.map((row) => {
+              const mfa = Number(String(row.mfa).replace(",", "."));
+              return { mfa: Number.isFinite(mfa) ? mfa : null, status: row.status };
+            }),
+          );
+          return {
+            status: summary.status,
+            approved: summary.approved,
+            ...(summary.average != null ? { average: formatScore(summary.average) } : {}),
+          };
+        })(),
         attendance:
           student.attendance_rate != null ? `${Math.round(Number(student.attendance_rate))}%` : "—",
-        status: rows.every((row) => !/reprov|não trans/i.test(row.status))
-          ? "Transita"
-          : "Pendente",
-        approved: rows.filter((row) => !/reprov|não trans|pendente/i.test(row.status)).length,
       }),
       fallback: () =>
         exportOfficialPautaPdf(

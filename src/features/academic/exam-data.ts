@@ -244,13 +244,17 @@ export async function absenceByEnrollment(
   );
   if (!enrollmentOfStudent.size) return result;
 
+  // Sem filtro pelo ano: a chamada por disciplina, a do QR da escola e a da
+  // presença do professor gravam as sessões sem `academic_year_id` (só a turma), e
+  // a turma já é de um único ano. Com o filtro, essas aulas ficavam de fora e a %
+  // de faltas saía abaixo da real (#128). O `yearId` fica na assinatura dos chamadores.
+  void yearId;
   const sessionIds: string[] = [];
   for (let from = 0; ; from += ATTENDANCE_PAGE) {
     const { data: sessions, error } = await db
       .from("siga_attendance_sessions")
       .select("id")
       .eq("school_id", schoolId)
-      .eq("academic_year_id", yearId)
       .eq("class_group_id", classGroupId)
       .order("id", { ascending: true })
       .range(from, from + ATTENDANCE_PAGE - 1);

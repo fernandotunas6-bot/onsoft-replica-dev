@@ -80,37 +80,48 @@ export const getOrCreateEnrollmentForm = createServerFn({ method: "POST" })
       .select("name")
       .eq("id", membership.schoolId)
       .maybeSingle();
-    const slug = `${slugFromSchoolName(String(school.data?.name ?? "escola"))}-matricula`;
-    const { data, error } = await db
-      .from("enrollment_forms")
-      .insert({
-        school_id: membership.schoolId,
-        slug,
-        title: "Candidatura a matrícula",
-        subtitle: "Preencha os dados do aluno para a secretaria confirmar.",
-        hero_text: "Bem-vindo. A sua candidatura fica pendente até a secretaria validar.",
-        accent_color: "#1d4ed8",
-        is_open: true,
-        visible_fields: [
-          "birth_date",
-          "sex",
-          "phone_primary",
-          "email",
-          "province",
-          "municipality",
-          "address",
-          "guardian_name",
-          "guardian_phone",
-          "guardian_relationship",
-        ],
-        created_by: context.userId,
-        updated_by: context.userId,
-      })
-      .select(
-        "id, slug, title, subtitle, hero_text, accent_color, logo_url, is_open, visible_fields",
-      )
-      .single();
+    const base = slugFromSchoolName(String(school.data?.name ?? "escola"));
+    // O slug é único entre todas as escolas: duas escolas com o mesmo nome (ou nomes
+    // longos iguais nos primeiros caracteres) ficavam sem link. Na colisão, tenta com
+    // um sufixo da escola (#128).
+    const insertForm = (slug: string) =>
+      db
+        .from("enrollment_forms")
+        .insert({
+          school_id: membership.schoolId,
+          slug,
+          title: "Candidatura a matrícula",
+          subtitle: "Preencha os dados do aluno para a secretaria confirmar.",
+          hero_text: "Bem-vindo. A sua candidatura fica pendente até a secretaria validar.",
+          accent_color: "#1d4ed8",
+          is_open: true,
+          visible_fields: [
+            "birth_date",
+            "sex",
+            "phone_primary",
+            "email",
+            "province",
+            "municipality",
+            "address",
+            "guardian_name",
+            "guardian_phone",
+            "guardian_relationship",
+          ],
+          created_by: context.userId,
+          updated_by: context.userId,
+        })
+        .select(
+          "id, slug, title, subtitle, hero_text, accent_color, logo_url, is_open, visible_fields",
+        )
+        .single();
+    let { data, error } = await insertForm(`${base}-matricula`);
+    if (error?.code === "23505") {
+      ({ data, error } = await insertForm(
+        `${base}-${membership.schoolId.replace(/-/g, "").slice(0, 6)}-matricula`,
+      ));
+    }
     if (error) throw publicDatabaseError(error, "Não foi possível criar o link de matrícula.");
+    if (!data) throw new Error("Não foi possível criar o link de matrícula.");
     return data;
   });
 
