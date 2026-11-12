@@ -1,4 +1,4 @@
-import { useFollowSelectedTerm } from "@/features/auth/use-school-settings";
+import { useFollowSelectedTerm } from "@/features/auth/use-follow-selected-term";
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";

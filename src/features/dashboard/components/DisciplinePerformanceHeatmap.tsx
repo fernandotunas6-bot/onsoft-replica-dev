@@ -1,4 +1,5 @@
-import { useFollowSelectedTerm, useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useFollowSelectedTerm } from "@/features/auth/use-follow-selected-term";
 import { useState } from "react";
 import { AlertTriangle, BookOpen, ChevronRight, Layers, Trophy } from "lucide-react";
 import { IconChip } from "@/components/ui/icon-chip";

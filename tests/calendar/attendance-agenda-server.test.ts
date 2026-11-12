@@ -98,6 +98,8 @@ beforeEach(() => {
       class_groups: [{ id: "group", name: "A" }],
       subjects: [{ id: "subject", name: "Matemática" }],
       siga_attendance_sessions: state.sessions,
+      // Modo de presença dos professores (main): sem linha, fica «button».
+      siga_school_presence_settings: null,
     };
     if (!(table in records)) throw new Error(`Consulta fora da agenda: ${table}`);
     const query = {
@@ -109,6 +111,7 @@ beforeEach(() => {
       },
       in: () => query,
       upsert: state.upsert,
+      maybeSingle: async () => ({ data: records[table], error: null }),
       then: (resolve: (value: unknown) => unknown) =>
         Promise.resolve(
           resolve({
@@ -153,7 +156,15 @@ describe("chamada usa a agenda publicada", () => {
   });
   it("não cria sessões quando a agenda só contém feriados ou interrupções", async () => {
     state.agenda.mockResolvedValue([{ extendedProps: { source: "holiday" } }]);
-    expect(await handler(request)).toEqual({ sessions: [], date: "2026-11-01", pendingCount: 0 });
+    // Mesma forma das outras respostas vazias (presença do professor da main).
+    expect(await handler(request)).toEqual({
+      sessions: [],
+      date: "2026-11-01",
+      pendingCount: 0,
+      presenceEnabled: null,
+      presenceMode: "button",
+      viewerIsTeacher: true,
+    });
     expect(state.upsert).not.toHaveBeenCalled();
   });
   it("mantém a sessão concluída e não a volta a escrever", async () => {

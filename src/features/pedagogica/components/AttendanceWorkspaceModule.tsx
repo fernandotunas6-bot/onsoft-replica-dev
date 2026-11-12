@@ -1,4 +1,5 @@
-import { useFollowSelectedTerm, useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
+import { useFollowSelectedTerm } from "@/features/auth/use-follow-selected-term";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
