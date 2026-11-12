@@ -55,7 +55,7 @@ import { subjectsOfClass } from "@/features/academic/pauta-subjects";
 import { AssessmentStat, OfficialPautaView } from "@/features/academic/OfficialPautaView";
 import {
   buildClassCourseMap,
-  buildStudentDossier,
+  buildEnrolledStudentDossier,
   buildTermCloseChecklist,
   changeHistoryLines,
   documentValidationCode,
@@ -451,7 +451,12 @@ export function AssessmentCenter({
   const dossier = useMemo(
     () =>
       selectedStudent
-        ? buildStudentDossier(termGrades, subjects, selectedStudent.student.id, passingGrade)
+        ? buildEnrolledStudentDossier(
+            termGrades,
+            subjects,
+            selectedStudent.student.id,
+            passingGrade,
+          )
         : [],
     [selectedStudent, termGrades, subjects, passingGrade],
   );

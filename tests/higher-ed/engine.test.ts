@@ -194,6 +194,11 @@ describe("frequência e épocas", () => {
   });
 
   it("época normal pondera frequência e exame pelo peso do regulamento", () => {
+    // Sem exame na época normal não se aprova só com a frequência.
+    expect(seasonResult({ season: "normal", frequency: 12, exam: null, regulation: reg })).toEqual({
+      status: "reprovado",
+      finalGrade: null,
+    });
     expect(seasonResult({ season: "normal", frequency: 12, exam: 8, regulation: reg })).toEqual({
       status: "reprovado",
       finalGrade: 9.6,

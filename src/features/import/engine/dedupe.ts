@@ -31,7 +31,7 @@ export function scorePersonDuplicate(
   const name = foldForCompare(candidate.full_name);
   const email = foldForCompare(candidate.email);
   const phone = normalizePhoneDigits(candidate.phone);
-  const nif = foldForCompare(candidate.national_id);
+  const nif = foldForCompare(candidate.national_id).replace(/\s/g, "");
   const birth = candidate.date_of_birth ?? "";
 
   let score = 0;
@@ -40,7 +40,9 @@ export function scorePersonDuplicate(
   if (name && existingName === name) {
     score += 0.7;
     reasons.push("nome exacto");
-  } else if (name && existingName.includes(name)) {
+  } else if (name && ` ${existingName} `.includes(` ${name} `)) {
+    // Palavras inteiras: com `includes` simples, «Ana Silva» contava como
+    // semelhante a «Joana Silva» e, com o limiar 0,45, era a mesma pessoa.
     score += 0.45;
     reasons.push("nome semelhante");
   }
@@ -52,7 +54,7 @@ export function scorePersonDuplicate(
     score += 0.3;
     reasons.push("telefone");
   }
-  if (nif && foldForCompare(existing.national_id) === nif) {
+  if (nif && foldForCompare(existing.national_id).replace(/\s/g, "") === nif) {
     score += 0.4;
     reasons.push("documento/NIF");
   }
@@ -86,7 +88,16 @@ export function findBestPersonMatch<
   existingPeople: T[],
 ): DuplicateMatch<T> | null {
   let best: DuplicateMatch<T> | null = null;
+  // Documento ou data de nascimento diferentes (ambos preenchidos): não é a
+  // mesma pessoa, por mais parecido que seja o nome. A importação junta
+  // automaticamente, por isso não pode juntar duas pessoas distintas.
+  const compactId = (value: unknown) => foldForCompare(value).replace(/[\s.-]/g, "");
+  const nif = compactId(candidate.national_id);
+  const birth = candidate.date_of_birth ?? "";
   for (const existing of existingPeople) {
+    const existingNif = compactId(existing.national_id);
+    if (nif && existingNif && existingNif !== nif) continue;
+    if (birth && existing.date_of_birth && existing.date_of_birth !== birth) continue;
     const { score, reasons } = scorePersonDuplicate(candidate, existing);
     if (score >= PERSON_DUPLICATE_THRESHOLD && (!best || score > best.score)) {
       best = { record: existing, score, reasons };

@@ -18,6 +18,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { getOrCreateVirtualCard } from "@/features/catracas/server";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
+import { overlayServico } from "@/features/documents/print-overlays";
 
 export function VirtualCardModal({
   open,
@@ -77,11 +78,19 @@ export function VirtualCardModal({
         directorName: school?.director_name,
         academicYear: selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year,
       },
-      overlay: {
-        documentName: "Cartão de Identificação Escolar",
+      // O titular é o aluno (antes saía o nome da escola) e o conteúdo vai no formato
+      // do documento de serviço, o modelo do cartão.
+      student: {
+        fullName: studentName,
+        academicNumber: card.card_number,
+        className: className ?? null,
+      },
+      overlay: overlayServico({
+        name: "Cartão de Identificação Escolar",
         areaLabel: "Acessos & Catracas",
-        referenceCode: card.card_number,
-        statusLabel: "Ativo",
+        reference: card.card_number,
+        status: "Ativo",
+        ...(validityLabel ? { validityLabel } : {}),
         parties: [{ label: "Estudante", value: studentName }],
         sections: [
           {
@@ -96,9 +105,8 @@ export function VirtualCardModal({
               .join("\n"),
           },
         ],
-        termsText:
-          "Cartão pessoal e intransmissível para controlo de acesso às instalações escolares.",
-      },
+        term: "Cartão pessoal e intransmissível para controlo de acesso às instalações escolares.",
+      }),
     }).catch((err) =>
       toast.error(err instanceof Error ? err.message : "Não foi possível imprimir o cartão."),
     );

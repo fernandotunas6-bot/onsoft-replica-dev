@@ -75,13 +75,23 @@ export const getCommunicationDispatchStats = createServerFn({ method: "GET" })
     ]);
 
     const db = await loadSgaAdminClient();
-    const { data: rows } = await db
-      .from("communication_dispatches")
-      .select("channel, status")
-      .eq("school_id", membership.schoolId);
+    // Em páginas: o PostgREST corta em 1000 e, depois do milésimo envio, os
+    // totais deixavam de crescer.
+    const rows: Array<{ channel: unknown; status: unknown }> = [];
+    for (let from = 0; from < 200_000; from += 1000) {
+      const { data: page, error } = await db
+        .from("communication_dispatches")
+        .select("id, channel, status")
+        .eq("school_id", membership.schoolId)
+        .order("id")
+        .range(from, from + 999);
+      if (error) break;
+      rows.push(...(page ?? []));
+      if (!page || page.length < 1000) break;
+    }
 
     const counts = {
-      total: rows?.length || 0,
+      total: rows.length,
       sent: 0,
       delivered: 0,
       opened: 0,
@@ -95,7 +105,7 @@ export const getCommunicationDispatchStats = createServerFn({ method: "GET" })
       },
     };
 
-    for (const r of rows ?? []) {
+    for (const r of rows) {
       const status = String(r.status);
       const channel = String(r.channel) as "email" | "sms" | "whatsapp";
 

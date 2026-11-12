@@ -75,7 +75,10 @@ const sgaGuardianRelationshipMap: Record<string, string> = {
   avo: "grandparent",
   grandparent: "grandparent",
   irmao: "sibling",
+  irma: "sibling",
   sibling: "sibling",
+  encarregado_legal: "guardian",
+  encarregado_de_educacao: "guardian",
   conjuge: "other",
   contacto_emergencia: "other",
   responsavel_financeiro: "other",
@@ -84,7 +87,14 @@ const sgaGuardianRelationshipMap: Record<string, string> = {
 };
 
 export function mapSgaGuardianRelationship(value: string): string {
-  const key = value.trim().toLowerCase();
+  // Sem acentos nem espaços: «Mãe», «Avó» e «Encarregado Legal» (o modelo de
+  // importação) caíam em «other», ou iam tal e qual e a base recusava.
+  const key = value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
   return sgaGuardianRelationshipMap[key] ?? "other";
 }
 
