@@ -149,6 +149,9 @@ function github(path, { method = "GET", body } = {}) {
       encoding: "utf8",
       input: body ? JSON.stringify(body) : undefined,
       stdio: ["pipe", "pipe", "pipe"],
+      // O limite por omissão (1 MB) falhava com respostas grandes, e o erro fazia a
+      // vigilância falhar em vez de verificar a publicação.
+      maxBuffer: 64 * 1024 * 1024,
     });
     return out.trim() ? JSON.parse(out) : null;
   } catch (error) {
@@ -188,7 +191,10 @@ async function main() {
   if (!repo || !process.env.GH_TOKEN)
     throw new Error("GITHUB_REPOSITORY e GH_TOKEN são obrigatórios.");
 
-  const mainSha = github(`/repos/${repo}/commits/main`).sha;
+  // Só o SHA: `commits/main` devolve o commit inteiro, com os ficheiros e os patches.
+  // Depois do squash da #443 (341 ficheiros) a resposta passou o limite do buffer e a
+  // vigilância falhou a 12/11, com a publicação verde.
+  const mainSha = github(`/repos/${repo}/git/ref/heads/main`).object.sha;
   const release = await readRelease(process.env.SIGA_RELEASE_URL || "https://portal-siga.com/");
   const runs = github(
     `/repos/${repo}/actions/workflows/${DEPLOY_WORKFLOW}/runs?branch=main&per_page=1`,

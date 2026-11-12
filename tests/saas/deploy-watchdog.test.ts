@@ -140,6 +140,15 @@ describe("vigilância do deploy contínuo", () => {
     expect(body).toContain("docs/releases/DEPLOY_VIAS.md");
   });
 
+  it("lê só o SHA da main, com folga no buffer, para não falhar com commits grandes", () => {
+    const script = readFileSync(join(process.cwd(), "scripts/siga/deploy-watchdog.mjs"), "utf8");
+    // `commits/main` traz os ficheiros e os patches: com o squash da #443 passou o 1 MB
+    // do execFileSync e a vigilância falhou com a publicação verde.
+    expect(script).toContain("/git/ref/heads/main`).object.sha");
+    expect(script).not.toContain("/commits/main`)");
+    expect(script).toMatch(/maxBuffer: \d+ \* 1024 \* 1024/);
+  });
+
   it("o workflow corre de 2 em 2 horas e no fim de cada publicação, sem segredos de produção", () => {
     const workflow = readFileSync(
       join(process.cwd(), ".github/workflows/deploy-watchdog.yml"),
