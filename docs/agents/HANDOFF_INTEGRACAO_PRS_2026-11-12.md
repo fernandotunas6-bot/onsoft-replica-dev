@@ -4,6 +4,35 @@ Pedido do proprietário: resolver todos os PRs abertos, incluindo os mais antigo
 triagem segura, sem tocar na `main` (excepto a #441). Ramo de integração:
 `claude/modest-shannon-46v4v1`, a partir da `main` `95483017` (com a #441).
 
+## Estado depois da fusão da #443 (12/11, 06:46 UTC)
+
+O proprietário fundiu a #443 na `main` com squash (`cc5fa565`). O deploy de produção, o
+CI e a auditoria pós-publicação ficaram verdes. As condições abaixo deixaram de ser
+pré-requisitos do merge e passaram a ser **obrigações em produção**: aplicar e validar
+a migração académica da #404, e confirmar que as escolas publicaram os horários
+(#338). Os PRs incluídos foram fechados com nota, excepto a #128, que fica aberta até
+entrar o seguimento.
+
+Seguimento (ramo `claude/modest-shannon-46v4v1`, recomeçado da `main`):
+
+- Correcções do #128 que se tinham perdido na integração, porque a `main` não as tinha
+  refeito: faltas sem o filtro por ano (exames e portal), plano de pagamento ligado à
+  fatura certa, 2FA nos preços de propinas, chamada de aula cancelada recusada,
+  justificação que não apaga presenças, contagens do histórico de presenças, pasta só
+  apagada vazia, regra de um registo por ano no Superior, parentesco dos encarregados e
+  notas por páginas na importação, candidaturas, documentos e boletim.
+- «Deploy contínuo — vigilância»: falhava desde o squash da #443 porque lia o commit
+  inteiro da `main` (passava o buffer de 1 MB). Passa a ler `git/ref/heads/main`.
+
+PRs que ficam abertos: #118 (só os ciclos de matrícula, sem conflitos), #130 (SIGA AI,
+sem conflitos, adormecido por omissão), #206 e #210. Estes dois não se resolvem sem
+decisão do proprietário:
+
+- **#206:** a chave dos campos do website passa a vir do texto e não do contador da
+  `main`. Mudar as chaves faz o editor recusar os rascunhos já gravados pelas escolas.
+- **#210:** mexe no bloqueio das escolas por assinatura (`access-policy`,
+  `commercial-lifecycle`), que a `main` redesenhou no PayFlow e no ADMIN.
+
 ## O que foi feito
 
 - **#441 fundida na `main`** (squash `95483017`), com o CI verde e autorização expressa.
