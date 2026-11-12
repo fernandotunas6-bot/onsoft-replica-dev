@@ -1,6 +1,8 @@
-> Continuação pedagógica publicada no PR #345 (ramo `fix/pedagogy-consolidated-20261026`).
-> Ler `HANDOFF_PEDAGOGY_CONSOLIDATED_2026-10-26.md`; inclui a #338, não repetir a integração.
-> Migração académica nova e validação autenticada continuam pendentes antes da promoção.
+> **12/11/2026 — integração dos PRs abertos** no ramo `claude/modest-shannon-46v4v1`:
+> o que entrou, o que ficou para decisão e as condições antes de fundir em
+> [HANDOFF_INTEGRACAO_PRS_2026-11-12.md](HANDOFF_INTEGRACAO_PRS_2026-11-12.md).
+> A #345 (com a #338) já está nesse ramo; não repetir a integração. Migração académica
+> nova e validação autenticada continuam pendentes antes da promoção.
 
 # Handoff — continuar o SIGA
 
