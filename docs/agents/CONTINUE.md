@@ -1,3 +1,8 @@
+> **15/11/2026 — análise crítica do sistema:** achados P0–P3 com evidência e correcções em
+> [22 — análise crítica](../auditoria/22-analise-critica-sistema-2026-11-15.md). Antes de
+> tudo: confirmar na produção as RPC da migração `20261031000000_academic_write_integrity`
+> (sem elas o lançamento de notas falha) e rodar a chave secreta do Supabase.
+
 > **12/11/2026 — integração dos PRs abertos (#443, fundida e publicada):** o que entrou,
 > o que ficou para decisão, o seguimento e as obrigações em produção (migração académica
 > da #404 e horários publicados da #338) em
