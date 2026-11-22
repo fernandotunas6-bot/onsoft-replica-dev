@@ -1,3 +1,9 @@
+> **22/11/2026 — PRs pendentes resolvidos (#118, #130, #206, #210):** decisão por PR, o que
+> entrou, o que ficou de fora e o SQL a aplicar em
+> [HANDOFF_INTEGRACAO_PRS_2026-11-22.md](HANDOFF_INTEGRACAO_PRS_2026-11-22.md). Ciclos de
+> matrícula **desligados por omissão** (interruptor por escola); SIGA AI adormecido; chaves dos
+> campos do website congeladas em `painel/escolas/content-keys.json` — não o regenerar.
+
 > **15–22/11/2026 — análise crítica e correcções; PayFlow desactivado:** achados P0–P3,
 > correcções aplicadas e acções do proprietário em
 > [22 — análise crítica](../auditoria/22-analise-critica-sistema-2026-11-15.md) (secção

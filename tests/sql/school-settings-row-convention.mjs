@@ -89,9 +89,7 @@ try {
   );
   assert.equal(tardia.rows.length, 0, "uma gravação sobre a versão antiga devia não apanhar nada");
 
-  console.log(
-    "school-settings-row-convention: a base aceita várias linhas, o código exige uma OK",
-  );
+  console.log("school-settings-row-convention: a base aceita várias linhas, o código exige uma OK");
 } finally {
   await db.close();
 }

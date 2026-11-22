@@ -55,7 +55,9 @@ await db.query("insert into terms values ($1,$2,current_date - 10, current_date 
   year,
 ]);
 await enroll();
-await db.query(`insert into school_settings values ($1,'enrollment','{"enforce":"sim"}')`, [school]);
+await db.query(`insert into school_settings values ($1,'enrollment','{"enforce":"sim"}')`, [
+  school,
+]);
 await enroll();
 await db.query(`update school_settings set value = '{"enforce":false}'`);
 await enroll();
@@ -85,7 +87,9 @@ await db.query(
 await enroll();
 
 // Ciclos estragados são ignorados (como no código): sem ciclos válidos fica aberto.
-await db.query(`update school_settings set value = '{"enforce":true,"cycles":[{"opens_on":"ontem"}]}'`);
+await db.query(
+  `update school_settings set value = '{"enforce":true,"cycles":[{"opens_on":"ontem"}]}'`,
+);
 await enroll();
 
 // O pacote para o SQL Editor leva a migração tal e qual.

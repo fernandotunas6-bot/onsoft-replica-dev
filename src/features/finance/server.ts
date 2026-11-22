@@ -97,7 +97,6 @@ import {
   loadNextInvoiceSequence,
 } from "./invoice-numbering";
 import { mapPaymentMethodForLedger } from "./payment-method";
-import { sumPaidByInvoice } from "@/features/finance/invoice-settlement";
 
 const REPORTING_PAGE_SIZE = 1000;
 const REPORTING_MAX_PAGES = 30;
