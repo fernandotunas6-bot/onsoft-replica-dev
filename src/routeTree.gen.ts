@@ -96,6 +96,7 @@ import { Route as ApiMobileProfileRouteImport } from './routes/api/mobile/profil
 import { Route as ApiMobileWorkRouteImport } from './routes/api/mobile/work'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
+import { Route as ApiSaasBillingSettingsRouteImport } from './routes/api/saas/billing-settings'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
 import { Route as ApiSaasEducationCatalogRouteImport } from './routes/api/saas/education-catalog'
 import { Route as ApiSaasGatewayWebhooksRouteImport } from './routes/api/saas/gateway-webhooks'
@@ -604,6 +605,11 @@ const ApiSaasBillingProofsRoute = ApiSaasBillingProofsRouteImport.update({
   path: '/api/saas/billing-proofs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSaasBillingSettingsRoute = ApiSaasBillingSettingsRouteImport.update({
+  id: '/api/saas/billing-settings',
+  path: '/api/saas/billing-settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSaasDomainsRoute = ApiSaasDomainsRouteImport.update({
   id: '/api/saas/domains',
   path: '/api/saas/domains',
@@ -1055,6 +1061,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile/work': typeof ApiMobileWorkRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
+  '/api/saas/billing-settings': typeof ApiSaasBillingSettingsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
@@ -1211,6 +1218,7 @@ export interface FileRoutesByTo {
   '/api/mobile/work': typeof ApiMobileWorkRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
+  '/api/saas/billing-settings': typeof ApiSaasBillingSettingsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
@@ -1368,6 +1376,7 @@ export interface FileRoutesById {
   '/api/mobile/work': typeof ApiMobileWorkRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
+  '/api/saas/billing-settings': typeof ApiSaasBillingSettingsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
@@ -1526,6 +1535,7 @@ export interface FileRouteTypes {
     | '/api/mobile/work'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
+    | '/api/saas/billing-settings'
     | '/api/saas/domains'
     | '/api/saas/education-catalog'
     | '/api/saas/gateway-webhooks'
@@ -1682,6 +1692,7 @@ export interface FileRouteTypes {
     | '/api/mobile/work'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
+    | '/api/saas/billing-settings'
     | '/api/saas/domains'
     | '/api/saas/education-catalog'
     | '/api/saas/gateway-webhooks'
@@ -1838,6 +1849,7 @@ export interface FileRouteTypes {
     | '/api/mobile/work'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
+    | '/api/saas/billing-settings'
     | '/api/saas/domains'
     | '/api/saas/education-catalog'
     | '/api/saas/gateway-webhooks'
@@ -1994,6 +2006,7 @@ export interface RootRouteChildren {
   ApiMobileWorkRoute: typeof ApiMobileWorkRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
+  ApiSaasBillingSettingsRoute: typeof ApiSaasBillingSettingsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
   ApiSaasEducationCatalogRoute: typeof ApiSaasEducationCatalogRouteWithChildren
   ApiSaasGatewayWebhooksRoute: typeof ApiSaasGatewayWebhooksRoute
@@ -2655,6 +2668,13 @@ declare module '@tanstack/react-router' {
       path: '/api/saas/billing-proofs'
       fullPath: '/api/saas/billing-proofs'
       preLoaderRoute: typeof ApiSaasBillingProofsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/billing-settings': {
+      id: '/api/saas/billing-settings'
+      path: '/api/saas/billing-settings'
+      fullPath: '/api/saas/billing-settings'
+      preLoaderRoute: typeof ApiSaasBillingSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/domains': {
@@ -3325,6 +3345,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMobileWorkRoute: ApiMobileWorkRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
+  ApiSaasBillingSettingsRoute: ApiSaasBillingSettingsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,
   ApiSaasEducationCatalogRoute: ApiSaasEducationCatalogRouteWithChildren,
   ApiSaasGatewayWebhooksRoute: ApiSaasGatewayWebhooksRoute,

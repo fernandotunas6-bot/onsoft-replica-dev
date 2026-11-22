@@ -126,6 +126,41 @@ async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<R
   }
 }
 
+/** Periodicidades com desconto editável (a mensal é a referência). */
+export type PeriodDiscounts = { quarterly: number; semiannual: number; yearly: number };
+
+/** Descontos por periodicidade de toda a plataforma (`/api/saas/billing-settings`). */
+export async function fetchPeriodDiscounts(
+  accessToken: string | undefined | null,
+): Promise<{ discounts?: PeriodDiscounts; maxDiscountPct?: number; error?: string }> {
+  const res = await apiFetch(getSaasApiUrl("/api/saas/billing-settings"), {
+    headers: authHeaders(accessToken),
+    cache: "no-store",
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    discounts?: PeriodDiscounts;
+    maxDiscountPct?: number;
+    error?: string;
+  };
+  return res.ok ? data : { error: data.error ?? `HTTP ${res.status}` };
+}
+
+export async function savePeriodDiscounts(
+  accessToken: string | undefined | null,
+  discounts: PeriodDiscounts,
+): Promise<{ discounts?: PeriodDiscounts; error?: string }> {
+  const res = await apiFetch(getSaasApiUrl("/api/saas/billing-settings"), {
+    method: "POST",
+    headers: authHeaders(accessToken, true),
+    body: JSON.stringify({ discounts }),
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    discounts?: PeriodDiscounts;
+    error?: string;
+  };
+  return res.ok ? data : { error: data.error ?? `HTTP ${res.status}` };
+}
+
 export async function fetchSaasPlans(): Promise<SaasPlanRow[]> {
   try {
     const res = await apiFetch(getSaasApiUrl("/api/saas/plans"));

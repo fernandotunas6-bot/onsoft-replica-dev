@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { fetchSaasPlans, type SaasPlanRow } from "@/lib/saas-api"
 import { getWebUrl } from "@/lib/ecosystem-urls"
+import { PeriodDiscountsCard } from "./components/period-discounts-card"
 
 function formatAoa(value?: number) {
   if (value == null) return "—"
@@ -53,6 +54,8 @@ export default function BillingSettings() {
           </a>
         </Button>
       </div>
+
+      <PeriodDiscountsCard />
 
       {loading ? (
         <p className="text-sm text-muted-foreground">A carregar planos…</p>
