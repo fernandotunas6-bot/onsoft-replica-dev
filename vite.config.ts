@@ -46,7 +46,15 @@ const publicAssetCache = {
 
 export default defineConfig({
   vite: {
-    plugins: [schoolWebsitePlugin, mcpPlugin()],
+    // Sem confiar em X-Forwarded-Host/-Proto (análise 22, P2-1): o próprio plugin avisa que
+    // só é seguro no alojamento da Lovable, cujos proxies reescrevem esses cabeçalhos. A
+    // produção corre na Cloudflare, que os deixa passar tal como o cliente os envia; o
+    // endereço do recurso OAuth vem então do `request.url`. O plugin regenera as rotas
+    // `/mcp` e `/.well-known/oauth-protected-resource` com estas opções.
+    plugins: [
+      schoolWebsitePlugin,
+      mcpPlugin({ trustForwardedHost: false, trustForwardedProto: false }),
+    ],
     environments: {
       client: {
         build: {
