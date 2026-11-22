@@ -13,14 +13,14 @@ import { AREA_LABEL, areaToneForPath, type AreaTone } from "@/lib/area-tone";
 /**
  * Sub-áreas com nome próprio, além do rótulo da área.
  *
- * `comunicacao` junta Arquivos, Comunicações e as treze páginas de Alumni —
- * que são um produto com nome próprio. Obrigá-las a dizer «Gestão e
+ * `comunicacao` junta Arquivos, Comunicações, as treze páginas de Alumni e o
+ * SIGA AI — os dois últimos são produtos com nome próprio. Obrigá-las a dizer «Gestão e
  * Comunicação» seria pior do que o problema; o que se corrigiu foi falarem
  * de si por cinco nomes diferentes. Em `sistema`, as páginas da conta de quem
  * usa não são as definições da escola.
  */
 const SUBAREAS: Partial<Record<AreaTone, readonly string[]>> = {
-  comunicacao: ["Alumni"],
+  comunicacao: ["Alumni", "SIGA AI"],
   sistema: ["Conta"],
 };
 

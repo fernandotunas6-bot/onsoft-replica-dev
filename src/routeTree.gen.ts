@@ -30,6 +30,7 @@ import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as SaasAdminRouteImport } from './routes/saas-admin'
+import { Route as SigaAiRouteImport } from './routes/siga-ai'
 import { Route as TesourariaRouteImport } from './routes/tesouraria'
 import { Route as TransferirRouteImport } from './routes/transferir'
 import { Route as VerificarRouteImport } from './routes/verificar'
@@ -107,6 +108,7 @@ import { Route as ApiSaasSignupLeadsRouteImport } from './routes/api/saas/signup
 import { Route as ApiSaasStatsRouteImport } from './routes/api/saas/stats'
 import { Route as ApiSaasSubscriptionsRouteImport } from './routes/api/saas/subscriptions'
 import { Route as ApiSaasTenantsRouteImport } from './routes/api/saas/tenants'
+import { Route as ApiSigaAiChatRouteImport } from './routes/api/siga-ai/chat'
 import { Route as ApiWebhooksTwilioSmsRouteImport } from './routes/api/webhooks/twilio-sms'
 import { Route as ApiWebhooksWhatsappStatusRouteImport } from './routes/api/webhooks/whatsapp-status'
 import { Route as FinanceiroRhFaltasRouteImport } from './routes/financeiro_.rh_.faltas'
@@ -265,6 +267,11 @@ const PortalRoute = PortalRouteImport.update({
 const SaasAdminRoute = SaasAdminRouteImport.update({
   id: '/saas-admin',
   path: '/saas-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SigaAiRoute = SigaAiRouteImport.update({
+  id: '/siga-ai',
+  path: '/siga-ai',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TesourariaRoute = TesourariaRouteImport.update({
@@ -657,6 +664,11 @@ const ApiSaasTenantsRoute = ApiSaasTenantsRouteImport.update({
   path: '/api/saas/tenants',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSigaAiChatRoute = ApiSigaAiChatRouteImport.update({
+  id: '/api/siga-ai/chat',
+  path: '/api/siga-ai/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksTwilioSmsRoute = ApiWebhooksTwilioSmsRouteImport.update({
   id: '/api/webhooks/twilio-sms',
   path: '/api/webhooks/twilio-sms',
@@ -977,6 +989,7 @@ export interface FileRoutesByFullPath {
   '/planos-aula': typeof PlanosAulaRoute
   '/portal': typeof PortalRoute
   '/saas-admin': typeof SaasAdminRoute
+  '/siga-ai': typeof SigaAiRoute
   '/tesouraria': typeof TesourariaRoute
   '/transferir': typeof TransferirRoute
   '/verificar': typeof VerificarRoute
@@ -1054,6 +1067,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/api/siga-ai/chat': typeof ApiSigaAiChatRoute
   '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
   '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
   '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
@@ -1131,6 +1145,7 @@ export interface FileRoutesByTo {
   '/planos-aula': typeof PlanosAulaRoute
   '/portal': typeof PortalRoute
   '/saas-admin': typeof SaasAdminRoute
+  '/siga-ai': typeof SigaAiRoute
   '/tesouraria': typeof TesourariaRoute
   '/transferir': typeof TransferirRoute
   '/verificar': typeof VerificarRoute
@@ -1208,6 +1223,7 @@ export interface FileRoutesByTo {
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/api/siga-ai/chat': typeof ApiSigaAiChatRoute
   '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
   '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
   '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
@@ -1286,6 +1302,7 @@ export interface FileRoutesById {
   '/planos-aula': typeof PlanosAulaRoute
   '/portal': typeof PortalRoute
   '/saas-admin': typeof SaasAdminRoute
+  '/siga-ai': typeof SigaAiRoute
   '/tesouraria': typeof TesourariaRoute
   '/transferir': typeof TransferirRoute
   '/verificar': typeof VerificarRoute
@@ -1363,6 +1380,7 @@ export interface FileRoutesById {
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/api/siga-ai/chat': typeof ApiSigaAiChatRoute
   '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
   '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
   '/financeiro_/rh_/faltas': typeof FinanceiroRhFaltasRoute
@@ -1442,6 +1460,7 @@ export interface FileRouteTypes {
     | '/planos-aula'
     | '/portal'
     | '/saas-admin'
+    | '/siga-ai'
     | '/tesouraria'
     | '/transferir'
     | '/verificar'
@@ -1519,6 +1538,7 @@ export interface FileRouteTypes {
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
+    | '/api/siga-ai/chat'
     | '/api/webhooks/twilio-sms'
     | '/api/webhooks/whatsapp-status'
     | '/financeiro/rh/faltas'
@@ -1596,6 +1616,7 @@ export interface FileRouteTypes {
     | '/planos-aula'
     | '/portal'
     | '/saas-admin'
+    | '/siga-ai'
     | '/tesouraria'
     | '/transferir'
     | '/verificar'
@@ -1673,6 +1694,7 @@ export interface FileRouteTypes {
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
+    | '/api/siga-ai/chat'
     | '/api/webhooks/twilio-sms'
     | '/api/webhooks/whatsapp-status'
     | '/financeiro/rh/faltas'
@@ -1750,6 +1772,7 @@ export interface FileRouteTypes {
     | '/planos-aula'
     | '/portal'
     | '/saas-admin'
+    | '/siga-ai'
     | '/tesouraria'
     | '/transferir'
     | '/verificar'
@@ -1827,6 +1850,7 @@ export interface FileRouteTypes {
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
+    | '/api/siga-ai/chat'
     | '/api/webhooks/twilio-sms'
     | '/api/webhooks/whatsapp-status'
     | '/financeiro_/rh_/faltas'
@@ -1905,6 +1929,7 @@ export interface RootRouteChildren {
   PlanosAulaRoute: typeof PlanosAulaRoute
   PortalRoute: typeof PortalRoute
   SaasAdminRoute: typeof SaasAdminRoute
+  SigaAiRoute: typeof SigaAiRoute
   TesourariaRoute: typeof TesourariaRoute
   TransferirRoute: typeof TransferirRoute
   VerificarRoute: typeof VerificarRoute
@@ -1981,6 +2006,7 @@ export interface RootRouteChildren {
   ApiSaasStatsRoute: typeof ApiSaasStatsRoute
   ApiSaasSubscriptionsRoute: typeof ApiSaasSubscriptionsRouteWithChildren
   ApiSaasTenantsRoute: typeof ApiSaasTenantsRouteWithChildren
+  ApiSigaAiChatRoute: typeof ApiSigaAiChatRoute
   ApiWebhooksTwilioSmsRoute: typeof ApiWebhooksTwilioSmsRoute
   ApiWebhooksWhatsappStatusRoute: typeof ApiWebhooksWhatsappStatusRoute
   FinanceiroRhFaltasRoute: typeof FinanceiroRhFaltasRoute
@@ -2167,6 +2193,13 @@ declare module '@tanstack/react-router' {
       path: '/saas-admin'
       fullPath: '/saas-admin'
       preLoaderRoute: typeof SaasAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/siga-ai': {
+      id: '/siga-ai'
+      path: '/siga-ai'
+      fullPath: '/siga-ai'
+      preLoaderRoute: typeof SigaAiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tesouraria': {
@@ -2708,6 +2741,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasTenantsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/siga-ai/chat': {
+      id: '/api/siga-ai/chat'
+      path: '/api/siga-ai/chat'
+      fullPath: '/api/siga-ai/chat'
+      preLoaderRoute: typeof ApiSigaAiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/twilio-sms': {
       id: '/api/webhooks/twilio-sms'
       path: '/api/webhooks/twilio-sms'
@@ -3219,6 +3259,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlanosAulaRoute: PlanosAulaRoute,
   PortalRoute: PortalRoute,
   SaasAdminRoute: SaasAdminRoute,
+  SigaAiRoute: SigaAiRoute,
   TesourariaRoute: TesourariaRoute,
   TransferirRoute: TransferirRoute,
   VerificarRoute: VerificarRoute,
@@ -3296,6 +3337,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasStatsRoute: ApiSaasStatsRoute,
   ApiSaasSubscriptionsRoute: ApiSaasSubscriptionsRouteWithChildren,
   ApiSaasTenantsRoute: ApiSaasTenantsRouteWithChildren,
+  ApiSigaAiChatRoute: ApiSigaAiChatRoute,
   ApiWebhooksTwilioSmsRoute: ApiWebhooksTwilioSmsRoute,
   ApiWebhooksWhatsappStatusRoute: ApiWebhooksWhatsappStatusRoute,
   FinanceiroRhFaltasRoute: FinanceiroRhFaltasRoute,

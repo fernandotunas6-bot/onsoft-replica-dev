@@ -14,6 +14,8 @@ describe("SQL SGA checklist", () => {
       "supabase/APPLY_DIGITAL_IDENTITY.sql",
       "supabase/APPLY_ALUMNI_MODULE.sql",
       "supabase/APPLY_ASSESSMENT_SCORE_HISTORY.sql",
+      // SIGA AI (módulo de IA local): tabelas novas, nada depende delas.
+      "supabase/migrations/20261012160000_siga_ai_module.sql",
     ]);
     for (const file of catalog.sqlApply) {
       expect(existsSync(resolve(file)), file).toBe(true);

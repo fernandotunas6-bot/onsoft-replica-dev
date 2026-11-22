@@ -66,6 +66,10 @@ export const OPTIONAL_WORKER_VARS = [
   // PayFlow desactivado por omissão desde 15/11/2026 (src/lib/payflow-switch.ts): só a
   // variável do repositório PAYFLOW_ENABLED=true, no deploy, o volta a ligar no SIGA.
   "PAYFLOW_ENABLED",
+  "SIGA_AI_OLLAMA_URL",
+  "SIGA_AI_QDRANT_URL",
+  "SIGA_AI_CHAT_MODEL",
+  "SIGA_AI_ALLOWED_HOSTS",
   "SIGNUP_EMAIL_VERIFICATION",
   "SMS_API_URL",
   "WHATSAPP_OTP_TEMPLATE_NAME",

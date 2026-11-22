@@ -82,7 +82,12 @@ describe("navigation catalog", () => {
   );
 
   it("declara os módulos adormecidos com a razão escrita", () => {
-    expect(modulosAdormecidos.map((mod) => mod.id).sort()).toEqual(["alumni", "catracas", "rh"]);
+    expect(modulosAdormecidos.map((mod) => mod.id).sort()).toEqual([
+      "alumni",
+      "catracas",
+      "rh",
+      "siga-ai",
+    ]);
     for (const mod of modulosAdormecidos) {
       expect("dormantReason" in mod && mod.dormantReason, `${mod.id} sem razão`).toBeTruthy();
       // Têm de manter o caminho: `dormant` é o estado **por omissão**, não uma
@@ -93,7 +98,7 @@ describe("navigation catalog", () => {
 
   it("nenhum módulo adormecido aparece no menu de qualquer papel", () => {
     const papeis = ["Administrador", "Secretaria", "Tesouraria", "Professor"] as const;
-    const caminhosAdormecidos = ["/alumni", "/financeiro/rh", "/catracas"];
+    const caminhosAdormecidos = ["/alumni", "/financeiro/rh", "/catracas", "/siga-ai"];
     for (const papel of papeis) {
       const paths = collectNavPaths(getPortalNavigation(papel, {}, fullPlan));
       for (const caminho of caminhosAdormecidos) {

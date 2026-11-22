@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { MODULE_CATALOG } from "@/features/auth/module-availability";
 
@@ -23,10 +23,29 @@ const MIGRACAO = resolve(
   "../../supabase/migrations/20261025120000_module_catalog_vocabulario_actual.sql",
 );
 
+/**
+ * Módulos que chegam depois da reescrita acrescentam a sua linha numa migração
+ * própria (`*_module_catalog_*.sql`, mais recente), sem voltar a apagar as escolhas
+ * das escolas em `school_modules`.
+ */
+const MIGRACOES_POSTERIORES = readdirSync(resolve(__dirname, "../../supabase/migrations"))
+  .filter((nome) => /_module_catalog_/.test(nome) && nome > "20261025120000_")
+  .filter((nome) => !nome.startsWith("20261025120000_"))
+  .sort()
+  .map((nome) => resolve(__dirname, "../../supabase/migrations", nome));
+
+/** As linhas inseridas no catálogo: a reescrita e os acrescentos posteriores. */
+function insercoesNoCatalogo(): string {
+  return [MIGRACAO, ...MIGRACOES_POSTERIORES]
+    .map((caminho) => {
+      const sql = readFileSync(caminho, "utf8");
+      return sql.slice(sql.indexOf("insert into public.module_catalog"));
+    })
+    .join("\n");
+}
+
 function codigosDaMigracao(): string[] {
-  const sql = readFileSync(MIGRACAO, "utf8");
-  const insert = sql.slice(sql.indexOf("insert into public.module_catalog"));
-  return [...insert.matchAll(/^\s*\('([^']+)',/gm)].map((m) => m[1]);
+  return [...insercoesNoCatalogo().matchAll(/^\s*\('([^']+)',/gm)].map((m) => m[1]);
 }
 
 describe("catálogo de módulos", () => {
@@ -54,7 +73,7 @@ describe("catálogo de módulos", () => {
   });
 
   it("o manifesto de cada módulo é JSON válido e descreve o caminho certo", () => {
-    const sql = readFileSync(MIGRACAO, "utf8");
+    const sql = insercoesNoCatalogo();
     const porId = new Map(MODULE_CATALOG.map((mod) => [mod.id, mod]));
     const linhas = [
       ...sql.matchAll(/^\s*\('([^']+)', '(?:[^']|'')*', '[^']*', \w+, '(.+)'::jsonb\)/gm),
@@ -73,6 +92,14 @@ describe("catálogo de módulos", () => {
       // `defaultEnabled` é o inverso de `dormant` — é o que o servidor usaria se
       // algum dia lesse a omissão da base em vez do ficheiro.
       expect(manifesto.defaultEnabled, `${code}: defaultEnabled`).toBe(!mod!.dormant);
+    }
+  });
+
+  it("os acrescentos posteriores não apagam as escolhas das escolas e são idempotentes", () => {
+    for (const caminho of MIGRACOES_POSTERIORES) {
+      const sql = readFileSync(caminho, "utf8");
+      expect(sql, caminho).not.toMatch(/delete from public\.(school_modules|module_catalog)/i);
+      expect(sql, caminho).toMatch(/on conflict \(code\) do update/i);
     }
   });
 

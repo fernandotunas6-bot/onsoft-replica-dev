@@ -32,6 +32,8 @@ const RULES: Array<[prefix: string, tone: AreaTone]> = [
   ["/comunicacoes", "comunicacao"],
   ["/arquivos", "comunicacao"],
   ["/alumni", "comunicacao"],
+  // O SIGA AI responde sobre os documentos da escola: fica com Arquivos e Comunicações.
+  ["/siga-ai", "comunicacao"],
   ["/configuracoes", "sistema"],
   ["/perfil", "sistema"],
   ["/alterar-senha", "sistema"],

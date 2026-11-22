@@ -1,0 +1,40 @@
+SIGA Plus
+Copyright (c) OnSoft / SIGA Plus
+
+--------------------------------------------------------------------------------
+Project NOMAD
+--------------------------------------------------------------------------------
+
+The SIGA AI module (`src/features/siga-ai`, `src/lib/siga-ai`) contains work
+derived from Project NOMAD by Crosstalk Solutions, LLC:
+
+    https://github.com/Crosstalk-Solutions/project-nomad
+    Commit 54ee30a44902e5c252b477f8685c26ec3064ab72 (v1.35.1)
+    Licensed under the Apache License, Version 2.0
+    http://www.apache.org/licenses/LICENSE-2.0
+
+What was derived, and the changes made:
+
+  * Retrieval parameters, chunking strategy, embedding-model choice and task
+    prefixes, reranking heuristic, relevance floor and model-size context tiers,
+    ported from `admin/constants/ollama.ts` and
+    `admin/app/services/rag_service.ts` into
+    `src/features/siga-ai/nomad-params.ts`, `chunking.ts`, `rerank.ts` and
+    `context-limits.ts`. Provenance is recorded per parameter in those files.
+  * The Ollama HTTP contract — endpoint order and the `/api/embed` to
+    `/v1/embeddings` fallback — ported from `admin/app/services/ollama_service.ts`
+    into `src/lib/siga-ai/ollama-client.server.ts`. Reimplemented over the
+    standard `fetch` API; no NOMAD source code is redistributed verbatim.
+  * The shape of the RAG system prompt, from `SYSTEM_PROMPTS.rag_context`,
+    adapted in `src/features/siga-ai/prompts.ts` to Angolan Portuguese, to
+    school profiles, and with an added rule that treats retrieved documents as
+    untrusted data rather than instructions.
+
+Changes relative to Project NOMAD: single-tenant and unauthenticated access was
+replaced by Supabase authentication, school membership checks, per-school vector
+isolation and audit logging; the global `nomad_knowledge_base` collection was
+replaced by `siga_ai_kb` with a mandatory `school_id` filter; persistence moved
+from SQLite to PostgreSQL with server-only access.
+
+Ollama and Qdrant are consumed as external services and are not redistributed
+with this software.

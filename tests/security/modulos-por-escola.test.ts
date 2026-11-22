@@ -20,8 +20,8 @@ describe("módulos por escola", () => {
     }
   });
 
-  it("os adormecidos de hoje são o Alumni, o RH e as Catracas", () => {
-    expect([...DORMANT_MODULE_IDS].sort()).toEqual(["alumni", "catracas", "rh"]);
+  it("os adormecidos de hoje são o Alumni, o RH, as Catracas e o SIGA AI", () => {
+    expect([...DORMANT_MODULE_IDS].sort()).toEqual(["alumni", "catracas", "rh", "siga-ai"]);
   });
 
   it("uma escola pode ligar um adormecido sem afectar as outras", () => {
