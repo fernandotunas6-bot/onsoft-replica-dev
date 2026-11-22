@@ -13,11 +13,19 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import {
   assertClassAcceptsEnrollment,
+  assertNewEnrollmentAllowed,
   enrollStudentRpc,
+  loadEnrollmentWindow,
+  recordOutsideCycleEnrollments,
   registerStudentRpc,
   rpcFailureError,
 } from "@/features/students/enrollment-core";
 import { recordStudentStatusHistory } from "@/features/students/status-history";
+import {
+  parseEnrollmentCycles,
+  validateEnrollmentCycles,
+} from "@/features/students/enrollment-cycle";
+import { updateSettingsDomainValue } from "@/features/school/settings-domains";
 import { buildPersonInsert, isMissingPeopleGeography } from "@/features/people/person-fields";
 import { syncBiDocumentFromNif } from "@/features/people/bi-document";
 import { findExistingGuardian } from "@/features/people/guardian-lookup";
@@ -31,6 +39,7 @@ import {
   decideEnrollmentApplicationInputSchema,
   getPublicEnrollmentFormInputSchema,
   listEnrollmentApplicationsInputSchema,
+  saveEnrollmentCyclesInputSchema,
   submitPublicEnrollmentInputSchema,
   updateEnrollmentFormInputSchema,
 } from "./schemas";
@@ -367,6 +376,16 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
     // enroll_student (activa, ano activo, data, lotação): uma turma cheia já não
     // deixa um aluno criado à espera de turma.
     const enrolledOn = schoolTodayIso();
+    // Aceitar com turma é uma matrícula nova: só no ciclo de matrículas (ou a
+    // Administração, com motivo). Sem turma, o aluno fica candidato.
+    const outsideCycle =
+      data.decision === "accepted" && data.classGroupId
+        ? await assertNewEnrollmentAllowed(db, {
+            schoolId: membership.schoolId,
+            appRole: membership.appRole,
+            overrideReason: data.outsideCycleReason ?? null,
+          })
+        : null;
     const classGroup =
       data.decision === "accepted" && data.classGroupId
         ? await assertClassAcceptsEnrollment(db, {
@@ -622,7 +641,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           schoolId: membership.schoolId,
           studentId,
           classGroupId: classGroup.id,
-          enrolledOn,
+          enrolledOn: classGroup.enrolledOn,
         });
         if (!enrolled.ok && isClassFullError(enrolled.error)) {
           // Turma cheia: o aluno fica criado e entra na lista de espera desta turma,
@@ -668,6 +687,12 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
               "Candidatura aceite e aluno criado, mas não foi possível colocá-lo na turma. Faça-o na ficha do aluno.",
           });
         }
+        await recordOutsideCycleEnrollments(outsideCycle, {
+          schoolId: membership.schoolId,
+          userId: context.userId,
+          studentIds: [studentId],
+          action: "aceitar candidatura",
+        });
       }
 
       await recordStudentStatusHistory(db, {
@@ -735,3 +760,53 @@ async function markApplicationDecided(
   if (!row) throw new Error("Candidatura já processada ou inexistente.");
   return row;
 }
+
+/**
+ * Estado das matrículas hoje (ciclo e período de aulas) para os ecrãs: abre ou
+ * fecha as acções de matrícula nova e, à Administração, pede o motivo da excepção.
+ */
+export const getEnrollmentWindowStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    const { window, cycles, periods } = await loadEnrollmentWindow(db, membership.schoolId);
+    return {
+      open: window.open,
+      message: window.message,
+      canOverride: membership.appRole === "Administrador",
+      canEditCycles: membership.appRole === "Administrador",
+      cycles,
+      periods,
+    };
+  });
+
+export const saveEnrollmentCycles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => saveEnrollmentCyclesInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Unauthorized");
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
+      "Administrador",
+    ]);
+    const db = await loadSgaAdminClient();
+    const { periods } = await loadEnrollmentWindow(db, membership.schoolId);
+    const errors = validateEnrollmentCycles(data.cycles, periods);
+    if (errors.length) throw new Error(errors.join(" "));
+    const cycles = parseEnrollmentCycles({ cycles: data.cycles });
+    await updateSettingsDomainValue(
+      db,
+      membership.schoolId,
+      "enrollment",
+      (current) => ({
+        ...(current && typeof current === "object" ? (current as Record<string, unknown>) : {}),
+        cycles,
+      }),
+      context.userId,
+    );
+    return { cycles };
+  });

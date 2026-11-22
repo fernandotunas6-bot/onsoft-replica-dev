@@ -317,6 +317,10 @@ export const applyRenewal = createServerFn({ method: "POST" })
           classGroupId: line.targetClassGroupId,
           academicYearId: plan.targetYear.id,
           userId: context.userId,
+          // Renovar é matrícula nova no ano seguinte: fora do ciclo só a Administração a
+          // faz, e o motivo fica registado (como na importação de dados).
+          appRole: membership.appRole,
+          overrideReason: "Renovação das matrículas para o ano lectivo seguinte",
         });
         result.enrolled.push({ studentId: line.studentId, name: line.name });
       } catch (error) {

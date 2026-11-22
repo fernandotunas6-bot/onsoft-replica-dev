@@ -50,6 +50,7 @@ import {
   ACADEMIC_STATUS_LABELS,
   academicStatusLabel,
   computeDynamicCounters,
+  isWithoutEnrollment,
   matchesQuickCategory,
   studentStatusChoices,
   type ManualStudentStatus,
@@ -58,6 +59,10 @@ import {
   type CandidateSubFilter,
 } from "@/features/students/academic-status";
 import { classGroupChoices } from "@/features/students/enrollment-directory";
+import {
+  OUTSIDE_CYCLE_FIELD,
+  useEnrollmentWindow,
+} from "@/features/enrollment/use-enrollment-window";
 import { buildBulkClassFeedback } from "@/features/students/batch-feedback";
 import { studentStatusOptions } from "@/features/students/schemas";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
@@ -376,8 +381,15 @@ function StudentsPage() {
   const classGroups = workspaceQuery.data?.classGroups ?? [];
   const turmaOptions = classGroupChoices(classGroups);
   // «Turma» e «Mudar» na linha: a mesma colocação (`enrollStudentInClass`).
-  const placeInClass = async (studentId: string, classGroupId: string) => {
-    await enrollStudentInClass({ data: { studentId, classGroupId } });
+  const enrollmentWindow = useEnrollmentWindow();
+  const placeInClass = async (studentId: string, values: Record<string, string>) => {
+    await enrollStudentInClass({
+      data: {
+        studentId,
+        classGroupId: values["turma"] ?? "",
+        outsideCycleReason: values[OUTSIDE_CYCLE_FIELD] || undefined,
+      },
+    });
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
       queryClient.invalidateQueries({ queryKey: ["academic", "pedagogical-workspace"] }),
@@ -958,6 +970,25 @@ function StudentsPage() {
             </div>
           </div>
 
+          {enrollmentWindow.status ? (
+            <p
+              role="status"
+              className={cn(
+                "rounded-xl border px-3 py-2 text-xs",
+                enrollmentWindow.closed
+                  ? "border-warning/40 bg-warning/10 text-foreground"
+                  : "border-border/70 bg-secondary/30 text-muted-foreground",
+              )}
+            >
+              {enrollmentWindow.status.message}
+              {enrollmentWindow.closed
+                ? enrollmentWindow.status.canOverride
+                  ? " Pode matricular fora do ciclo indicando o motivo, que fica registado."
+                  : " Mudar de turma continua possível; matrículas novas só pela Administração."
+                : null}
+            </p>
+          ) : null}
+
           {/* Barra de Filtros Rápidos com Contadores Dinâmicos & Selector de Tamanho Premium */}
           <div className="flex flex-col gap-2 rounded-xl bg-secondary/30 p-2.5 border border-border/70">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1039,6 +1070,22 @@ function StudentsPage() {
                   )}
                 >
                   Inactivos/Outros ({quickCounts.other})
+                </button>
+                <button
+                  type="button"
+                  title="Alunos da escola sem matrícula pendente ou activa (sem transferidos e concluídos)"
+                  onClick={() => {
+                    setFilter("categoria", "sem_matricula");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                    categoria === "sem_matricula"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-background text-foreground hover:bg-muted border border-border/60",
+                  )}
+                >
+                  Sem matrícula ({quickCounts.withoutEnrollment})
                 </button>
               </div>
 
@@ -1212,18 +1259,22 @@ function StudentsPage() {
                 }
                 onClearFilters={resetFilters}
                 emptyTitle={
-                  categoria === "divida"
-                    ? "Nenhum aluno com dívida"
-                    : categoria === "candidatos"
-                      ? "Nenhum candidato pendente"
-                      : "Nenhum aluno encontrado"
+                  categoria === "sem_matricula"
+                    ? "Todos os alunos têm matrícula"
+                    : categoria === "divida"
+                      ? "Nenhum aluno com dívida"
+                      : categoria === "candidatos"
+                        ? "Nenhum candidato pendente"
+                        : "Nenhum aluno encontrado"
                 }
                 emptyDescription={
-                  categoria === "divida"
-                    ? "As propinas deste conjunto de estudantes estão regularizadas."
-                    : categoria === "candidatos"
-                      ? "Não há candidatos a aguardar colocação em turma."
-                      : "Experimente alterar os filtros ou limpar os critérios."
+                  categoria === "sem_matricula"
+                    ? "Não há alunos da escola sem matrícula pendente ou activa."
+                    : categoria === "divida"
+                      ? "As propinas deste conjunto de estudantes estão regularizadas."
+                      : categoria === "candidatos"
+                        ? "Não há candidatos a aguardar colocação em turma."
+                        : "Experimente alterar os filtros ou limpar os critérios."
                 }
                 selectedIds={selectedIds}
                 onToggleSelect={(id) =>
@@ -1423,12 +1474,17 @@ function StudentsPage() {
                                 role={currentAccount.role}
                                 grants={currentAccount.grants}
                               />
-                              {s.student_status === "applicant" &&
-                              !s.class_name &&
+                              {isWithoutEnrollment(s) &&
+                              s.student_status !== "suspended" &&
+                              s.student_status !== "locked" &&
                               turmaOptions.length > 0 ? (
                                 <QuickFormModal
                                   title={`Colocar ${s.full_name} na turma`}
-                                  description="Confirma a matrícula e activa o aluno na turma escolhida."
+                                  description={
+                                    enrollmentWindow.closed
+                                      ? `${enrollmentWindow.status?.message ?? ""} Matrícula nova fora do ciclo: fica registada com o motivo.`
+                                      : "Confirma a matrícula e activa o aluno na turma escolhida."
+                                  }
                                   submitLabel="Colocar na turma"
                                   successDescription="Aluno colocado na turma e estado actualizado para activo."
                                   fields={[
@@ -1439,8 +1495,11 @@ function StudentsPage() {
                                       required: true,
                                       options: turmaOptions,
                                     },
+                                    ...(enrollmentWindow.reasonField
+                                      ? [enrollmentWindow.reasonField]
+                                      : []),
                                   ]}
-                                  onSubmit={(values) => placeInClass(s.id, values["turma"] ?? "")}
+                                  onSubmit={(values) => placeInClass(s.id, values)}
                                   trigger={(open) => (
                                     <Button
                                       size="sm"
@@ -1475,7 +1534,7 @@ function StudentsPage() {
                                       ),
                                     },
                                   ]}
-                                  onSubmit={(values) => placeInClass(s.id, values["turma"] ?? "")}
+                                  onSubmit={(values) => placeInClass(s.id, values)}
                                   trigger={(open) => (
                                     <Button
                                       size="sm"
@@ -1617,6 +1676,15 @@ function StudentsPage() {
                         required: true,
                         options: turmaOptions,
                       },
+                      ...(enrollmentWindow.reasonField
+                        ? [
+                            {
+                              ...enrollmentWindow.reasonField,
+                              label: "Motivo (se houver matrículas novas fora do ciclo)",
+                              required: false,
+                            },
+                          ]
+                        : []),
                     ]}
                     onSubmit={async (values) => {
                       const group = classGroups.find((item) => item.id === values["turma"]);
@@ -1628,6 +1696,7 @@ function StudentsPage() {
                           studentIds: effectiveSelectedIds,
                           classGroupId: group.id,
                           academicYearId: yearId,
+                          outsideCycleReason: values[OUTSIDE_CYCLE_FIELD] || undefined,
                         },
                       });
                       const feedback = buildBulkClassFeedback(
