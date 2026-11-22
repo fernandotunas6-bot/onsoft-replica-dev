@@ -16,6 +16,11 @@
 --   · mudar de turma e confirmar matrículas (UPDATE) não passam por aqui.
 --
 -- Mesma regra que o código: «hoje» é a data de Luanda. Idempotente. Não mexe em dados.
+--
+-- Desligado por omissão (22/11/2026, ao integrar a #118): só fecha quando a escola liga a
+-- regra em Definições › Matrícula (`school_settings` domínio `enrollment`, `enforce: true`),
+-- o mesmo campo que o servidor lê (parseEnrollmentEnforcement). Sem isso, a Secretaria de
+-- todas as escolas deixava de matricular a meio do ano no dia em que isto fosse aplicado.
 
 CREATE OR REPLACE FUNCTION private.enrollment_window_open(
   target_school_id uuid,
@@ -39,17 +44,26 @@ AS $function$
       and (c.value ->> 'opens_on') ~ '^\d{4}-\d{2}-\d{2}$'
       and (c.value ->> 'closes_on') ~ '^\d{4}-\d{2}-\d{2}$'
   )
+  -- Comparação em jsonb: um valor estragado (texto, número) conta como desligado e
+  -- nunca rebenta a inserção com um erro de conversão.
   select not exists (
-           select 1 from public.terms t
-           where t.school_id = target_school_id
-             and t.academic_year_id = target_academic_year_id
-             and target_day between t.starts_on and t.ends_on
+           select 1 from public.school_settings s
+           where s.school_id = target_school_id and s.domain = 'enrollment'
+             and s.value -> 'enforce' = 'true'::jsonb
          )
-     and (
-           not exists (select 1 from cycles)
-           or exists (
-             select 1 from cycles
-             where target_day between (cycle ->> 'opens_on')::date and (cycle ->> 'closes_on')::date
+     or (
+           not exists (
+             select 1 from public.terms t
+             where t.school_id = target_school_id
+               and t.academic_year_id = target_academic_year_id
+               and target_day between t.starts_on and t.ends_on
+           )
+           and (
+             not exists (select 1 from cycles)
+             or exists (
+               select 1 from cycles
+               where target_day between (cycle ->> 'opens_on')::date and (cycle ->> 'closes_on')::date
+             )
            )
          );
 $function$;

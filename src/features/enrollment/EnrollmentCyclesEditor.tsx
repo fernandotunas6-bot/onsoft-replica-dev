@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { formatCycle, type EnrollmentCycle } from "@/features/students/enrollment-cycle";
 import { saveEnrollmentCycles } from "./server";
 import { ENROLLMENT_WINDOW_QUERY_KEY, useEnrollmentWindow } from "./use-enrollment-window";
@@ -10,17 +11,21 @@ import { ENROLLMENT_WINDOW_QUERY_KEY, useEnrollmentWindow } from "./use-enrollme
 const emptyCycle: EnrollmentCycle = { label: "", opens_on: "", closes_on: "" };
 
 /**
- * Ciclos de matrícula da escola. Fora deles, e sempre durante os períodos de
- * aulas, só a Administração matricula (com motivo). Sem ciclos, as matrículas
- * ficam abertas fora dos períodos de aulas.
+ * Ciclos de matrícula da escola. Com a regra ligada (`enforce`), fora deles, e sempre
+ * durante os períodos de aulas, só a Administração matricula (com motivo). Desligada
+ * por omissão: sem ela, as matrículas novas não fecham.
  */
 export function EnrollmentCyclesEditor() {
   const queryClient = useQueryClient();
   const { status } = useEnrollmentWindow();
   const [rows, setRows] = useState<EnrollmentCycle[]>([]);
+  const [enforce, setEnforce] = useState(false);
   const [saving, setSaving] = useState(false);
   useEffect(() => {
-    if (status) setRows(status.cycles);
+    if (status) {
+      setRows(status.cycles);
+      setEnforce(status.enforce);
+    }
   }, [status]);
   if (!status) return null;
   const editable = status.canEditCycles;
@@ -31,7 +36,7 @@ export function EnrollmentCyclesEditor() {
   const save = async () => {
     setSaving(true);
     try {
-      await saveEnrollmentCycles({ data: { cycles: rows } });
+      await saveEnrollmentCycles({ data: { cycles: rows, enforce } });
       await queryClient.invalidateQueries({ queryKey: ENROLLMENT_WINDOW_QUERY_KEY });
       toast.success("Ciclos de matrícula guardados.");
     } catch (error) {
@@ -51,10 +56,22 @@ export function EnrollmentCyclesEditor() {
           Ciclos de matrícula
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Matrículas novas só dentro de um ciclo e nunca durante um período de aulas. Sem ciclos,
-          ficam abertas fora dos períodos de aulas. Fora do ciclo, só a Administração matricula, com
-          motivo registado. Mudar de turma não depende dos ciclos.
+          Com a regra ligada, as matrículas novas só se fazem dentro de um ciclo e nunca durante um
+          período de aulas (sem ciclos marcados, ficam abertas fora dos períodos de aulas). Fora do
+          ciclo, só a Administração matricula, com motivo registado. Mudar de turma não depende dos
+          ciclos. Desligada, as matrículas novas não fecham.
         </p>
+        <label className="mt-2 flex items-start gap-2 text-xs">
+          <Switch
+            checked={enforce}
+            disabled={!editable}
+            onCheckedChange={(checked) => setEnforce(checked === true)}
+            aria-describedby="ciclos-matricula-regra"
+          />
+          <span id="ciclos-matricula-regra">
+            Fechar as matrículas novas fora dos ciclos e durante os períodos de aulas
+          </span>
+        </label>
         <p
           role="status"
           className={`mt-2 text-xs font-medium ${status.open ? "text-success-strong" : "text-foreground"}`}

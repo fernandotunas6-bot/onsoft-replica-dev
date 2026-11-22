@@ -21,6 +21,27 @@ export type EnrollmentWindow =
   | { open: true; cycle: EnrollmentCycle | null; message: string }
   | { open: false; message: string; next: EnrollmentCycle | null };
 
+/**
+ * A escola fecha as matrículas novas por ciclos? (Definições › Matrícula, `enforce`.)
+ *
+ * Desligado por omissão: a regra entrou a 22/11/2026, a meio do ano lectivo, e com ela
+ * ligada para todas as escolas a Secretaria deixava de matricular de um dia para o
+ * outro (os períodos de aulas cobrem o ano). Cada escola liga-a quando tiver os ciclos
+ * marcados. Só `true` liga; o servidor e o gatilho SQL leem o mesmo campo.
+ */
+export function parseEnrollmentEnforcement(value: unknown): boolean {
+  return Boolean(
+    value && typeof value === "object" && (value as { enforce?: unknown }).enforce === true,
+  );
+}
+
+/** Janela sem restrição: a escola não fecha as matrículas novas por ciclos. */
+export const UNRESTRICTED_ENROLLMENT_WINDOW: EnrollmentWindow = {
+  open: true,
+  cycle: null,
+  message: "Matrículas abertas: esta escola não fecha as matrículas novas por ciclos.",
+};
+
 /** Motivo mínimo para matricular fora do ciclo. */
 export const OUTSIDE_CYCLE_REASON_MIN = 5;
 

@@ -152,5 +152,7 @@ export const saveEnrollmentCyclesInputSchema = z.object({
       }),
     )
     .max(12),
+  /** Fechar matrículas novas fora dos ciclos e durante as aulas (desligado por omissão). */
+  enforce: z.boolean().optional(),
 });
 export type SaveEnrollmentCyclesInput = z.infer<typeof saveEnrollmentCyclesInputSchema>;

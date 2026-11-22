@@ -157,3 +157,51 @@ describe("dívida na lista de alunos", () => {
     );
   });
 });
+
+describe("regra dos ciclos desligada por omissão (integração da #118, 22/11/2026)", () => {
+  it("só liga com enforce: true", async () => {
+    const { parseEnrollmentEnforcement } = await import("@/features/students/enrollment-cycle");
+    expect(parseEnrollmentEnforcement({ enforce: true, cycles })).toBe(true);
+    for (const value of [null, undefined, {}, { cycles }, { enforce: "true" }, { enforce: 1 }]) {
+      expect(parseEnrollmentEnforcement(value)).toBe(false);
+    }
+  });
+
+  it("sem a regra ligada, as matrículas ficam abertas mesmo em período de aulas", async () => {
+    const { vi } = await import("vitest");
+    const settingsValue: { current: unknown } = { current: { cycles } };
+    vi.doMock("@/features/school/settings-domains", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("@/features/school/settings-domains")>()),
+      readSettingsDomainRow: async () => ({ value: settingsValue.current }),
+    }));
+    const chain = (result: unknown) => {
+      const q: Record<string, unknown> = {};
+      for (const m of ["select", "eq", "order", "limit"]) q[m] = () => q;
+      q["maybeSingle"] = async () => ({ data: result, error: null });
+      q["then"] = (resolve: (v: unknown) => unknown) => resolve({ data: periods, error: null });
+      return q;
+    };
+    const db = {
+      from: (table: string) => (table === "academic_years" ? chain({ id: "ano" }) : chain(null)),
+    };
+    const { loadEnrollmentWindow } = await import("@/features/students/enrollment-core");
+    const off = await loadEnrollmentWindow(db as never, "escola", "2026-10-10");
+    expect(off.enforce).toBe(false);
+    expect(off.window.open).toBe(true);
+    // A mesma escola, com a regra ligada, fecha em período de aulas.
+    settingsValue.current = { cycles, enforce: true };
+    const on = await loadEnrollmentWindow(db as never, "escola", "2026-10-10");
+    expect(on.enforce).toBe(true);
+    expect(on.window.open).toBe(false);
+    vi.doUnmock("@/features/school/settings-domains");
+  });
+
+  it("o gatilho SQL lê o mesmo campo, em jsonb", async () => {
+    const { readFileSync } = await import("node:fs");
+    const migration = readFileSync(
+      "supabase/migrations/20261012100000_enrollment_cycle_guard.sql",
+      "utf8",
+    );
+    expect(migration).toContain("s.value -> 'enforce' = 'true'::jsonb");
+  });
+});

@@ -26,6 +26,8 @@ import { recordStudentStatusHistoryBatch } from "./status-history";
 import { recordAuditBatch } from "@/features/audit/record-audit";
 import { readSettingsDomainRow } from "@/features/school/settings-domains";
 import {
+  UNRESTRICTED_ENROLLMENT_WINDOW,
+  parseEnrollmentEnforcement,
   enrollmentWindow as cycleWindow,
   outsideCycleRefusal,
   parseEnrollmentCycles,
@@ -594,9 +596,16 @@ export async function loadEnrollmentWindow(
   db: AdminDb,
   schoolId: string,
   today = schoolTodayIso(),
-): Promise<{ window: EnrollmentWindow; cycles: EnrollmentCycle[]; periods: TeachingPeriod[] }> {
+): Promise<{
+  window: EnrollmentWindow;
+  cycles: EnrollmentCycle[];
+  periods: TeachingPeriod[];
+  enforce: boolean;
+}> {
   const row = await readSettingsDomainRow(db, schoolId, "enrollment");
   const cycles = parseEnrollmentCycles(row?.value);
+  // Sem a escola ligar a regra, as matrículas novas não fecham (enrollment-cycle.ts).
+  const enforce = parseEnrollmentEnforcement(row?.value);
   const { data: year, error: yearError } = await db
     .from("academic_years")
     .select("id")
@@ -623,7 +632,12 @@ export async function loadEnrollmentWindow(
       ends_on: String(term.ends_on),
     }));
   }
-  return { window: cycleWindow({ today, cycles, periods }), cycles, periods };
+  return {
+    window: enforce ? cycleWindow({ today, cycles, periods }) : UNRESTRICTED_ENROLLMENT_WINDOW,
+    cycles,
+    periods,
+    enforce,
+  };
 }
 
 /** Matrícula nova autorizada fora do ciclo (para registar depois de feita). */

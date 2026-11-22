@@ -774,10 +774,14 @@ export const getEnrollmentWindowStatus = createServerFn({ method: "GET" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    const { window, cycles, periods } = await loadEnrollmentWindow(db, membership.schoolId);
+    const { window, cycles, periods, enforce } = await loadEnrollmentWindow(
+      db,
+      membership.schoolId,
+    );
     return {
       open: window.open,
       message: window.message,
+      enforce,
       canOverride: membership.appRole === "Administrador",
       canEditCycles: membership.appRole === "Administrador",
       cycles,
@@ -794,19 +798,21 @@ export const saveEnrollmentCycles = createServerFn({ method: "POST" })
       "Administrador",
     ]);
     const db = await loadSgaAdminClient();
-    const { periods } = await loadEnrollmentWindow(db, membership.schoolId);
+    const { periods, enforce: current } = await loadEnrollmentWindow(db, membership.schoolId);
     const errors = validateEnrollmentCycles(data.cycles, periods);
     if (errors.length) throw new Error(errors.join(" "));
     const cycles = parseEnrollmentCycles({ cycles: data.cycles });
+    const enforce = data.enforce ?? current;
     await updateSettingsDomainValue(
       db,
       membership.schoolId,
       "enrollment",
-      (current) => ({
-        ...(current && typeof current === "object" ? (current as Record<string, unknown>) : {}),
+      (stored) => ({
+        ...(stored && typeof stored === "object" ? (stored as Record<string, unknown>) : {}),
         cycles,
+        enforce,
       }),
       context.userId,
     );
-    return { cycles };
+    return { cycles, enforce };
   });

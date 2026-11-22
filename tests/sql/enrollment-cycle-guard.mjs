@@ -48,11 +48,22 @@ const user = "33333333-3333-4333-8333-333333333333";
 await as(user, "Secretaria");
 await enroll();
 
-// Hoje dentro de um período de aulas: a Secretaria é recusada; Administração e serviço passam.
+// Regra desligada (por omissão, e com valores estragados): em período de aulas, a
+// Secretaria continua a matricular. Só `enforce: true` (jsonb) fecha.
 await db.query("insert into terms values ($1,$2,current_date - 10, current_date + 10)", [
   school,
   year,
 ]);
+await enroll();
+await db.query(`insert into school_settings values ($1,'enrollment','{"enforce":"sim"}')`, [school]);
+await enroll();
+await db.query(`update school_settings set value = '{"enforce":false}'`);
+await enroll();
+
+// Regra ligada a partir daqui (os casos do PR original).
+await db.query(`update school_settings set value = '{"enforce":true}'`);
+
+// Hoje dentro de um período de aulas: a Secretaria é recusada; Administração e serviço passam.
 await refused();
 await as(user, "Administrador");
 await enroll();
@@ -63,20 +74,26 @@ await enroll();
 await db.query("delete from terms");
 await as(user, "Secretaria");
 await db.query(
-  `insert into school_settings values ($1,'enrollment', jsonb_build_object('cycles', jsonb_build_array(
-     jsonb_build_object('label','Passado','opens_on', (current_date - 30)::text, 'closes_on', (current_date - 20)::text))))`,
-  [school],
+  `update school_settings set value = jsonb_build_object('enforce', true, 'cycles', jsonb_build_array(
+     jsonb_build_object('label','Passado','opens_on', (current_date - 30)::text, 'closes_on', (current_date - 20)::text)))`,
 );
 await refused();
 await db.query(
-  `update school_settings set value = jsonb_build_object('cycles', jsonb_build_array(
+  `update school_settings set value = jsonb_build_object('enforce', true, 'cycles', jsonb_build_array(
      jsonb_build_object('label','Agora','opens_on', (current_date - 1)::text, 'closes_on', (current_date + 1)::text)))`,
 );
 await enroll();
 
 // Ciclos estragados são ignorados (como no código): sem ciclos válidos fica aberto.
-await db.query(`update school_settings set value = '{"cycles":[{"opens_on":"ontem"}]}'`);
+await db.query(`update school_settings set value = '{"enforce":true,"cycles":[{"opens_on":"ontem"}]}'`);
 await enroll();
+
+// O pacote para o SQL Editor leva a migração tal e qual.
+const pacote = readFileSync(
+  new URL("../../docs/agents/SIGA_aplicar_ciclos_matricula.sql", import.meta.url),
+  "utf8",
+);
+assert.ok(pacote.includes(migration), "o pacote leva a migração tal e qual");
 
 // Mudar uma matrícula (UPDATE) nunca passa pelo gatilho.
 await db.query("insert into terms values ($1,$2,current_date - 1, current_date + 1)", [
@@ -85,4 +102,6 @@ await db.query("insert into terms values ($1,$2,current_date - 1, current_date +
 ]);
 await db.query("update enrollments set student_id = student_id");
 
-console.log("enrollment-cycle-guard: idempotente, aulas, ciclos, Administração e serviço ok");
+console.log(
+  "enrollment-cycle-guard: idempotente, desligado por omissão, aulas, ciclos, Administração e serviço ok",
+);
