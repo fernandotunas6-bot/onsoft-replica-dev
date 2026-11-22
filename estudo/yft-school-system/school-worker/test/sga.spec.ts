@@ -7,6 +7,10 @@ import sga from "../src/api/sga";
 // aplica eq/in/is/lt/gte/or a sério — se uma consulta esquecer o filtro da
 // escola, os dados da outra escola aparecem e os testes falham.
 type Row = Record<string, unknown>;
+const b64url = (value: unknown) =>
+	btoa(JSON.stringify(value)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+/** JWT só com o payload que interessa (a assinatura é do Auth falso, que valida pelo mapa). */
+const jwtToken = (payload: Row) => `${b64url({ alg: "ES256", typ: "JWT" })}.${b64url(payload)}.assinatura`;
 const URL_BASE = "https://sga.test";
 const S1 = "11111111-1111-1111-1111-111111111111";
 const S2 = "22222222-2222-2222-2222-222222222222";
@@ -20,6 +24,7 @@ const tables: Record<string, Row[]> = {
 		{ id: "m-e", school_id: S1, user_id: "u-email", status: "active", created_at: "1" },
 		{ id: "m-a", school_id: S1, user_id: "u-admin", status: "active", created_at: "1" },
 		{ id: "m-s", school_id: S1, user_id: "u-student", status: "active", created_at: "1" },
+		{ id: "m-mfa", school_id: S1, user_id: "u-mfa", status: "active", created_at: "1" },
 	],
 	member_roles: [
 		{ membership_id: "m-g", role_id: "r-g" },
@@ -28,6 +33,7 @@ const tables: Record<string, Row[]> = {
 		{ membership_id: "m-e", role_id: "r-g" },
 		{ membership_id: "m-a", role_id: "r-a" },
 		{ membership_id: "m-s", role_id: "r-s" },
+		{ membership_id: "m-mfa", role_id: "r-g" },
 	],
 	profiles: [{ id: "u-guardian", full_name: "Mariana Silva", display_name: null }],
 	roles: [{ id: "r-g", code: "encarregado" }, { id: "r-t", code: "professor" }, { id: "r-a", code: "admin" }, { id: "r-s", code: "aluno" }],
@@ -162,6 +168,15 @@ const sessions: Record<string, Row> = {
 	"tok-email": { id: "u-email", email: "PAI@ex.ao", email_confirmed_at: "2026-01-01" },
 	"tok-email-unconfirmed": { id: "u-email", email: "pai@ex.ao", email_confirmed_at: null },
 	"tok-student": { id: "u-student", email: "1260001.escolaum@alunos.portal-siga.com", email_confirmed_at: "2026-01-01" },
+	// Conta que activou a confirmação no login (2FA): aal1 recusado, aal2 aceite.
+	"tok-mfa": { id: "u-mfa", email: "mfa@ex.ao", email_confirmed_at: "2026-01-01" },
+	[jwtToken({ sub: "u-mfa", aal: "aal2" })]: { id: "u-mfa", email: "mfa@ex.ao", email_confirmed_at: "2026-01-01" },
+	// Token emitido a uma aplicação OAuth (agente de IA): válido no Auth, recusado aqui.
+	[jwtToken({ sub: "u-guardian", aal: "aal2", client_id: "agente-1" })]: { id: "u-guardian", email: "mariana@ex.ao", email_confirmed_at: "2026-01-01" },
+};
+/** Utilizadores vistos pela API de administração do Auth (/auth/v1/admin/users/:id). */
+const adminUsers: Record<string, Row> = {
+	"u-mfa": { id: "u-mfa", app_metadata: { siga_login_mfa_enabled: true }, factors: [{ status: "verified" }] },
 };
 const SECRET = "sb_secret_test";
 const seen: string[] = [];
@@ -197,6 +212,11 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
 		return s ? Response.json(s) : new Response("{}", { status: 401 });
 	}
 	if (headers.get("apikey") !== SECRET) return new Response("{}", { status: 401 });
+	const adminUser = url.pathname.match(/^\/auth\/v1\/admin\/users\/([^/]+)$/);
+	if (adminUser) {
+		const id = decodeURIComponent(adminUser[1]);
+		return Response.json(adminUsers[id] ?? { id, app_metadata: {}, factors: [] });
+	}
 	const table = url.pathname.replace("/rest/v1/", "");
 	seen.push(table);
 	let rows = [...(tables[table] ?? [])];
@@ -475,5 +495,30 @@ describe("API SGA", () => {
 		expect((await get("/attendance/summary?class_id=cg-7b", "tok-teacher")).status).toBe(404);
 		expect((await get("/attendance/summary?class_id=cg-10a", "tok-guardian")).status).toBe(403);
 		expect((await get("/attendance/summary?class_id=cg-10a", "tok-admin")).status).toBe(200);
+	});
+});
+
+describe("API SGA — 2FA no login e aplicações OAuth (análise 22, P1-3)", () => {
+	it("conta com confirmação no login: aal1 recebe 403 com a explicação", async () => {
+		const res = await get("/me", "tok-mfa");
+		expect(res.status).toBe(403);
+		const body = (await res.json()) as { error: string; message?: string };
+		expect(body.error).toBe("SESSION_MFA_REQUIRED");
+		expect(body.message).toMatch(/dois passos/);
+	});
+
+	it("a mesma conta com sessão aal2 entra", async () => {
+		const res = await get("/me", jwtToken({ sub: "u-mfa", aal: "aal2" }));
+		expect(res.status).toBe(200);
+	});
+
+	it("contas sem a preferência continuam a entrar com aal1", async () => {
+		expect((await get("/me", "tok-guardian")).status).toBe(200);
+	});
+
+	it("recusa o token de uma aplicação OAuth antes de o validar", async () => {
+		const res = await get("/me", jwtToken({ sub: "u-guardian", aal: "aal2", client_id: "agente-1" }));
+		expect(res.status).toBe(401);
+		expect(await res.json()).toEqual({ error: "OAUTH_CLIENT_TOKEN" });
 	});
 });

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 import { syncSchoolBankToPayflow } from "@/features/finance/server";
 import { cn } from "@/lib/utils";
+import { isPayflowUiEnabled } from "@/lib/payflow-switch";
 
 type PayflowBankSyncButtonProps = {
   className?: string;
@@ -17,7 +18,13 @@ type PayflowBankSyncButtonProps = {
   label?: string;
 };
 
-export function PayflowBankSyncButton({
+export function PayflowBankSyncButton(props: PayflowBankSyncButtonProps) {
+  // PayFlow desactivado (src/lib/payflow-switch.ts): sem botão.
+  if (!isPayflowUiEnabled()) return null;
+  return <PayflowBankSyncButtonEnabled {...props} />;
+}
+
+function PayflowBankSyncButtonEnabled({
   className,
   variant = "outline",
   size = "default",

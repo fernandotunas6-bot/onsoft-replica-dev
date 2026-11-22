@@ -26,7 +26,9 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([]);
 // produção por consulta directa a `information_schema.routines`, depois de a produção ter
 // sido recapturada por este ciclo.
 export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
-  // PR de consolidação: migração recuperada da #345, ainda NÃO aplicada.
+  // PR de consolidação: migração recuperada da #345 (20261031000000). Aplicada na produção
+  // a 22/11/2026 e confirmada pelo dono com docs/agents/SIGA_verificar_pacotes_2026-11-22.sql.
+  // Saem daqui quando o retrato for recapturado (npm run siga:db-snapshot) e as mostrar.
   "siga_write_assessment_scores_atomic",
   "siga_return_task_submission_atomic",
   "siga_reorganize_enrollment_guarded",

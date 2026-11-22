@@ -26,6 +26,11 @@ on:
       - ".github/workflows/native-ci.yml"
   workflow_dispatch:
 
+# Token do GitHub só de leitura (análise 22, P2-2): nenhum passo deste workflow escreve no
+# repositório, em issues ou em PRs.
+permissions:
+  contents: read
+
 concurrency:
   group: siga-native-ci-${{ github.ref }}
   cancel-in-progress: true

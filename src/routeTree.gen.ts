@@ -30,6 +30,7 @@ import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as SaasAdminRouteImport } from './routes/saas-admin'
+import { Route as SigaAiRouteImport } from './routes/siga-ai'
 import { Route as TesourariaRouteImport } from './routes/tesouraria'
 import { Route as TransferirRouteImport } from './routes/transferir'
 import { Route as VerificarRouteImport } from './routes/verificar'
@@ -95,6 +96,7 @@ import { Route as ApiMobileProfileRouteImport } from './routes/api/mobile/profil
 import { Route as ApiMobileWorkRouteImport } from './routes/api/mobile/work'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
+import { Route as ApiSaasBillingSettingsRouteImport } from './routes/api/saas/billing-settings'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
 import { Route as ApiSaasEducationCatalogRouteImport } from './routes/api/saas/education-catalog'
 import { Route as ApiSaasGatewayWebhooksRouteImport } from './routes/api/saas/gateway-webhooks'
@@ -107,6 +109,7 @@ import { Route as ApiSaasSignupLeadsRouteImport } from './routes/api/saas/signup
 import { Route as ApiSaasStatsRouteImport } from './routes/api/saas/stats'
 import { Route as ApiSaasSubscriptionsRouteImport } from './routes/api/saas/subscriptions'
 import { Route as ApiSaasTenantsRouteImport } from './routes/api/saas/tenants'
+import { Route as ApiSigaAiChatRouteImport } from './routes/api/siga-ai/chat'
 import { Route as ApiWebhooksTwilioSmsRouteImport } from './routes/api/webhooks/twilio-sms'
 import { Route as ApiWebhooksWhatsappStatusRouteImport } from './routes/api/webhooks/whatsapp-status'
 import { Route as FinanceiroRhFaltasRouteImport } from './routes/financeiro_.rh_.faltas'
@@ -265,6 +268,11 @@ const PortalRoute = PortalRouteImport.update({
 const SaasAdminRoute = SaasAdminRouteImport.update({
   id: '/saas-admin',
   path: '/saas-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SigaAiRoute = SigaAiRouteImport.update({
+  id: '/siga-ai',
+  path: '/siga-ai',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TesourariaRoute = TesourariaRouteImport.update({
@@ -597,6 +605,11 @@ const ApiSaasBillingProofsRoute = ApiSaasBillingProofsRouteImport.update({
   path: '/api/saas/billing-proofs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSaasBillingSettingsRoute = ApiSaasBillingSettingsRouteImport.update({
+  id: '/api/saas/billing-settings',
+  path: '/api/saas/billing-settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSaasDomainsRoute = ApiSaasDomainsRouteImport.update({
   id: '/api/saas/domains',
   path: '/api/saas/domains',
@@ -655,6 +668,11 @@ const ApiSaasSubscriptionsRoute = ApiSaasSubscriptionsRouteImport.update({
 const ApiSaasTenantsRoute = ApiSaasTenantsRouteImport.update({
   id: '/api/saas/tenants',
   path: '/api/saas/tenants',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSigaAiChatRoute = ApiSigaAiChatRouteImport.update({
+  id: '/api/siga-ai/chat',
+  path: '/api/siga-ai/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWebhooksTwilioSmsRoute = ApiWebhooksTwilioSmsRouteImport.update({
@@ -977,6 +995,7 @@ export interface FileRoutesByFullPath {
   '/planos-aula': typeof PlanosAulaRoute
   '/portal': typeof PortalRoute
   '/saas-admin': typeof SaasAdminRoute
+  '/siga-ai': typeof SigaAiRoute
   '/tesouraria': typeof TesourariaRoute
   '/transferir': typeof TransferirRoute
   '/verificar': typeof VerificarRoute
@@ -1042,6 +1061,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile/work': typeof ApiMobileWorkRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
+  '/api/saas/billing-settings': typeof ApiSaasBillingSettingsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
@@ -1054,6 +1074,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/api/siga-ai/chat': typeof ApiSigaAiChatRoute
   '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
   '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
   '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
@@ -1131,6 +1152,7 @@ export interface FileRoutesByTo {
   '/planos-aula': typeof PlanosAulaRoute
   '/portal': typeof PortalRoute
   '/saas-admin': typeof SaasAdminRoute
+  '/siga-ai': typeof SigaAiRoute
   '/tesouraria': typeof TesourariaRoute
   '/transferir': typeof TransferirRoute
   '/verificar': typeof VerificarRoute
@@ -1196,6 +1218,7 @@ export interface FileRoutesByTo {
   '/api/mobile/work': typeof ApiMobileWorkRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
+  '/api/saas/billing-settings': typeof ApiSaasBillingSettingsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
@@ -1208,6 +1231,7 @@ export interface FileRoutesByTo {
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/api/siga-ai/chat': typeof ApiSigaAiChatRoute
   '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
   '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
   '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
@@ -1286,6 +1310,7 @@ export interface FileRoutesById {
   '/planos-aula': typeof PlanosAulaRoute
   '/portal': typeof PortalRoute
   '/saas-admin': typeof SaasAdminRoute
+  '/siga-ai': typeof SigaAiRoute
   '/tesouraria': typeof TesourariaRoute
   '/transferir': typeof TransferirRoute
   '/verificar': typeof VerificarRoute
@@ -1351,6 +1376,7 @@ export interface FileRoutesById {
   '/api/mobile/work': typeof ApiMobileWorkRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
+  '/api/saas/billing-settings': typeof ApiSaasBillingSettingsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/education-catalog': typeof ApiSaasEducationCatalogRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
@@ -1363,6 +1389,7 @@ export interface FileRoutesById {
   '/api/saas/stats': typeof ApiSaasStatsRoute
   '/api/saas/subscriptions': typeof ApiSaasSubscriptionsRouteWithChildren
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
+  '/api/siga-ai/chat': typeof ApiSigaAiChatRoute
   '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
   '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
   '/financeiro_/rh_/faltas': typeof FinanceiroRhFaltasRoute
@@ -1442,6 +1469,7 @@ export interface FileRouteTypes {
     | '/planos-aula'
     | '/portal'
     | '/saas-admin'
+    | '/siga-ai'
     | '/tesouraria'
     | '/transferir'
     | '/verificar'
@@ -1507,6 +1535,7 @@ export interface FileRouteTypes {
     | '/api/mobile/work'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
+    | '/api/saas/billing-settings'
     | '/api/saas/domains'
     | '/api/saas/education-catalog'
     | '/api/saas/gateway-webhooks'
@@ -1519,6 +1548,7 @@ export interface FileRouteTypes {
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
+    | '/api/siga-ai/chat'
     | '/api/webhooks/twilio-sms'
     | '/api/webhooks/whatsapp-status'
     | '/financeiro/rh/faltas'
@@ -1596,6 +1626,7 @@ export interface FileRouteTypes {
     | '/planos-aula'
     | '/portal'
     | '/saas-admin'
+    | '/siga-ai'
     | '/tesouraria'
     | '/transferir'
     | '/verificar'
@@ -1661,6 +1692,7 @@ export interface FileRouteTypes {
     | '/api/mobile/work'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
+    | '/api/saas/billing-settings'
     | '/api/saas/domains'
     | '/api/saas/education-catalog'
     | '/api/saas/gateway-webhooks'
@@ -1673,6 +1705,7 @@ export interface FileRouteTypes {
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
+    | '/api/siga-ai/chat'
     | '/api/webhooks/twilio-sms'
     | '/api/webhooks/whatsapp-status'
     | '/financeiro/rh/faltas'
@@ -1750,6 +1783,7 @@ export interface FileRouteTypes {
     | '/planos-aula'
     | '/portal'
     | '/saas-admin'
+    | '/siga-ai'
     | '/tesouraria'
     | '/transferir'
     | '/verificar'
@@ -1815,6 +1849,7 @@ export interface FileRouteTypes {
     | '/api/mobile/work'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
+    | '/api/saas/billing-settings'
     | '/api/saas/domains'
     | '/api/saas/education-catalog'
     | '/api/saas/gateway-webhooks'
@@ -1827,6 +1862,7 @@ export interface FileRouteTypes {
     | '/api/saas/stats'
     | '/api/saas/subscriptions'
     | '/api/saas/tenants'
+    | '/api/siga-ai/chat'
     | '/api/webhooks/twilio-sms'
     | '/api/webhooks/whatsapp-status'
     | '/financeiro_/rh_/faltas'
@@ -1905,6 +1941,7 @@ export interface RootRouteChildren {
   PlanosAulaRoute: typeof PlanosAulaRoute
   PortalRoute: typeof PortalRoute
   SaasAdminRoute: typeof SaasAdminRoute
+  SigaAiRoute: typeof SigaAiRoute
   TesourariaRoute: typeof TesourariaRoute
   TransferirRoute: typeof TransferirRoute
   VerificarRoute: typeof VerificarRoute
@@ -1969,6 +2006,7 @@ export interface RootRouteChildren {
   ApiMobileWorkRoute: typeof ApiMobileWorkRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
+  ApiSaasBillingSettingsRoute: typeof ApiSaasBillingSettingsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
   ApiSaasEducationCatalogRoute: typeof ApiSaasEducationCatalogRouteWithChildren
   ApiSaasGatewayWebhooksRoute: typeof ApiSaasGatewayWebhooksRoute
@@ -1981,6 +2019,7 @@ export interface RootRouteChildren {
   ApiSaasStatsRoute: typeof ApiSaasStatsRoute
   ApiSaasSubscriptionsRoute: typeof ApiSaasSubscriptionsRouteWithChildren
   ApiSaasTenantsRoute: typeof ApiSaasTenantsRouteWithChildren
+  ApiSigaAiChatRoute: typeof ApiSigaAiChatRoute
   ApiWebhooksTwilioSmsRoute: typeof ApiWebhooksTwilioSmsRoute
   ApiWebhooksWhatsappStatusRoute: typeof ApiWebhooksWhatsappStatusRoute
   FinanceiroRhFaltasRoute: typeof FinanceiroRhFaltasRoute
@@ -2167,6 +2206,13 @@ declare module '@tanstack/react-router' {
       path: '/saas-admin'
       fullPath: '/saas-admin'
       preLoaderRoute: typeof SaasAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/siga-ai': {
+      id: '/siga-ai'
+      path: '/siga-ai'
+      fullPath: '/siga-ai'
+      preLoaderRoute: typeof SigaAiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tesouraria': {
@@ -2624,6 +2670,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasBillingProofsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/saas/billing-settings': {
+      id: '/api/saas/billing-settings'
+      path: '/api/saas/billing-settings'
+      fullPath: '/api/saas/billing-settings'
+      preLoaderRoute: typeof ApiSaasBillingSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/saas/domains': {
       id: '/api/saas/domains'
       path: '/api/saas/domains'
@@ -2706,6 +2759,13 @@ declare module '@tanstack/react-router' {
       path: '/api/saas/tenants'
       fullPath: '/api/saas/tenants'
       preLoaderRoute: typeof ApiSaasTenantsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/siga-ai/chat': {
+      id: '/api/siga-ai/chat'
+      path: '/api/siga-ai/chat'
+      fullPath: '/api/siga-ai/chat'
+      preLoaderRoute: typeof ApiSigaAiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/webhooks/twilio-sms': {
@@ -3219,6 +3279,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlanosAulaRoute: PlanosAulaRoute,
   PortalRoute: PortalRoute,
   SaasAdminRoute: SaasAdminRoute,
+  SigaAiRoute: SigaAiRoute,
   TesourariaRoute: TesourariaRoute,
   TransferirRoute: TransferirRoute,
   VerificarRoute: VerificarRoute,
@@ -3284,6 +3345,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMobileWorkRoute: ApiMobileWorkRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
+  ApiSaasBillingSettingsRoute: ApiSaasBillingSettingsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,
   ApiSaasEducationCatalogRoute: ApiSaasEducationCatalogRouteWithChildren,
   ApiSaasGatewayWebhooksRoute: ApiSaasGatewayWebhooksRoute,
@@ -3296,6 +3358,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasStatsRoute: ApiSaasStatsRoute,
   ApiSaasSubscriptionsRoute: ApiSaasSubscriptionsRouteWithChildren,
   ApiSaasTenantsRoute: ApiSaasTenantsRouteWithChildren,
+  ApiSigaAiChatRoute: ApiSigaAiChatRoute,
   ApiWebhooksTwilioSmsRoute: ApiWebhooksTwilioSmsRoute,
   ApiWebhooksWhatsappStatusRoute: ApiWebhooksWhatsappStatusRoute,
   FinanceiroRhFaltasRoute: FinanceiroRhFaltasRoute,

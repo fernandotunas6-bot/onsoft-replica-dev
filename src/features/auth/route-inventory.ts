@@ -21,6 +21,7 @@ export const SIGA_AUTHENTICATED_ROUTE_PREFIXES = [
   "/configuracoes",
   "/arquivos",
   "/planos-aula",
+  "/siga-ai",
   "/importar",
   "/catracas",
   "/professor/presenca",

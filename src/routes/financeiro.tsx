@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { getPayflowPayerUrl } from "@/lib/ecosystem-urls";
 import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 import { PayflowPayerLink } from "@/features/finance/components/PayflowPayerLink";
+import { isPayflowUiEnabled } from "@/lib/payflow-switch";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 
 const FinanceiroCashChart = lazy(() =>
@@ -131,7 +132,8 @@ export const Route = createFileRoute("/financeiro")({
 /**
  * Alunos e encarregados chegam aqui pelo menu («Propinas», «Financeiro»), mas o
  * caixa da escola é da tesouraria: o servidor recusa-lhes cada consulta e a página
- * enchia-se de erros e de botões de registo. As propinas pagam-se no PayFlow.
+ * enchia-se de erros e de botões de registo. As propinas pagam-se na tesouraria (ou no
+ * PayFlow, quando estiver ligado — src/lib/payflow-switch.ts).
  */
 function FinanceiroRoute() {
   const account = useCurrentAccount();
@@ -142,18 +144,24 @@ function FinanceiroRoute() {
 }
 
 function FamilyFinancePage() {
+  const payflow = isPayflowUiEnabled();
   return (
     <AppShell>
       <div className="space-y-6">
         <PageHeader
           group="Financeiro"
           title="Propinas e Pagamentos"
-          description="Consulte e pague as propinas no PayFlow, o portal de pagamentos da escola."
+          description={
+            payflow
+              ? "Consulte e pague as propinas no PayFlow, o portal de pagamentos da escola."
+              : "As propinas pagam-se na tesouraria da escola, que emite o recibo."
+          }
         />
         <div className="surface-card space-y-3 p-6">
           <p className="text-sm text-muted-foreground">
-            As facturas, os recibos e os pagamentos das propinas estão no PayFlow. Para dúvidas
-            sobre valores ou prazos, contacte a tesouraria da escola.
+            {payflow
+              ? "As facturas, os recibos e os pagamentos das propinas estão no PayFlow. Para dúvidas sobre valores ou prazos, contacte a tesouraria da escola."
+              : "Os pagamentos das propinas são registados pela tesouraria da escola, que entrega o recibo. Para dúvidas sobre valores ou prazos, contacte a tesouraria."}
           </p>
           <PayflowPayerLink label="Abrir o PayFlow" size="default" variant="default" />
         </div>
@@ -507,11 +515,13 @@ function FinanceiroPage() {
                   </Link>
                 </Button>
                 <DocHelpButton title="Navegação e permissões — tesouraria" />
-                <DocPathHelpButton
-                  path={DOC_PATHS.financePayflow}
-                  label="PayFlow"
-                  title="PayFlow — cobrança e conciliação"
-                />
+                {isPayflowUiEnabled() ? (
+                  <DocPathHelpButton
+                    path={DOC_PATHS.financePayflow}
+                    label="PayFlow"
+                    title="PayFlow — cobrança e conciliação"
+                  />
+                ) : null}
                 <DocPathHelpButton
                   path={DOC_PATHS.integracoesEmis}
                   label="Pagamentos"

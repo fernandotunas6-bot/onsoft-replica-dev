@@ -400,6 +400,8 @@ export const applyClassOrganization = createServerFn({ method: "POST" })
           classGroupId: move.to,
           academicYearId: yearId,
           userId: context.userId,
+          // Só muda de turma dentro do ano: não é matrícula nova, o ciclo não se aplica.
+          appRole: membership.appRole,
         });
         moved.push(move.studentId);
       } catch (error) {

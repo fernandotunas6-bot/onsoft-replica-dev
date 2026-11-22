@@ -31,6 +31,7 @@ import { loadGradeYears, loadReportCard } from '../sga/grades';
 import { classScope, loadClassAttendanceSummary } from '../sga/scope';
 import { loadClassSubjectGrades, loadTeacherAssignments } from '../sga/teacher';
 import { SgaDb, SgaError, inList } from '../sga/rest';
+import { assertSgaSessionMfa, oauthClientIdOf } from '../sga/session-mfa';
 
 type SgaVars = { sgaUser: SgaUser; sgaDb: SgaDb; membership: SgaMembership; memberships: SgaMembership[] };
 type SgaAppEnv = { Bindings: AppEnv['Bindings']; Variables: SgaVars };
@@ -40,7 +41,10 @@ const sga = new Hono<SgaAppEnv>();
 const noStore = { 'Cache-Control': 'private, no-store', Vary: 'Authorization' };
 
 sga.onError((err, c) => {
-  if (err instanceof SgaError) return c.json({ error: err.code }, err.status as 401, noStore);
+  if (err instanceof SgaError) {
+    const body = err.userMessage ? { error: err.code, message: err.userMessage } : { error: err.code };
+    return c.json(body, err.status as 401, noStore);
+  }
   console.error('[sga]', err instanceof Error ? err.message : 'erro');
   return c.json({ error: 'SGA_FAILURE' }, 503, noStore);
 });
@@ -49,8 +53,12 @@ sga.use('*', async (c, next) => {
   const header = c.req.header('Authorization') ?? '';
   const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
   if (!token) throw new SgaError(401, 'SESSION_REQUIRED');
+  // Token de uma aplicação ligada por OAuth (agente de IA): não abre os dados do SIGA.
+  if (oauthClientIdOf(token)) throw new SgaError(401, 'OAUTH_CLIENT_TOKEN');
   const db = SgaDb.from(c.env);
   const user = await verifySgaToken(c.env, token);
+  // A mesma regra do SIGA: quem activou a confirmação no login precisa de sessão aal2.
+  await assertSgaSessionMfa(c.env, user.id, token);
   const memberships = await loadMemberships(db, user.id);
   const membership = pickMembership(memberships, c.req.header('X-School-Id'));
   c.set('sgaUser', user);

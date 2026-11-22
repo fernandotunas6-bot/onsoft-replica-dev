@@ -3,6 +3,7 @@ import { lazy, Suspense, useMemo, useRef, useCallback, useState } from "react";
 import { useBlocker } from "@tanstack/react-router";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import {
+  BrainCircuit,
   Building2,
   CreditCard,
   GraduationCap,
@@ -38,6 +39,7 @@ import { SpotlightSettingsPanel } from "@/features/spotlight/SpotlightSettingsPa
 import { FilesSettingsPanel } from "@/features/arquivos/FilesSettingsPanel";
 import { TeacherDocumentsSettingsPanel } from "@/features/people/TeacherDocumentsSettingsPanel";
 import { PerformancePanel } from "@/features/school/PerformancePanel";
+import { AiSettingsPanel } from "@/features/siga-ai/components/AiSettingsPanel";
 import { AppDownloads } from "@/features/desktop/AppDownloads";
 import { actionIcons } from "@/lib/app-icons";
 
@@ -136,6 +138,13 @@ function useSettingsPanels(): StackPanel[] {
             icon: FolderOpen,
             tone: "info",
             to: "arquivos",
+          },
+          {
+            label: "SIGA AI",
+            description: "IA local, modelos e perfis com acesso",
+            icon: BrainCircuit,
+            tone: "primary",
+            to: "siga-ai",
           },
           {
             label: "Documentos de professores",
@@ -306,6 +315,14 @@ function useSettingsPanels(): StackPanel[] {
         icon: FolderOpen,
         tone: "info",
         render: () => <FilesSettingsPanel />,
+      },
+      {
+        id: "siga-ai",
+        title: "SIGA AI",
+        description: "Assistente de IA local da escola: serviços, modelos, acesso e limites.",
+        icon: BrainCircuit,
+        tone: "primary",
+        render: () => <AiSettingsPanel />,
       },
       {
         id: "pessoas.documentos_professores",

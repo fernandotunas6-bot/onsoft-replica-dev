@@ -21,6 +21,11 @@ env:
   BASE_URL: http://localhost:3006
 
 # Um push novo num PR cancela a execução anterior do mesmo PR (na main nunca).
+# Token do GitHub só de leitura (análise 22, P2-2): nenhum passo deste workflow escreve no
+# repositório, em issues ou em PRs.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -35,7 +40,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.4"
 
       - name: Instalar dependências
         run: bun install --frozen-lockfile
@@ -82,7 +87,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.4"
 
       - name: Instalar dependências
         run: bun install --frozen-lockfile
@@ -214,7 +219,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.4"
 
       - name: Instalar dependências
         run: bun install --frozen-lockfile
@@ -288,7 +293,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.4"
 
       - uses: actions/setup-python@v5
         with:

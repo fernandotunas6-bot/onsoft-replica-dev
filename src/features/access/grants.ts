@@ -26,6 +26,12 @@ import { requireAal2 } from "@/features/hr/require-aal2";
  * restringe à escola, a aplicação restringe ao cargo. Uma protege da outra
  * falhar.
  *
+ * Sem `assertTenantAllowsWrites` de propósito (revisto na análise 22, 15/11/2026),
+ * como no resto de `features/access`: numa escola suspensa a Administração tem de
+ * poder retirar acessos (é uma acção de segurança). Dar «Escrita» ou «Total» não abre
+ * nada durante a suspensão: `requireSgaWriterForWrite` continua a recusar as escritas
+ * dos módulos enquanto a escola não grava.
+ *
  * Sem cast de tipos: esta fatia precisou de um durante algumas horas, porque os
  * tipos gerados descreviam 40 das 149 tabelas e `staff_module_grants` era uma
  * das que faltavam. Com os tipos repostos a partir da produção (OPS-01), o

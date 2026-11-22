@@ -1,3 +1,22 @@
+> **22/11/2026 — PRs pendentes resolvidos (#118, #130, #206, #210):** decisão por PR, o que
+> entrou e o que ficou de fora em
+> [HANDOFF_INTEGRACAO_PRS_2026-11-22.md](HANDOFF_INTEGRACAO_PRS_2026-11-22.md). PR #445. O SQL
+> (escrita académica, ciclos, SIGA AI) foi **aplicado e verificado na produção a 22/11**; falta
+> recapturar o retrato para tirar as entradas da lista de espera dos testes. Ciclos de
+> matrícula **desligados por omissão** (interruptor por escola); SIGA AI adormecido; chaves dos
+> campos do website congeladas em `painel/escolas/content-keys.json` — não o regenerar.
+
+> **15–22/11/2026 — análise crítica e correcções; PayFlow desactivado:** achados P0–P3,
+> correcções aplicadas e acções do proprietário em
+> [22 — análise crítica](../auditoria/22-analise-critica-sistema-2026-11-15.md) (secção
+> «Seguimento»). **PayFlow desligado por omissão** (`src/lib/payflow-switch.ts`,
+> `painel/payflow/lib/service-switch.ts`): não religar sem chaves separadas e liquidação
+> assinada. Antes de tudo: aplicar `docs/agents/SIGA_aplicar_escrita_academica_2026-11-15.sql`
+> se a produção não tiver as RPC (sem elas o lançamento de notas falha) e rodar a chave
+> secreta do Supabase. Tokens OAuth (`client_id`) não abrem o SIGA; o website escolar tem CSP
+> obrigatória com `script-src 'self'` — um script novo no modelo tem de ser um ficheiro, não
+> em linha.
+
 > **12/11/2026 — integração dos PRs abertos (#443, fundida e publicada):** o que entrou,
 > o que ficou para decisão, o seguimento e as obrigações em produção (migração académica
 > da #404 e horários publicados da #338) em
@@ -661,6 +680,45 @@ gestão académica). Ser administrador da escola nunca dá a Administração Glo
   `src/lib/safe-next-path.ts`; se o link falhar, «Entrar com e-mail e senha» no destino).
 - O provisionamento também verifica `role_permissions` (`findProvisioningGaps` e
   `siga:audit-provisioning`).
+
+## SIGA AI — IA local, Project NOMAD integrado (2026-10-12)
+
+Auditoria, matriz de compatibilidade, licenças e o que **não** entrou:
+[SIGA_AI_NOMAD_AUDIT.md](./SIGA_AI_NOMAD_AUDIT.md). Instalação e operação:
+[docs/siga-ai/README.md](../siga-ai/README.md). Skill: `siga-ai`.
+
+- NOMAD (`54ee30a4`, v1.35.1, Apache-2.0) **não** foi copiado: é AdonisJS + Docker +
+  SQLite, single-tenant e sem autenticação. O que se portou foi o contrato HTTP do Ollama
+  e os parâmetros calibrados de recuperação (`src/features/siga-ai/nomad-params.ts`, com
+  ficheiro e linha de origem em cada um) — ver `NOTICE`. Ollama e Qdrant correm como
+  serviços externos.
+- Módulo isolado: `src/features/siga-ai/` (gateway, prompts, fragmentação, reordenação,
+  orçamento), `src/lib/siga-ai/` (clientes Ollama/Qdrant, resolução de endpoint), página
+  `/siga-ai`. Nada do `ai-gateway.server.ts` (Lovable AI Gateway) ou do `ai-assist` foi
+  alterado — continuam a ser o caminho remoto.
+- Fronteiras: escola pela membership (nunca do cliente); `buildSchoolFilter` obrigatório em
+  toda a pesquisa vectorial (`tests/siga-ai/isolation.test.ts`); `assertSafeAiEndpoint`
+  contra SSRF; documento recuperado é dado e não instrução (`sanitizeContextText`); a IA
+  não escreve nos dados escolares.
+- `/siga-ai` ficou **fora** de `accessModules` de propósito: sob «pedagogica», a Tesouraria
+  passava a ter leitura pedagógica e os relatórios académicos abriam-se.
+- **Por aplicar (dono):** `supabase/migrations/20261012160000_siga_ai_module.sql`
+  (cinco tabelas novas, só-servidor, idempotente). Sem ela a página diz «por configurar» e
+  não grava conversas; nenhum outro módulo é afectado. Tabelas em
+  `TABELAS_AUSENTES_DA_PRODUCAO` até recapturar o retrato.
+- Área administrativa em Definições → SIGA AI (`AiSettingsPanel`, só Administrador: o centro
+  de definições está atrás de `/configuracoes`). Documentos .docx lidos no browser
+  (`docx-text.ts`, sem dependências).
+- Streaming token a token por `src/routes/api/siga-ai/chat.tsx` (NDJSON, bearer da sessão,
+  `resolveBearerSession` + membership). `prepareAsk` é partilhado por `askAi` e `askAiStream`
+  para as permissões e o isolamento não poderem divergir. Cliente em `ask-stream.ts`,
+  com recuo para a resposta completa quando o streaming não passa.
+- Documentos: .docx e PDF de texto lidos no browser, sem dependências (`docx-text.ts`,
+  `pdf-text.ts`). O PDF recusa quando é digitalizado ou quando o texto sai ilegível, em vez
+  de indexar lixo; testes geram PDFs reais com o `jspdf` que o SIGA já usa.
+- **Falta (não declarado feito):** OCR (PDF digitalizado), juiz de relevância por LLM,
+  reescrita da pergunta, instalação de modelos pela UI, e testes com Ollama real (o CI não
+  tem modelo instalado).
 
 ## Revisão #148 — reforço antes de aplicar (2026-10-16)
 

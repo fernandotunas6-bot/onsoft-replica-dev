@@ -5,6 +5,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { assertPublishableSupabaseKey, isOpaqueSupabaseApiKey } from "./api-key";
 import { accessTokenAal, assertSessionMfa, isSessionMfaError } from "./session-mfa";
+import { OAUTH_CLIENT_TOKEN_REFUSED, isOAuthClientToken } from "./oauth-client-token";
 
 function unauthorized(reason = "Unauthorized"): never {
   throw Object.assign(new Error(reason), { statusCode: 401 });
@@ -149,6 +150,13 @@ export const requireSupabaseAuth = createMiddleware({
 
   if (token.split(".").length !== 3) {
     unauthorized("Unauthorized: token JWT inválido.");
+  }
+
+  // Token de uma aplicação ligada por OAuth (agente de IA): só o /mcp o aceita.
+  // Antes da validação no Supabase e fora dos try/catch abaixo, que tentam vias
+  // alternativas quando uma falha.
+  if (isOAuthClientToken(token)) {
+    unauthorized(OAUTH_CLIENT_TOKEN_REFUSED);
   }
 
   const { readActiveSchoolCookie } = await import("@/features/auth/active-school-cookie.server");

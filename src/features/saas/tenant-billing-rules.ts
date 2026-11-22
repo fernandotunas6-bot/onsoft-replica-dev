@@ -47,6 +47,29 @@ export const BILLING_PERIODS = [
 ] as const;
 export type BillingPeriod = (typeof BILLING_PERIODS)[number]["id"];
 
+/** Periodicidades com desconto editável no ADMIN (a mensal é a referência, sem desconto). */
+export const DISCOUNTABLE_PERIODS = ["quarterly", "semiannual", "yearly"] as const;
+export type DiscountablePeriod = (typeof DISCOUNTABLE_PERIODS)[number];
+
+/** Tecto do desconto por periodicidade, para um erro de escrita não oferecer o serviço. */
+export const MAX_PERIOD_DISCOUNT_PCT = 60;
+
+const periodDiscountPct = z
+  .number()
+  .finite()
+  .min(0, "O desconto não pode ser negativo.")
+  .max(MAX_PERIOD_DISCOUNT_PCT, `O desconto não pode passar de ${MAX_PERIOD_DISCOUNT_PCT} %.`)
+  .transform((value) => Math.round(value * 100) / 100);
+
+/** Descontos por periodicidade da plataforma (`/api/saas/billing-settings`). */
+export const periodDiscountsInputSchema = z.object({
+  discounts: z.object({
+    quarterly: periodDiscountPct,
+    semiannual: periodDiscountPct,
+    yearly: periodDiscountPct,
+  }),
+});
+
 export const PAYMENT_METHODS = [
   { id: "bank_transfer", label: "Transferência bancária (IBAN)" },
   { id: "multicaixa_express", label: "Multicaixa Express" },

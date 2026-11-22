@@ -12,6 +12,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   BILLING_PERIODS,
+  DISCOUNTABLE_PERIODS,
+  type DiscountablePeriod,
   INSTITUTION_TYPES,
   PAYMENT_METHODS,
   PRICING_MODELS,
@@ -735,6 +737,64 @@ export async function loadPeriodDiscounts(
     .eq("id", 1)
     .maybeSingle();
   return periodDiscountsFrom((data as { periods?: unknown } | null)?.periods);
+}
+
+/**
+ * Descontos por periodicidade da plataforma, com a omissão do catálogo onde o ADMIN
+ * ainda não escreveu nada. É o que o editor do ADMIN mostra.
+ */
+export async function loadPlatformPeriodDiscounts(
+  db: SupabaseClient,
+): Promise<Record<DiscountablePeriod, number>> {
+  const stored = await loadPeriodDiscounts(db);
+  const out = {} as Record<DiscountablePeriod, number>;
+  for (const code of DISCOUNTABLE_PERIODS) {
+    const fallback = BILLING_PERIODS.find((period) => period.id === code)?.defaultDiscountPct ?? 0;
+    out[code] = stored[code] ?? (fallback as number);
+  }
+  return out;
+}
+
+/**
+ * Grava os descontos por periodicidade (`saas_billing_settings.periods`, linha 1), no
+ * formato que `periodDiscountsFrom` lê. Até aqui nada os editava: o cálculo lia-os, mas
+ * só um SQL à mão os mudava (porte da #210, 22/11/2026). Preserva o resto da linha e
+ * os outros campos de cada período; regista quem mudou o quê em `saas_audit_logs`.
+ */
+export async function savePlatformPeriodDiscounts(
+  db: SupabaseClient,
+  input: { discounts: Record<DiscountablePeriod, number>; userId: string },
+): Promise<Record<DiscountablePeriod, number>> {
+  const { data: row, error: readError } = await loose(db)
+    .from("saas_billing_settings")
+    .select("periods")
+    .eq("id", 1)
+    .maybeSingle();
+  if (readError) throw new Error("Não foi possível ler a configuração de cobrança.");
+  const before = await loadPlatformPeriodDiscounts(db);
+  const current = Array.isArray((row as { periods?: unknown } | null)?.periods)
+    ? ((row as { periods: unknown[] }).periods as Array<Record<string, unknown>>)
+    : [];
+  const next = current.filter(
+    (item) => !DISCOUNTABLE_PERIODS.includes(String(item?.code ?? "") as DiscountablePeriod),
+  );
+  for (const code of DISCOUNTABLE_PERIODS) {
+    const previous = current.find((item) => item?.code === code) ?? {};
+    next.push({ ...previous, code, discount_pct: input.discounts[code] });
+  }
+  const { error } = await loose(db)
+    .from("saas_billing_settings")
+    .upsert({ id: 1, periods: next, updated_by: input.userId }, { onConflict: "id" });
+  if (error) throw new Error("Não foi possível guardar os descontos por periodicidade.");
+  await db.from("saas_audit_logs").insert({
+    tenant_id: null,
+    user_id: input.userId,
+    action: "billing_period_discounts_updated",
+    entity: "saas_billing_settings",
+    entity_id: null,
+    metadata: { before, after: input.discounts } as never,
+  });
+  return loadPlatformPeriodDiscounts(db);
 }
 
 /**

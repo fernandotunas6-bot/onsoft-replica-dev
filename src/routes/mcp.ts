@@ -15,8 +15,6 @@ export const Route = createFileRoute("/mcp")({
       ANY: createTanStackMcpHandler(mcp, {
         resourcePath: "/mcp",
         metadataPath: "/.well-known/oauth-protected-resource",
-        trustForwardedHost: true,
-        trustForwardedProto: true,
       }),
     },
   },

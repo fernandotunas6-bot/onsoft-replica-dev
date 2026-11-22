@@ -2,6 +2,8 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 
+import { disabledResponse, isPayflowServiceEnabled } from "../lib/service-switch";
+
 // Tipos mínimos do runtime dos Workers (sem depender de @cloudflare/workers-types).
 type Fetcher = { fetch(request: Request): Promise<Response> };
 type D1Database = { prepare(sql: string): unknown };
@@ -9,6 +11,8 @@ type D1Database = { prepare(sql: string): unknown };
 interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
+  /** `true` liga o PayFlow; sem ela, tudo responde «desactivado» (lib/service-switch.ts). */
+  PAYFLOW_ENABLED?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -31,6 +35,9 @@ interface ExecutionContext {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // PayFlow desactivado (decisão do proprietário, 15/11/2026): nada passa daqui.
+    if (!isPayflowServiceEnabled(env)) return disabledResponse(request);
+
     const url = new URL(request.url);
 
     if (url.pathname === "/_vinext/image") {

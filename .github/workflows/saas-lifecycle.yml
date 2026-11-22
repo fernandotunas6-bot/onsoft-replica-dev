@@ -7,6 +7,11 @@ on:
     - cron: "23 7 * * *"
   workflow_dispatch:
 
+# Token do GitHub só de leitura (análise 22, P2-2): nenhum passo deste workflow escreve no
+# repositório, em issues ou em PRs.
+permissions:
+  contents: read
+
 concurrency:
   group: saas-lifecycle
   cancel-in-progress: false

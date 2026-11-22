@@ -10,6 +10,7 @@ import { createPayflowAdminLaunch } from "@/features/finance/server";
 import { isTauriDesktop } from "@/lib/desktop-utils";
 import { getPayflowAdminUrl } from "@/lib/ecosystem-urls";
 import { cn } from "@/lib/utils";
+import { isPayflowUiEnabled } from "@/lib/payflow-switch";
 
 type PayflowAdminLaunchButtonProps = {
   className?: string;
@@ -24,7 +25,13 @@ type PayflowAdminLaunchButtonProps = {
  * Lança o PayFlow /admin com SSO assinado (form POST → cookie HttpOnly).
  * Se o SSO não estiver configurado, cai no URL directo (sandbox / chave local).
  */
-export function PayflowAdminLaunchButton({
+export function PayflowAdminLaunchButton(props: PayflowAdminLaunchButtonProps) {
+  // PayFlow desactivado (src/lib/payflow-switch.ts): sem botão.
+  if (!isPayflowUiEnabled()) return null;
+  return <PayflowAdminLaunchButtonEnabled {...props} />;
+}
+
+function PayflowAdminLaunchButtonEnabled({
   className,
   variant = "outline",
   size = "default",

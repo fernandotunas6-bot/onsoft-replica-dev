@@ -15,6 +15,7 @@ import {
   PieChart,
   QrCode,
   Receipt,
+  Sparkles,
   TrendingUp,
   UserCog,
   UserPlus,
@@ -77,6 +78,7 @@ export const sigaModuleMarks: Record<string, SigaMark> = {
   "siga-importar": { icon: FileUp, tone: "info", label: "Importação de Dados" },
   "siga-catracas": { icon: QrCode, tone: "primary", label: "Catracas" },
   "siga-planos-aula": { icon: NotebookPen, tone: "info", label: "Planos de Aula" },
+  "siga-ai": { icon: Sparkles, tone: "primary", label: "SIGA AI" },
   "siga-matricula": { icon: UserPlus, tone: "success", label: "Matrícula" },
 };
 

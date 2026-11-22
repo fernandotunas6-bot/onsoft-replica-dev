@@ -58,6 +58,13 @@ const UNICOS_PRODUCAO: Record<string, string[]> = {
   // 2026-10-15: chave primária de 20261015120000_tenant_billing_profiles.sql (cobrança
   // por escola). Recapturar da produção depois de aplicada a migração.
   tenant_billing_profiles: ["tenant_id"],
+  // 2026-11-22: chave primária de 20260930173814_billing_settings_and_exemption.sql
+  // (captura da migração aplicada na produção; linha única id = 1). Editor dos
+  // descontos por periodicidade no ADMIN (porte da #210).
+  saas_billing_settings: ["id"],
+  // 2026-10-12: chave primária de 20261012160000_siga_ai_module.sql (configuração
+  // do SIGA AI por escola). Recapturar da produção depois de aplicada a migração.
+  siga_ai_settings: ["school_id"],
 };
 
 function upsertsNoCodigo() {

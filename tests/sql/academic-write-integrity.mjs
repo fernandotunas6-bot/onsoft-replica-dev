@@ -246,6 +246,17 @@ for (const role of ["anon", "authenticated"])
     ]),
     /permission denied/,
   );
+// Pacote para o SQL Editor (docs/agents/SIGA_aplicar_escrita_academica_2026-11-15.sql):
+// leva a migração tal e qual, corre duas vezes e a confirmação diz «aplicada».
+const pacote = readFileSync(
+  new URL("../../docs/agents/SIGA_aplicar_escrita_academica_2026-11-15.sql", import.meta.url),
+  "utf8",
+);
+assert.ok(pacote.includes(migration), "o pacote leva a migração tal e qual");
+for (let corrida = 0; corrida < 2; corrida++) {
+  const confirmar = (await db.exec(pacote)).at(-1).rows[0];
+  assert.deepEqual(confirmar, { "20261031000000 escrita académica": "aplicada" });
+}
 await db.close();
 console.log(
   "PASS: duas aplicações, permissões, âmbito, null/zero, rollback do lote/auditoria/devolução, período, pauta, retry e vínculo da tarefa. Não ensaia concorrência entre conexões.",

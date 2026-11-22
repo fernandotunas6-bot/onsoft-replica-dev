@@ -22,6 +22,16 @@ vi.mock("@/features/people/server", () => ({
 vi.mock("@/features/integrations/use-installed-integrations", () => ({
   useInstalledIntegrations: () => ({ hasCapability: () => false }),
 }));
+// Ciclo de matrículas aberto: estes casos tratam de quem já é aluno, não do ciclo.
+vi.mock("@/features/enrollment/use-enrollment-window", () => ({
+  OUTSIDE_CYCLE_FIELD: "motivoCiclo",
+  useEnrollmentWindow: () => ({
+    status: undefined,
+    closed: false,
+    blocked: false,
+    reasonField: null,
+  }),
+}));
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => <a href="#ficha">{children}</a>,
 }));

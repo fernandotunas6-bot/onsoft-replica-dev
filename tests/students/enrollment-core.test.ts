@@ -113,6 +113,7 @@ const place = (
     studentId: "aluno-1",
     classGroupId: "turma-b",
     userId: "secretaria",
+    appRole: "Secretaria",
     ...extra,
   });
 
@@ -203,7 +204,7 @@ describe("colocar em turma", () => {
       studentId: "aluno-1",
       classGroupId: "turma-b",
       userId: "secretaria",
-      hasAal2: true,
+      appRole: "Secretaria",
     };
     await expect(
       placeStudentInClass(client as never, { rpc: enrollRpc(store) } as never, input),
@@ -231,7 +232,7 @@ describe("colocar em turma", () => {
       studentId: "aluno-1",
       classGroupId: "turma-b",
       userId: "secretaria",
-      hasAal2: true,
+      appRole: "Secretaria",
     };
     await expect(
       placeStudentInClass(client as never, { rpc: enrollRpc(store) } as never, input),
@@ -286,7 +287,7 @@ describe("colocar em turma", () => {
       studentId: "aluno-1",
       classGroupId: "turma-b",
       userId: "secretaria",
-      hasAal2: true,
+      appRole: "Secretaria",
     };
     await expect(
       placeStudentInClass(db as never, { rpc: enrollRpc(store) } as never, input),

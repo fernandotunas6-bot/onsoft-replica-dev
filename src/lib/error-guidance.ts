@@ -265,6 +265,16 @@ const RULES: Rule[] = [
     action: SETTINGS("integracoes", "Abrir Integrações"),
   },
   {
+    // PayFlow desactivado (src/lib/payflow-switch.ts, 15/11/2026): não é configuração em
+    // falta, é uma decisão. O pagamento regista-se na tesouraria do SIGA.
+    id: "config.payflow-disabled",
+    kind: "unavailable",
+    match: /PayFlow está desactivado/i,
+    title: "O PayFlow está desactivado",
+    fix: "Registe o pagamento na Tesouraria (Financeiro), que emite o recibo.",
+    action: { kind: "route", to: "/financeiro", label: "Abrir Tesouraria" },
+  },
+  {
     id: "config.payments-provider",
     kind: "unavailable",
     match:

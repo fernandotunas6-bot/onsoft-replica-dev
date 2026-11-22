@@ -4,7 +4,10 @@ import { loadPublishedSchoolBlog } from "./blog-server";
 import { renderSchoolWebsite } from "./render-site";
 import { isPageInScope, narrowToScope, siteScope } from "./site-scope";
 import { APPLICATION_PAGE } from "./admissions";
-import { SCHOOL_WEBSITE_CONTENT_SECURITY_POLICY } from "@/lib/csp";
+import {
+  SCHOOL_WEBSITE_CONTENT_SECURITY_POLICY,
+  SCHOOL_WEBSITE_ENFORCED_CONTENT_SECURITY_POLICY,
+} from "@/lib/csp";
 
 /** Runs before the SIGA router only for public school pages. No session-based fallback. */
 export async function handleSchoolWebsite(request: Request): Promise<Response | null> {
@@ -18,6 +21,8 @@ export async function handleSchoolWebsite(request: Request): Promise<Response | 
     // Própria do website (inclui o Google Fonts do modelo); `withSecurityHeaders`
     // não a substitui pela do SIGA, porque só acrescenta os cabeçalhos em falta.
     "Content-Security-Policy-Report-Only": SCHOOL_WEBSITE_CONTENT_SECURITY_POLICY,
+    // Obrigatória: só scripts do próprio website (análise 22, P1-1; ver csp.ts).
+    "Content-Security-Policy": SCHOOL_WEBSITE_ENFORCED_CONTENT_SECURITY_POLICY,
   };
   const reply = (body: string, status = 200) =>
     new Response(request.method === "HEAD" ? null : body, { status, headers });

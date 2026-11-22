@@ -86,7 +86,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.4"
       - name: Instalar dependências sem alterar o lockfile
         run: bun install --frozen-lockfile
       - name: Instalar Chrome para Playwright

@@ -89,6 +89,10 @@ import {
 } from "@/features/students/academic-status";
 import { classGroupChoices } from "@/features/students/enrollment-directory";
 import {
+  OUTSIDE_CYCLE_FIELD,
+  useEnrollmentWindow,
+} from "@/features/enrollment/use-enrollment-window";
+import {
   canReadStudentSection,
   resolveStudentSection,
   studentSectionLabel,
@@ -259,6 +263,7 @@ function StudentDetail() {
   const queryClient = useQueryClient();
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const { activeYearLabel, selectedYearId, school, selectedYearLabel } = useSchoolSettings();
+  const enrollmentWindow = useEnrollmentWindow();
   // Nota de aprovação do modelo de avaliação em vigor (a da pauta oficial).
   const passingValue = usePassingValue();
   const account = useCurrentAccount();
@@ -569,7 +574,13 @@ function StudentDetail() {
     if (!selected) throw new Error("Seleccione uma turma válida.");
     // Atribuir e alterar são a mesma operação no servidor: com matrícula no ano da
     // turma muda a turma nessa matrícula, sem ela matricula (o ano vem da turma).
-    await enrollStudentInClass({ data: { studentId, classGroupId: selected.id } });
+    await enrollStudentInClass({
+      data: {
+        studentId,
+        classGroupId: selected.id,
+        outsideCycleReason: values[OUTSIDE_CYCLE_FIELD] || undefined,
+      },
+    });
     await invalidateStudent();
   };
 
@@ -1266,6 +1277,10 @@ function StudentDetail() {
                     full: true,
                     defaultValue: student.class_group_id ?? undefined,
                   },
+                  // Sem matrícula é uma matrícula nova: fora do ciclo, a Administração dá o motivo.
+                  ...(!student.enrollment_id && enrollmentWindow.reasonField
+                    ? [enrollmentWindow.reasonField]
+                    : []),
                 ]}
                 trigger={(open) => (
                   <Button variant="outline" className="gap-2" onClick={open}>

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getAdminAccessToken } from "@/lib/admin-session"
-import { getDocsUrl, getPayflowUrl } from "@/lib/ecosystem-urls"
+import { PAYFLOW_ENABLED, getDocsUrl, getPayflowUrl } from "@/lib/ecosystem-urls"
 import {
   fetchGatewayWebhookMetrics,
   fetchPayflowPublicHealth,
@@ -61,6 +61,11 @@ export default function Dashboard2Page() {
 
   const s24 = metrics?.summary.last24h
   const s7 = metrics?.summary.last7d
+  // O Worker do PayFlow responde «disabled» no health enquanto estiver desactivado;
+  // a consola trata isso como estado normal, não como avaria. Se o Worker disser «ok»,
+  // mostra-se o que ele diz, mesmo com a consola compilada sem PayFlow.
+  const payflowDisabled =
+    payflow?.status === "disabled" || (!PAYFLOW_ENABLED && payflow?.status !== "ok")
 
   return (
     <div className="flex flex-col gap-6 px-4 lg:px-6">
@@ -106,35 +111,49 @@ export default function Dashboard2Page() {
         <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
-              <img
-                src={getPayflowUrl("/brands/payflow-icon.png")}
-                alt=""
-                width={20}
-                height={20}
-                className="size-5 rounded"
-              />
+              {payflowDisabled ? null : (
+                <img
+                  src={getPayflowUrl("/brands/payflow-icon.png")}
+                  alt=""
+                  width={20}
+                  height={20}
+                  className="size-5 rounded"
+                />
+              )}
               PayFlow
             </CardTitle>
             <CardDescription>
-              Camada transaccional — health público, sem faturas nem alunos.
+              {payflowDisabled
+                ? "Desactivado por decisão do proprietário: os pagamentos registam-se na Tesouraria do SIGA."
+                : "Camada transaccional — health público, sem faturas nem alunos."}
             </CardDescription>
           </div>
-          <Badge variant={payflow?.status === "ok" ? "secondary" : "destructive"}>
-            {payflow?.status === "ok" ? payflow.runtime?.mode ?? "ok" : payflowError ?? "offline"}
+          <Badge
+            variant={payflowDisabled || payflow?.status === "ok" ? "secondary" : "destructive"}
+          >
+            {payflowDisabled
+              ? "desactivado"
+              : payflow?.status === "ok"
+                ? payflow.runtime?.mode ?? "ok"
+                : payflowError ?? "offline"}
           </Badge>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-muted-foreground">
-            Integração {payflow?.runtime?.integrationConfigured ? "ligada" : "por configurar"}
-            {" · "}SSO {payflow?.runtime?.ssoConfigured ? "ok" : "em falta"}
-            {" · "}Acerto SIGA {payflow?.runtime?.sigaSettlementConfigured ? "ok" : "em falta"}
-            {" · "}EMIS {payflow?.runtime?.emisHomologated ? "homologada" : "fechada"}
-          </span>
-          <Button size="sm" variant="outline" asChild>
-            <a href={getPayflowUrl("/")} target="_blank" rel="noreferrer">
-              Abrir PayFlow
-            </a>
-          </Button>
+          {payflowDisabled ? null : (
+            <>
+              <span className="text-muted-foreground">
+                Integração {payflow?.runtime?.integrationConfigured ? "ligada" : "por configurar"}
+                {" · "}SSO {payflow?.runtime?.ssoConfigured ? "ok" : "em falta"}
+                {" · "}Acerto SIGA {payflow?.runtime?.sigaSettlementConfigured ? "ok" : "em falta"}
+                {" · "}EMIS {payflow?.runtime?.emisHomologated ? "homologada" : "fechada"}
+              </span>
+              <Button size="sm" variant="outline" asChild>
+                <a href={getPayflowUrl("/")} target="_blank" rel="noreferrer">
+                  Abrir PayFlow
+                </a>
+              </Button>
+            </>
+          )}
           <Button size="sm" variant="ghost" asChild>
             <a href={getDocsUrl("/financeiro/payflow.html")} target="_blank" rel="noreferrer">
               Manual

@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.4"
       - run: bun install --frozen-lockfile
       - name: Confirmar contratos dependentes de SQL antes de publicar
         run: node scripts/siga/check-release-contracts.mjs
@@ -150,7 +150,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.4"
 
       - name: Instalar dependências (SIGA e painéis)
         run: |
@@ -231,6 +231,13 @@ jobs:
           # mostra o widget e o Supabase Auth (captcha activo) recusa todos os logins
           # por senha; o WEB também a usa no registo de escolas.
           VITE_HCAPTCHA_SITE_KEY: ${{ vars.VITE_HCAPTCHA_SITE_KEY }}
+          # PayFlow desactivado desde 15/11/2026 (decisão do proprietário; análise 22, P1-2).
+          # Sem a variável do repositório PAYFLOW_ENABLED=true, o Worker do PayFlow responde
+          # «desactivado», o SIGA recusa liquidação/sincronização/SSO e nenhuma interface o
+          # mostra. Religar: definir a variável e republicar (o mesmo valor para as três apps).
+          PAYFLOW_ENABLED: ${{ vars.PAYFLOW_ENABLED }}
+          VITE_PAYFLOW_ENABLED: ${{ vars.PAYFLOW_ENABLED }}
+          NEXT_PUBLIC_PAYFLOW_ENABLED: ${{ vars.PAYFLOW_ENABLED }}
           # OAuth Web Client ID público fornecido pelo proprietário do SIGA.
           # O Client Secret fica somente no Google/Supabase (NUNCA no bundle).
           # Apenas portal-siga.com activa GIS; restantes origens mantêm OAuth.
@@ -255,3 +262,13 @@ jobs:
           done
           echo "::error::PayFlow ou SIGA não respondem depois da publicação."
           exit 1
+
+      # Análise 22, P0: código publicado que chama funções SQL que a produção ainda não
+      # tem (lista de espera de tests/security/espera-migracao.ts). Só lê o índice do
+      # PostgREST; não bloqueia nem repete a publicação, mas deixa um erro visível no run.
+      - name: Esquema da produção cobre o código publicado (só leitura)
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || secrets.SUPABASE_URL || 'https://xodgfmxiaunpamctfeea.supabase.co' }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/siga/check-schema-contract.mjs

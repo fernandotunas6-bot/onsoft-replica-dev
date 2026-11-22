@@ -22,4 +22,6 @@ export function applyPayflowProductionBindings<T extends Record<string, unknown>
 ): T & {
   d1_databases: PayflowD1Binding[];
   r2_buckets: Array<{ binding: string; bucket_name: string }>;
+  /** `PAYFLOW_ENABLED: "true"` só com a variável no deploy (PayFlow desactivado por omissão). */
+  vars: Record<string, string>;
 };

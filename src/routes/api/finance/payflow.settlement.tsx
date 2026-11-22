@@ -9,6 +9,7 @@ import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { clientIpFromRequest } from "@/lib/request-ip";
 import { BODY_LIMITS, readJsonBodyLimited, rejectedBody } from "@/lib/read-json-body";
+import { PAYFLOW_DISABLED_MESSAGE, isPayflowServerEnabled } from "@/lib/payflow-switch";
 
 // style-check: route-exempt — webhook HTTP PayFlow → SIGA (sem shell administrativo).
 
@@ -21,6 +22,14 @@ export const Route = createFileRoute("/api/finance/payflow/settlement")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // PayFlow desactivado (15/11/2026): nenhuma liquidação entra por aqui, com ou sem
+        // a chave. Antes do limite e da chave, para não dar pistas sobre nenhuma delas.
+        if (!isPayflowServerEnabled()) {
+          return Response.json(
+            { ok: false, message: PAYFLOW_DISABLED_MESSAGE },
+            { status: 503, headers: { "Cache-Control": "no-store" } },
+          );
+        }
         const rateLimitKey = `ip:${clientIpFromRequest(request)}`;
         // Limitador partilhado entre instâncias do Worker (com recurso à memória
         // se a base falhar): o limite só em memória valia por instância e não

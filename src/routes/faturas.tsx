@@ -1,4 +1,5 @@
 import { finishRecordedPayment } from "@/features/finance/finish-recorded-payment";
+import { isPayflowUiEnabled } from "@/lib/payflow-switch";
 import { lazy, Suspense, useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
@@ -841,11 +842,13 @@ function FaturasPage() {
           actions={
             <>
               <DocHelpButton title="Navegação — Faturas e tesouraria" />
-              <DocPathHelpButton
-                path={DOC_PATHS.financePayflow}
-                label="PayFlow"
-                title="PayFlow — cobrança e conciliação"
-              />
+              {isPayflowUiEnabled() ? (
+                <DocPathHelpButton
+                  path={DOC_PATHS.financePayflow}
+                  label="PayFlow"
+                  title="PayFlow — cobrança e conciliação"
+                />
+              ) : null}
               <DocPathHelpButton
                 path={DOC_PATHS.financeSaft}
                 label="SAFT-AO"

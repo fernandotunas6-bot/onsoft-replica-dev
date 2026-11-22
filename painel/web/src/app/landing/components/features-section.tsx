@@ -30,7 +30,7 @@ const mainFeatures = [
   {
     icon: Layout,
     title: 'Tesouraria escolar',
-    description: 'Propinas e faturas no SIGA; cobrança e recibos no PayFlow (Multicaixa / transferência).'
+    description: 'Propinas, faturas e recibos na tesouraria do SIGA, com o IBAN da escola.'
   },
   {
     icon: Zap,
@@ -74,7 +74,7 @@ export function FeaturesSection() {
           </h2>
           <p className="text-lg text-muted-foreground">
             Matrículas, pautas, propinas, documentos e comunicação com as famílias — numa só
-            plataforma, com a cobrança feita pelo PayFlow.
+            plataforma.
           </p>
         </div>
 

@@ -3,6 +3,7 @@
  * Usado pela serverFn e pelo auto-sync opcional após emitir fatura.
  */
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { assertPayflowEnabled, isPayflowServerEnabled } from "@/lib/payflow-switch";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { schoolTodayIso } from "@/lib/school-date";
 import { invoiceNetTotal, invoiceOpenAmount } from "./invoice-settlement";
@@ -21,6 +22,7 @@ export async function executePayflowStudentSync(input: {
   schoolId: string;
   studentId: string;
 }): Promise<PayflowStudentSyncResult> {
+  assertPayflowEnabled();
   const apiKey = process.env.PAYFLOW_INTEGRATION_API_KEY?.trim() ?? "";
   if (apiKey.length < 24) {
     throw new Error(
@@ -279,6 +281,7 @@ export async function executePayflowStudentSync(input: {
 
 /** Auto-sync após emitir fatura — só com PAYFLOW_AUTO_SYNC=1. Nunca bloqueia a emissão. */
 export function queuePayflowStudentSyncBestEffort(input: { schoolId: string; studentId: string }) {
+  if (!isPayflowServerEnabled()) return;
   if (process.env.PAYFLOW_AUTO_SYNC?.trim() !== "1") return;
   void executePayflowStudentSync(input).catch((error) => {
     console.warn("payflow_auto_sync_skipped", {

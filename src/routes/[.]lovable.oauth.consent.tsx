@@ -60,6 +60,9 @@ function Consent() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const name = details?.client?.name ?? "um assistente";
+  // O nome é escolhido por quem regista a aplicação; o endereço de regresso não engana
+  // (análise 22, P2-1). Só se aprova o que se reconhece.
+  const returnHost = hostOf(details?.redirect_uri);
 
   async function decide(approve: boolean) {
     setBusy(true);
@@ -92,7 +95,12 @@ function Consent() {
     <main className="mx-auto mt-16 max-w-md space-y-4 rounded-2xl border bg-card p-8 text-card-foreground">
       <h1 className="text-xl font-semibold">Ligar {name} à sua conta</h1>
       <p className="text-sm text-muted-foreground">
-        {name} poderá consultar o SIGA Plus em seu nome, apenas com as permissões que já tem.
+        {name} poderá consultar o SIGA Plus com as permissões da sua conta, através das ferramentas
+        de consulta do agente. Só aprove se reconhecer a aplicação e o endereço de regresso.
+      </p>
+      <p className="text-sm">
+        <span className="text-muted-foreground">Regressa a: </span>
+        <span className="font-medium">{returnHost ?? "endereço não indicado"}</span>
       </p>
       {error && (
         <p role="alert" className="text-sm text-destructive-strong">
@@ -109,4 +117,14 @@ function Consent() {
       </div>
     </main>
   );
+}
+
+/** Anfitrião do endereço de regresso (`redirect_uri`), ou null se não for um URL válido. */
+function hostOf(value: unknown): string | null {
+  if (typeof value !== "string" || !value) return null;
+  try {
+    return new URL(value).host || null;
+  } catch {
+    return null;
+  }
 }

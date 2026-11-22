@@ -1,3 +1,4 @@
+import { sumPaidByInvoice } from "@/features/finance/invoice-settlement";
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { numberMatches } from "@/features/education-catalog/identifiers";
 import { pagedReadClient } from "@/integrations/supabase/paged-client";
@@ -44,6 +45,8 @@ import {
 } from "./enrollment-sync";
 import {
   assertClassAcceptsEnrollment,
+  assertNewEnrollmentAllowed,
+  recordOutsideCycleEnrollments,
   enrollStudentRpc,
   heldStudentMessage,
   placeStudentInClass,
@@ -87,6 +90,9 @@ type StudentListRow = {
   total_billed?: number;
   total_paid?: number;
   national_id?: string | null;
+  /** Tem matrícula pendente ou activa (em qualquer ano). */
+  has_current_enrollment: boolean;
+  enrollment_status: string | null;
 };
 
 export const searchStudents = createServerFn({ method: "GET" })
@@ -257,14 +263,7 @@ export const searchStudents = createServerFn({ method: "GET" })
           // Faturas sem os recibos davam tudo por pagar: sem recibos, sem resumo.
           if (!receipts) break finance;
 
-          const paidByInvoice = new Map<string, number>();
-          for (const r of receipts ?? []) {
-            if (r.status === "reversed") continue;
-            paidByInvoice.set(
-              r.invoice_id,
-              (paidByInvoice.get(r.invoice_id) ?? 0) + Number(r.amount ?? 0),
-            );
-          }
+          const paidByInvoice = sumPaidByInvoice(receipts);
 
           const studentIdByContract = new Map<string, string>();
           const studentByEnrollment = new Map(
@@ -283,6 +282,7 @@ export const searchStudents = createServerFn({ method: "GET" })
                 id: inv.id,
                 amount: inv.amount,
                 discount_amount: inv.discount_amount,
+                // Sem a multa, a dívida da lista ficava abaixo da da ficha e das Finanças.
                 penalty_amount: inv.penalty_amount,
                 amount_paid: paidByInvoice.get(inv.id) ?? 0,
                 due_date: inv.due_date,
@@ -395,9 +395,14 @@ export const searchStudents = createServerFn({ method: "GET" })
       }) => {
         const person = peopleById.get(student.person_id);
         const enrollment = enrollmentByStudent.get(student.id);
-        const classGroup = enrollment?.["class_group_id"]
-          ? classById.get(String(enrollment["class_group_id"]))
-          : null;
+        const enrollmentStatus = enrollment?.["status"] ? String(enrollment["status"]) : null;
+        const hasCurrentEnrollment =
+          enrollmentStatus === "active" || enrollmentStatus === "pending";
+        // Turma só da matrícula corrente: a de uma matrícula fechada não é a turma do aluno.
+        const classGroup =
+          hasCurrentEnrollment && enrollment?.["class_group_id"]
+            ? classById.get(String(enrollment["class_group_id"]))
+            : null;
         const grade = classGroup?.["grade_level_id"]
           ? gradeById.get(String(classGroup["grade_level_id"]))
           : null;
@@ -405,8 +410,7 @@ export const searchStudents = createServerFn({ method: "GET" })
           ? yearById.get(String(enrollment["academic_year_id"]))
           : null;
         const guardianId = guardianByStudent.get(student.id);
-        const enrollmentStatus = enrollment?.["status"] ? String(enrollment["status"]) : null;
-        const hasClassGroup = Boolean(enrollment?.["class_group_id"]);
+        const hasClassGroup = Boolean(classGroup);
         const effectiveStatus = deriveAcademicStatus({
           studentStatus: student.status,
           enrollmentStatus,
@@ -438,6 +442,8 @@ export const searchStudents = createServerFn({ method: "GET" })
           primary_guardian_name: guardianId ? (guardianNameById.get(guardianId) ?? null) : null,
           person_id: student.person_id,
           school_id: student.school_id,
+          has_current_enrollment: hasCurrentEnrollment,
+          enrollment_status: enrollmentStatus,
         };
       },
     );
@@ -901,6 +907,8 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       academicYearId: data.academicYearId ?? null,
       enrolledOn: data.enrolledOn ?? null,
       userId: context.userId,
+      appRole: membership.appRole,
+      overrideReason: data.outsideCycleReason ?? null,
     });
     if (!placed.unchanged) queueTenantUsageSync(membership.schoolId);
     return {
@@ -1437,6 +1445,14 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       if (held) failed.push({ studentId, message: held });
       else toEnroll.push(studentId);
     }
+    const outsideCycle = toEnroll.length
+      ? await assertNewEnrollmentAllowed(db, {
+          schoolId,
+          appRole: membership.appRole,
+          overrideReason: data.outsideCycleReason ?? null,
+        })
+      : null;
+
     // Capacidade: tudo ou nada, antes de mexer em qualquer matrícula.
     const capacity = typeof group.capacity === "number" ? group.capacity : null;
     if (capacity && capacity > 0) {
@@ -1504,6 +1520,12 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       });
     }
     await restoreStudentStatuses(db, { schoolId, students: toRestore, userId: context.userId });
+    await recordOutsideCycleEnrollments(outsideCycle, {
+      schoolId,
+      userId: context.userId,
+      studentIds: toEnroll.filter((id) => enrolled.has(id)),
+      action: "atribuir turma em lote",
+    });
 
     const reactivated = await syncStudentStatusAfterPlacement(db, {
       schoolId,

@@ -98,6 +98,21 @@ export const SQL_CHECKLIST = {
       "Docentes: depois de 20261025070201, aplicar migrations/20261025071525_preserve_long_teacher_numbers.sql para não cortar números maiores que seis dígitos",
     ],
   },
+  "supabase/migrations/20261012160000_siga_ai_module.sql": {
+    title: "SIGA AI — IA local (Project NOMAD integrado)",
+    tables: [
+      "siga_ai_settings",
+      "siga_ai_conversations",
+      "siga_ai_messages",
+      "siga_ai_documents",
+      "siga_ai_usage",
+    ],
+    notes: [
+      "Todas só-servidor (FORCE RLS, sem políticas): o acesso é pelo gateway siga-ai",
+      "Sem isto: a página /siga-ai mostra «SIGA AI por configurar» e não grava conversas",
+      "Vectores e fragmentos ficam no Qdrant (colecção siga_ai_kb), não na base SGA",
+    ],
+  },
   "supabase/APPLY_SAAS_PLATFORM.sql": {
     title: "Plataforma SaaS (WEB/ADMIN)",
     tables: [

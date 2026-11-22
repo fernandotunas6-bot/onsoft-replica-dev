@@ -10,7 +10,6 @@ type Integration = { name: string; role: string; logo?: string }
 const INTEGRATIONS: Integration[] = [
   { name: "Multicaixa Express", role: "Pagamentos", logo: "brands/multicaixa.svg" },
   { name: "Unitel Money", role: "Pagamentos", logo: "brands/unitel.svg" },
-  { name: "PayFlow", role: "Cobrança e recibos", logo: "brands/payflow-icon.png" },
   { name: "AGT", role: "Facturação", logo: "brands/agt.svg" },
   { name: "SIGE", role: "Gestão educativa nacional" },
   { name: "WhatsApp Business", role: "Comunicação", logo: "brands/whatsapp.png" },
