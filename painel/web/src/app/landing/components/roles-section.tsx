@@ -28,7 +28,7 @@ const ROLES: Role[] = [
     icon: Landmark,
     title: "Tesouraria",
     description:
-      "Propinas, facturas e recibos com IBAN AO. A cobrança por Multicaixa Express e Unitel Money é feita pelo PayFlow.",
+      "Propinas, facturas e recibos com IBAN AO, registados na tesouraria do SIGA.",
   },
   {
     icon: BookOpenCheck,

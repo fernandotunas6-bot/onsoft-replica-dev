@@ -95,6 +95,9 @@ describe("executePayflowStudentSync", () => {
 
   beforeEach(() => {
     process.env.PAYFLOW_INTEGRATION_API_KEY = "k".repeat(32);
+    // O PayFlow está desligado por omissão (src/lib/payflow-switch.ts); este teste
+    // descreve a sincronização para quando voltar a ser ligado.
+    vi.stubEnv("PAYFLOW_ENABLED", "true");
     sent = null;
     vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
       sent = JSON.parse(String(init.body));
@@ -103,7 +106,19 @@ describe("executePayflowStudentSync", () => {
       });
     });
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("recusa sincronizar enquanto o PayFlow estiver desactivado", async () => {
+    vi.stubEnv("PAYFLOW_ENABLED", "");
+    const { executePayflowStudentSync } = await import("@/features/finance/payflow-sync-execute");
+    await expect(executePayflowStudentSync({ schoolId: S, studentId: "st-1" })).rejects.toThrow(
+      /PayFlow está desactivado/,
+    );
+    expect(sent).toBeNull();
+  });
 
   it("envia o que falta pagar, e as liquidadas como pagas", async () => {
     const { executePayflowStudentSync } = await import("@/features/finance/payflow-sync-execute");

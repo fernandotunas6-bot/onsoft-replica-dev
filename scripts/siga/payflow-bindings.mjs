@@ -32,9 +32,20 @@ export function applyPayflowProductionBindings(cfg, { migrationsDir, env = proce
     throw new Error("PayFlow: o id da base D1 é o de desenvolvimento, não o de produção.");
   }
   const bucket = env.PAYFLOW_R2_BUCKET?.trim();
+  // PayFlow desactivado por omissão desde 15/11/2026 (painel/payflow/lib/service-switch.ts):
+  // o Worker só liga com PAYFLOW_ENABLED=true no momento do deploy (variável do repositório).
+  const enabled = ["true", "1"].includes(
+    String(env.PAYFLOW_ENABLED ?? "")
+      .trim()
+      .toLowerCase(),
+  );
+  const vars = { ...(cfg.vars ?? {}) };
+  if (enabled) vars.PAYFLOW_ENABLED = "true";
+  else delete vars.PAYFLOW_ENABLED;
 
   return {
     ...cfg,
+    vars,
     d1_databases: [
       {
         binding: PAYFLOW_D1_BINDING,

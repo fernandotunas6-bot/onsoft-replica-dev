@@ -13,6 +13,7 @@
  */
 
 import { getEcosystemPlatformOrigin, getPlatformDomain } from "@/lib/saas/platform-domain";
+import { isPayflowUiEnabled } from "@/lib/payflow-switch";
 
 const isBrowser = typeof window !== "undefined";
 const isLocalBrowser =
@@ -127,8 +128,13 @@ export function getPublicEnrollmentUrl(slug: string): string {
   return `${ECOSYSTEM_URLS.siga}/matricula/${clean}`;
 }
 
-/** URL PayFlow (`VITE_PAYFLOW_URL` ou `https://payflow.{{PLATFORM_DOMAIN}}`). */
+/**
+ * URL PayFlow (`VITE_PAYFLOW_URL` ou `https://payflow.{{PLATFORM_DOMAIN}}`).
+ * `null` enquanto o PayFlow estiver desactivado (`src/lib/payflow-switch.ts`): sem
+ * endereço não há ligação, botão nem pedido que o alcance.
+ */
 export function getPayflowUrl(path = "/"): string | null {
+  if (!isPayflowUiEnabled()) return null;
   if (!ECOSYSTEM_URLS.payflow) return null;
   const clean = path.startsWith("/") ? path : `/${path}`;
   return `${ECOSYSTEM_URLS.payflow}${clean}`;

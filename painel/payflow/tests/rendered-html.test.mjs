@@ -30,6 +30,8 @@ test("renders development preview metadata", async () => {
       ASSETS: {
         fetch: async () => new Response("Not found", { status: 404 }),
       },
+      // Desligado por omissão (lib/service-switch.ts): este teste descreve o PayFlow ligado.
+      PAYFLOW_ENABLED: "true",
     },
     {
       waitUntil() {},

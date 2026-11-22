@@ -15,6 +15,7 @@ import {
   getUnitelGatewayConfirmUrl,
 } from "@/lib/ecosystem-urls";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { groupCatalogItems, integrationFieldHints } from "@/features/integrations/catalog";
 import { InstallConsentModal } from "@/features/integrations/InstallConsentModal";
 import { ZoomIntegrationCard } from "@/features/integrations/ZoomIntegrationCard";
@@ -54,6 +55,8 @@ function GatewayWebhookHint({
 }) {
   const queryClient = useQueryClient();
   const [rotating, setRotating] = useState(false);
+  // `X-SIGA-School-Id`: o identificador da escola não é segredo (análise 22, P2-3).
+  const schoolId = useCurrentAccount().schoolId;
   const isGateway = provider === "multicaixa_express" || provider === "unitel_money";
   const apiKey = String(config.webhookApiKey ?? "").trim();
   // Sem 2FA nesta sessão o servidor só envia os últimos 4 caracteres.
@@ -111,6 +114,9 @@ function GatewayWebhookHint({
         vai no pedido: assina-o, com os cabeçalhos{" "}
         <code className="text-[11px]">X-SIGA-Timestamp</code> e{" "}
         <code className="text-[11px]">X-SIGA-Signature: sha256=HMAC(key, timestamp.corpo)</code>.
+        Envie também <code className="text-[11px]">X-SIGA-School-Id</code> com o identificador
+        abaixo: a confirmação é verificada mais depressa e não partilha o limite de pedidos com as
+        outras escolas.
       </p>
       {keyMasked ? (
         <p className="text-[11px] text-muted-foreground">
@@ -131,6 +137,21 @@ function GatewayWebhookHint({
           Copiar URL
         </Button>
       </div>
+      {schoolId ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <code className="flex-1 min-w-0 truncate rounded bg-background px-2 py-1 font-mono text-[11px]">
+            X-SIGA-School-Id: {schoolId}
+          </code>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => copy("Identificador", schoolId)}
+          >
+            Copiar identificador
+          </Button>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <code className="flex-1 min-w-0 truncate rounded bg-background px-2 py-1 font-mono text-[11px]">
           {apiKey}

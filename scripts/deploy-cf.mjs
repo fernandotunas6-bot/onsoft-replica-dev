@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { collectWorkerSecrets, collectWorkerVars } from "./worker-secrets.mjs";
+import { buildEnvWithoutSecrets } from "./siga/build-env.mjs";
 import { assertWranglerLoginAllowed, usesWranglerLogin } from "./siga/deploy-apps.mjs";
 execSync("node scripts/siga/check-release-contracts.mjs", { stdio: "inherit" });
 
@@ -73,9 +74,10 @@ const DOCS_URL = envVars["VITE_DOCS_URL"] || "https://siga-docs.pages.dev";
 const SIGA_URL = envVars["VITE_SIGA_URL"] || "https://portal-siga.com";
 const PAYFLOW_URL = envVars["VITE_PAYFLOW_URL"] || "https://payflow.portal-siga.com";
 
+// O build não precisa de segredos: vão por `wrangler secret put`, abaixo (análise 22, P2-2).
 execSync("npx vite build --mode production", {
   stdio: "inherit",
-  env: {
+  env: buildEnvWithoutSecrets({
     ...process.env,
     ...envVars,
     NODE_ENV: "production",
@@ -86,7 +88,7 @@ execSync("npx vite build --mode production", {
     VITE_DOCS_URL: DOCS_URL,
     VITE_SIGA_URL: SIGA_URL,
     VITE_PAYFLOW_URL: PAYFLOW_URL,
-  },
+  }),
 });
 
 const wranglerPath = path.resolve(".output/server/wrangler.json");

@@ -37,7 +37,7 @@ jobs:
           node-version: "24"
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.4"
       - run: bun install --frozen-lockfile
       - run: npx --no-install vitest run tests/saas/ispab-demo.test.ts
       - name: Preparar execução Node sem alterar o código da aplicação
@@ -58,7 +58,7 @@ jobs:
           node-version: "24"
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.4"
       - run: bun install --frozen-lockfile
       - name: Preparar execução Node
         run: npx --no-install esbuild scripts/siga/provision-ispab-demo.ts --bundle --platform=node --format=esm --packages=external --define:import.meta.env={} --outfile=.ispab-demo-runner.mjs

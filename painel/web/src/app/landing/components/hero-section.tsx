@@ -49,7 +49,7 @@ export function HeroSection() {
           </h1>
 
           <p className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-            Matrículas, pautas, tesouraria e cobrança PayFlow — numa plataforma
+            Matrículas, pautas, tesouraria e documentos — numa plataforma
             feita para escolas angolanas.
           </p>
 

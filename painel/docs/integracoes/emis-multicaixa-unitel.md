@@ -44,6 +44,7 @@ A entidade entra nas referências Multicaixa geradas em `/faturas` e no `Payment
 | Content-Type | `application/json`                                                                |
 | Autenticação | assinatura HMAC-SHA256 com a API key de Integrações (a key **não** vai no pedido) |
 | Cabeçalhos   | `X-SIGA-Timestamp: <segundos Unix>` e `X-SIGA-Signature: sha256=<hex>`            |
+| Recomendado  | `X-SIGA-School-Id: <identificador da escola>` (em Definições → Integrações)       |
 
 Corpo JSON:
 
@@ -65,10 +66,17 @@ Assinatura: `X-SIGA-Signature = "sha256=" + hex(HMAC_SHA256(apiKey, timestamp + 
 sobre os bytes exactos do corpo enviado. Pedidos com carimbo a mais de 5 minutos são
 recusados.
 
+Com `X-SIGA-School-Id`, o SIGA verifica só as keys dessa escola e aplica limites próprios:
+600 pedidos por 5 minutos por IP antes da assinatura e 300 por 5 minutos por escola depois
+de verificada. Sem o cabeçalho, procura a escola por todas as keys configuradas e o limite
+fica em 30 pedidos por 5 minutos por IP, partilhado por todas as escolas que o fornecedor
+serve — no pico do início do mês, confirmações legítimas podem receber `429`.
+
 ```sh
 ts=$(date +%s); body='{"reference":"123456789","amount":45000,"externalId":"tx-1"}'
 sig=$(printf '%s.%s' "$ts" "$body" | openssl dgst -sha256 -hmac "$API_KEY" -hex | sed 's/^.* //')
 curl -X POST "$URL" -H 'Content-Type: application/json' \
+  -H "X-SIGA-School-Id: $SCHOOL_ID" \
   -H "X-SIGA-Timestamp: $ts" -H "X-SIGA-Signature: sha256=$sig" --data "$body"
 ```
 

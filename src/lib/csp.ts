@@ -76,6 +76,29 @@ export const SCHOOL_WEBSITE_CONTENT_SECURITY_POLICY = policyWith({
   "font-src": "https://fonts.gstatic.com",
 });
 
+/**
+ * Política OBRIGATÓRIA do website escolar (análise 22, P1-1), enviada como
+ * `Content-Security-Policy` ao lado da de relatório acima.
+ *
+ * A sessão do SIGA vive num cookie do domínio-pai que qualquer página de
+ * `*.portal-siga.com` lê. O website de cada escola é a superfície com conteúdo das
+ * escolas, servida na mesma origem do portal: um XSS aqui entregava sessões. As 67
+ * páginas do modelo não têm scripts em linha, `on…=` nem `javascript:` (verificado em
+ * `tests/school-website/website-csp.test.ts`) e só carregam `/_school-website/*.js`,
+ * por isso `script-src 'self'` não bloqueia nada do modelo e bloqueia o que for injectado.
+ * Sem Google (GSI) nem hCaptcha: o website não os usa. Os estilos em linha continuam
+ * permitidos (o modelo usa quatro `style=`).
+ */
+export const SCHOOL_WEBSITE_ENFORCED_CONTENT_SECURITY_POLICY =
+  SCHOOL_WEBSITE_CONTENT_SECURITY_POLICY.split("; ")
+    .map((entry) => {
+      const name = entry.split(" ")[0];
+      if (name === "script-src") return "script-src 'self'";
+      if (name === "frame-src") return "frame-src 'self'";
+      return entry;
+    })
+    .join("; ");
+
 /** Relatórios maiores do que isto são ignorados (o browser manda ~1 KB). */
 const MAX_REPORT_BYTES = 16 * 1024;
 

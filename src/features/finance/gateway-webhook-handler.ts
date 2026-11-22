@@ -29,6 +29,7 @@ import { schoolTodayIso } from "@/lib/school-date";
 import { mapPaymentMethodForLedger } from "./payment-method";
 
 const GATEWAY_PROVIDERS = ["multicaixa_express", "unitel_money"] as const;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Modo dev do gateway (e2e/CI, sem integração real configurada na escola).
@@ -59,7 +60,13 @@ export type ResolvedGatewaySchool = {
  */
 export async function resolveGatewaySchoolBySignature(
   db: SupabaseClient,
-  signed: { timestamp: string; rawBody: string; signature: string | null },
+  signed: {
+    timestamp: string;
+    rawBody: string;
+    signature: string | null;
+    /** `X-SIGA-School-Id`: só as keys desta escola são testadas. */
+    schoolId?: string | null;
+  },
 ): Promise<ResolvedGatewaySchool | null> {
   const devKey = resolveGatewayDevApiKey();
   if (
@@ -69,11 +76,13 @@ export async function resolveGatewaySchoolBySignature(
     return { schoolId: null, provider: "multicaixa_express", devMode: true };
   }
 
-  const { data: rows, error } = await db
+  let integrations = db
     .from("school_integrations")
     .select("school_id, provider, config, status")
     .in("provider", [...GATEWAY_PROVIDERS])
     .in("status", ["configured", "connected"]);
+  if (signed.schoolId) integrations = integrations.eq("school_id", signed.schoolId);
+  const { data: rows, error } = await integrations;
   if (error) throw publicDatabaseError(error, "Não foi possível validar a assinatura do gateway.");
 
   for (const row of rows ?? []) {
@@ -673,16 +682,22 @@ async function executeFinanceGatewayWebhook(
   }
 }
 
-// Sem limite aqui, um IP conseguia martelar `resolveGatewaySchoolByApiKey`
-// (que compara contra as keys de TODAS as integrações configuradas) para
-// tentar adivinhar uma API key por força bruta. Generoso o suficiente para
-// um gateway real com retries, apertado o suficiente para travar automação.
+// Sem cabeçalho da escola, cada pedido compara a assinatura com as keys de TODAS as
+// escolas: o limite por IP fica apertado, como antes, para travar automação.
 const GATEWAY_WEBHOOK_RATE_LIMIT = { windowMs: 5 * 60 * 1000, max: 30 };
+// Com `X-SIGA-School-Id` a verificação custa uma leitura e um ou dois HMAC. O fornecedor
+// envia as confirmações de todas as escolas de poucos IPs: no pico do início do mês, 30
+// por 5 minutos davam 429 a pagamentos legítimos (análise 22, P2-3). Limite largo por IP
+// antes da assinatura e, depois de verificada, um limite por escola.
+const GATEWAY_WEBHOOK_KEYED_IP_RATE_LIMIT = { windowMs: 5 * 60 * 1000, max: 600 };
+const GATEWAY_WEBHOOK_SCHOOL_RATE_LIMIT = { windowMs: 5 * 60 * 1000, max: 300 };
 
 export type GatewayWebhookRequest = {
   rawBody: string;
   timestamp: string | null;
   signature: string | null;
+  /** Cabeçalho `X-SIGA-School-Id` (opcional; ver gateway-webhook-signature.ts). */
+  schoolId?: string | null;
   /** O endereço `/unitel/confirm` fixa o canal. */
   channel?: GatewayConfirmInput["channel"];
 };
@@ -696,10 +711,19 @@ export async function runFinanceGatewayWebhook(
   request: GatewayWebhookRequest,
   requestIp = "unknown",
 ): Promise<GatewayRunResult> {
-  const rateLimitKey = `ip:${requestIp}`;
+  const claimedSchoolId = request.schoolId?.trim() || null;
+  if (claimedSchoolId && !UUID_RE.test(claimedSchoolId)) {
+    return { ok: false, status: 400, message: "Cabeçalho X-SIGA-School-Id inválido." };
+  }
+  // A chave do limite muda com o cabeçalho: quem o envia não gasta o orçamento apertado
+  // da procura por todas as escolas, e vice-versa.
+  const rateLimitKey = claimedSchoolId ? `ip:${requestIp}:keyed` : `ip:${requestIp}`;
   if (
     !isRateLimitBypassed(rateLimitKey) &&
-    !(await consumeRateLimit([rateLimitKey], GATEWAY_WEBHOOK_RATE_LIMIT))
+    !(await consumeRateLimit(
+      [rateLimitKey],
+      claimedSchoolId ? GATEWAY_WEBHOOK_KEYED_IP_RATE_LIMIT : GATEWAY_WEBHOOK_RATE_LIMIT,
+    ))
   ) {
     return { ok: false as const, status: 429, message: "Demasiados pedidos. Tente mais tarde." };
   }
@@ -742,9 +766,19 @@ export async function runFinanceGatewayWebhook(
     timestamp: request.timestamp!,
     rawBody: request.rawBody,
     signature: request.signature,
+    schoolId: claimedSchoolId,
   });
   if (!resolved) {
     return { ok: false, status: 401, message: "Assinatura de gateway inválida." };
+  }
+  if (resolved.schoolId) {
+    const schoolKey = `gateway_school:${resolved.schoolId}`;
+    if (
+      !isRateLimitBypassed(schoolKey) &&
+      !(await consumeRateLimit([schoolKey], GATEWAY_WEBHOOK_SCHOOL_RATE_LIMIT))
+    ) {
+      return { ok: false, status: 429, message: "Demasiados pedidos. Tente mais tarde." };
+    }
   }
 
   const meta = buildEventMeta(input);

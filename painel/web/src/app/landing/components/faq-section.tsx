@@ -36,7 +36,7 @@ const FALLBACK_ITEMS: FaqItem[] = [
     value: 'item-4',
     question: 'Como recebemos as propinas?',
     answer:
-      'A tesouraria emite facturas e recibos com o IBAN da escola. A cobrança por Multicaixa Express e Unitel Money é feita pelo PayFlow, ligado ao SIGA.',
+      'A tesouraria emite facturas e recibos com o IBAN da escola e regista cada pagamento no SIGA.',
   },
   {
     value: 'item-5',

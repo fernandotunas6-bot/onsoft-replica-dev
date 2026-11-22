@@ -188,6 +188,25 @@ describe("requireSupabaseAuth", () => {
       await expect(runMiddleware()).rejects.toThrow(/confirmação no login/i);
     });
 
+    it("recusa o token de uma aplicação ligada por OAuth (agente de IA), mesmo válido", async () => {
+      // Análise 22, P2-1: o servidor OAuth do Supabase emite JWTs normais do projecto com
+      // `client_id`. Valiam o mesmo que a sessão da pessoa em todas as server functions.
+      const token = await signJwt(
+        { sub: "user-real", exp: futureExp(), aal: "aal2", client_id: "9a8b7c6d-agente" },
+        SECRET,
+      );
+      setupRequest(token, "accepts");
+      process.env["SUPABASE_JWT_SECRET"] = SECRET;
+
+      await expect(runMiddleware()).rejects.toThrow(/aplicação ligada \(OAuth\)/);
+      // Recusado antes de qualquer chamada ao Auth API (e sem via alternativa).
+      const client = createClientMock.mock.results[0]?.value as
+        | { auth: { getClaims: ReturnType<typeof vi.fn>; getUser: ReturnType<typeof vi.fn> } }
+        | undefined;
+      expect(client?.auth.getClaims ?? vi.fn()).not.toHaveBeenCalled();
+      expect(client?.auth.getUser ?? vi.fn()).not.toHaveBeenCalled();
+    });
+
     it("REJEITA um token forjado — nunca cai no fallback local", async () => {
       // Regressão da vulnerabilidade: `sub`/`exp` bem formados, assinatura
       // inventada. O Auth API recusa; o fallback não pode salvar o token.

@@ -53,7 +53,7 @@ export function AboutSection() {
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
             O SIGA Plus junta a gestão académica, a secretaria e a tesouraria numa só plataforma,
-            com a cobrança feita pelo PayFlow e manuais em português sempre à mão.
+            com manuais em português sempre à mão.
           </p>
         </div>
 

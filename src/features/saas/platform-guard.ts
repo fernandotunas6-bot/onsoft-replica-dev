@@ -2,6 +2,7 @@ import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/su
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import { assertSessionMfa } from "@/integrations/supabase/session-mfa";
+import { isOAuthClientToken } from "@/integrations/supabase/oauth-client-token";
 
 /**
  * Administrador da plataforma ≠ cargo escolar. Tabela `platform_admins`
@@ -99,6 +100,8 @@ export async function resolveBearerSession(
 ): Promise<{ userId: string; aal: string | null }> {
   const token = authorization?.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
   if (!token) throw new Error("Unauthorized");
+  // Aplicação ligada por OAuth (agente de IA): não usa as APIs do SIGA nem do ADMIN.
+  if (isOAuthClientToken(token)) throw new Error("Unauthorized");
   const db = await loadSgaAdminClient();
   const { data, error } = await db.auth.getUser(token);
   if (error || !data.user) throw new Error("Unauthorized");
@@ -130,6 +133,7 @@ export async function resolvePlatformSessionFromRequest(request: Request): Promi
       ? request.headers.get("Authorization")!.slice(7).trim()
       : "";
     if (!token) return null;
+    if (isOAuthClientToken(token)) return null;
     const db = await loadSgaAdminClient();
     const { data, error } = await db.auth.getUser(token);
     if (error || !data.user) return null;

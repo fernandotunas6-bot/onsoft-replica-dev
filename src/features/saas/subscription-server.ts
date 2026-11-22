@@ -22,6 +22,7 @@ import { planCodeSchema } from "./schemas";
 import type { Plan } from "./types";
 import { PLAN_REQUEST_ACTIONS, pendingPlanRequestFrom } from "./subscription-view";
 import { getPayflowUrl } from "@/lib/ecosystem-urls";
+import { isPayflowServerEnabled } from "@/lib/payflow-switch";
 import { amountForSchool, loadPeriodDiscounts, loadTenantBillingProfile } from "./tenant-billing";
 import { billingStateOf, describeTenantBilling, type BillingState } from "./tenant-billing-rules";
 
@@ -295,7 +296,9 @@ export const startPlanPayment = createServerFn({ method: "POST" })
 
     const apiKey = process.env["PAYFLOW_INTEGRATION_API_KEY"]?.trim() ?? "";
     const url = getPayflowUrl("/api/v1/payments");
-    if (apiKey.length < 24 || !url) {
+    // PayFlow desactivado (src/lib/payflow-switch.ts): a escola paga ao IBAN da
+    // plataforma e envia o comprovativo, como sem PayFlow configurado.
+    if (!isPayflowServerEnabled() || apiKey.length < 24 || !url) {
       return {
         mode: "manual",
         planName: plan.name,

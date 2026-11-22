@@ -1,5 +1,13 @@
 # PayFlow — cobrança e conciliação
 
+::: warning PayFlow desactivado
+Desde 15/11/2026 o PayFlow está desactivado. O portal de pagamentos, a consola e a
+sincronização não estão disponíveis, e os botões do PayFlow deixam de aparecer no SIGA.
+**As propinas pagam-se na tesouraria da escola**, que regista o pagamento no SIGA e emite o
+recibo (Financeiro → Caixa). O resto desta página descreve o funcionamento quando o PayFlow
+voltar a ser ligado.
+:::
+
 O **PayFlow** (`painel/payflow`, porta local `3007`) cobra propinas e serviços.
 O **SIGA** continua a ser a fonte de verdade académica e da obrigação financeira.
 O **ADMIN/WEB** trata do billing SaaS (assinatura da escola) — não confundir com propina.

@@ -6,6 +6,11 @@ on:
     - cron: "0 3 * * 1" # semanal (segunda); o deploy já confirma o health a cada publicação
   workflow_dispatch:
 
+# Token do GitHub só de leitura (análise 22, P2-2): nenhum passo deste workflow escreve no
+# repositório, em issues ou em PRs.
+permissions:
+  contents: read
+
 concurrency:
   group: ecosystem-e2e-live
   cancel-in-progress: true
@@ -66,7 +71,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         if: steps.secrets.outputs.skip != 'true'
         with:
-          bun-version: latest
+          bun-version: "1.4.4"
 
       - uses: actions/setup-python@v5
         if: steps.secrets.outputs.skip != 'true'

@@ -18,6 +18,8 @@ export class SgaError extends Error {
   constructor(
     readonly status: number,
     readonly code: string,
+    /** Texto para a pessoa (a app mostra-o nos 403); nunca dados internos. */
+    readonly userMessage?: string,
   ) {
     super(code);
   }

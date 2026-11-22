@@ -1,5 +1,15 @@
 # Integração PayFlow no SIGA Plus
 
+> **Desactivado desde 15/11/2026 (decisão do proprietário).** Uma só chave estática
+> (`PAYFLOW_INTEGRATION_API_KEY`) servia de prova de pagamento para o SIGA, de sincronização e
+> de entrada de administrador em todas as escolas
+> ([análise 22](../auditoria/22-analise-critica-sistema-2026-11-15.md), P1-2). Interruptor
+> desligado por omissão em três sítios: `src/lib/payflow-switch.ts` (SIGA),
+> `painel/payflow/lib/service-switch.ts` (Worker, responde «desactivado»; o health devolve
+> `status: "disabled"`) e `PAYFLOW_ENABLED` no ADMIN. Religar: variável do repositório
+> `PAYFLOW_ENABLED=true` e republicar — **só depois** de chaves separadas por direcção,
+> liquidação assinada (HMAC + carimbo) e entrada só por SSO.
+
 O PayFlow é a quinta aplicação do monorepositório e vive em `painel/payflow`.
 Ele mantém frontend, runtime e armazenamento próprios para que a equipa possa evoluir
 o produto financeiro sem acoplar o seu ciclo de desenvolvimento ao frontend académico.

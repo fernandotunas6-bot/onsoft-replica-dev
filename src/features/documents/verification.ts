@@ -261,6 +261,10 @@ export const verifyIssuedDocument = createServerFn({ method: "GET" })
     if (!isVerificationCode(code)) return { valid: false };
 
     const db = await loadSgaAdminClient();
+    // O registo dos documentos emitidos vive na auditoria de propósito: `audit_logs` é
+    // imutável (gatilho `audit_logs_immutable`, private.prevent_audit_mutation), por isso
+    // um documento emitido continua verificável para sempre. Qualquer retenção ou limpeza
+    // futura da auditoria tem de poupar `documents.issued` (revisto na análise 22, P3-2).
     const { data: row, error: verificationError } = await db
       .from("audit_logs")
       .select("school_id, metadata, occurred_at")

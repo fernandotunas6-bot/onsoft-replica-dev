@@ -30,6 +30,15 @@ export const ECOSYSTEM_URLS = {
   docs: process.env.NEXT_PUBLIC_DOCS_URL || (isLocal ? "http://localhost:5173" : platformOrigin("docs")),
 } as const;
 
+/**
+ * PayFlow desactivado — decisão do proprietário de 15/11/2026 (análise 22 do SIGA, P1-2).
+ * Sem `NEXT_PUBLIC_PAYFLOW_ENABLED=true` no build, a consola não mostra ligações para ele
+ * e o cartão de estado diz «desactivado» (o Worker do PayFlow responde o mesmo).
+ */
+export const PAYFLOW_ENABLED = ["true", "1"].includes(
+  (process.env.NEXT_PUBLIC_PAYFLOW_ENABLED ?? "").trim().toLowerCase(),
+);
+
 export function getCreateSchoolUrl(): string {
   return `${ECOSYSTEM_URLS.web}/start`;
 }

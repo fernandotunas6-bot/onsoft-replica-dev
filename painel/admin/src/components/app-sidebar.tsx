@@ -27,7 +27,7 @@ import {
   School,
   Library,
 } from "lucide-react"
-import { getCreateSchoolUrl, getDocsUrl, getPayflowUrl, getSigaUrl, getWebUrl } from "@/lib/ecosystem-urls"
+import { PAYFLOW_ENABLED, getCreateSchoolUrl, getDocsUrl, getPayflowUrl, getSigaUrl, getWebUrl } from "@/lib/ecosystem-urls"
 import Link from "next/link"
 import { Logo } from "@/components/logo"
 import { SidebarNotification } from "@/components/sidebar-notification"
@@ -232,12 +232,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             target: "_blank",
             icon: LayoutTemplate,
           },
-          {
-            title: t("nav.payflow"),
-            url: getPayflowUrl("/"),
-            target: "_blank",
-            icon: Receipt,
-          },
+          // PayFlow desactivado (15/11/2026): sem ligação enquanto não for religado.
+          ...(PAYFLOW_ENABLED
+            ? [
+                {
+                  title: t("nav.payflow"),
+                  url: getPayflowUrl("/"),
+                  target: "_blank",
+                  icon: Receipt,
+                },
+              ]
+            : []),
           {
             title: t("nav.docs"),
             url: getDocsUrl(),

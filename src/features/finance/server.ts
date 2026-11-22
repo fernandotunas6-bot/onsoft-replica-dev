@@ -3,6 +3,7 @@ import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pag
 import { createServerFn } from "@tanstack/react-start";
 import { readSettingsDomain } from "@/features/school/settings-domains";
 import { z } from "zod";
+import { assertPayflowEnabled } from "@/lib/payflow-switch";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isRpcAuthDenied, publicDatabaseError } from "@/integrations/supabase/server-error";
 import { reportSigaError } from "@/lib/ops-report";
@@ -2881,6 +2882,7 @@ export const createPayflowAdminLaunch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    assertPayflowEnabled();
     const membership = await requireSgaWriterForWrite(
       "financeiro",
       context.supabase,
@@ -2957,6 +2959,7 @@ export const syncStudentToPayflow = createServerFn({ method: "POST" })
   .validator((input: unknown) => syncStudentToPayflowInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    assertPayflowEnabled();
     const membership = await requireSgaWriterForWrite(
       "financeiro",
       context.supabase,
@@ -2978,6 +2981,7 @@ export const syncSchoolBankToPayflow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    assertPayflowEnabled();
     const membership = await requireSgaWriterForWrite(
       "financeiro",
       context.supabase,

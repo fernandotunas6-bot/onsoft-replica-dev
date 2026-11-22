@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildTenantUsageRows } from "@/features/saas/usage-sync";
 import { isAllowedEcosystemOrigin } from "@/lib/ecosystem-cors";
 import { isPublicAppPath } from "@/lib/public-paths";
@@ -114,11 +114,25 @@ describe("ecossistema — contratos Fase 13", () => {
   });
 
   it("expõe URLs PayFlow sem hardcode de produção", async () => {
+    // Desligado por omissão (src/lib/payflow-switch.ts); com o interruptor ligado:
+    vi.stubEnv("VITE_PAYFLOW_ENABLED", "true");
+    try {
+      const { getPayflowPayerUrl, getPayflowAdminUrl, getPayflowUrl } =
+        await import("@/lib/ecosystem-urls");
+      expect(getPayflowUrl("/api/v1/health")).toMatch(/\/api\/v1\/health$/);
+      expect(getPayflowPayerUrl()).toMatch(/\/aluno\/pagar$/);
+      expect(getPayflowAdminUrl()).toMatch(/\/admin$/);
+      expect(getPayflowUrl("/")).not.toMatch(/portal-siga\.com/);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("PayFlow desactivado: nenhum endereço, logo nenhuma ligação nem pedido", async () => {
     const { getPayflowPayerUrl, getPayflowAdminUrl, getPayflowUrl } =
       await import("@/lib/ecosystem-urls");
-    expect(getPayflowUrl("/api/v1/health")).toMatch(/\/api\/v1\/health$/);
-    expect(getPayflowPayerUrl()).toMatch(/\/aluno\/pagar$/);
-    expect(getPayflowAdminUrl()).toMatch(/\/admin$/);
-    expect(getPayflowUrl("/")).not.toMatch(/portal-siga\.com/);
+    expect(getPayflowUrl("/api/v1/health")).toBeNull();
+    expect(getPayflowPayerUrl()).toBeNull();
+    expect(getPayflowAdminUrl()).toBeNull();
   });
 });

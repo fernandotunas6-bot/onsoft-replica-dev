@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  GATEWAY_SCHOOL_ID_HEADER,
   GATEWAY_SIGNATURE_HEADER,
   GATEWAY_TIMESTAMP_HEADER,
 } from "@/features/finance/gateway-webhook-signature";
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/api/finance/gateway/unitel/confirm")({
             rawBody: raw.text,
             timestamp: request.headers.get(GATEWAY_TIMESTAMP_HEADER),
             signature: request.headers.get(GATEWAY_SIGNATURE_HEADER),
+            schoolId: request.headers.get(GATEWAY_SCHOOL_ID_HEADER),
             channel: "unitel_money",
           },
           clientIpFromRequest(request),

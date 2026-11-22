@@ -51,6 +51,11 @@ const SERVER_MESSAGES: Array<[string, string, string | null]> = [
   ],
   ["RESEND_API_KEY não configurada no servidor.", "config.email-provider", "settings:integracoes"],
   ["VITE_PAYFLOW_URL não está configurada.", "config.payments-provider", "settings:integracoes"],
+  [
+    "O PayFlow está desactivado. Os pagamentos registam-se na Tesouraria da escola.",
+    "config.payflow-disabled",
+    "/financeiro",
+  ],
   ["Configuração Zoom em falta: ZOOM_ACCOUNT_ID.", "config.zoom", "settings:integracoes"],
   [
     "Os lembretes ainda não estão activos: falta aplicar a migração.",

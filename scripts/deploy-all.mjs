@@ -18,6 +18,7 @@ import {
   PAYFLOW_D1_DATABASE_NAME,
   applyPayflowProductionBindings,
 } from "./siga/payflow-bindings.mjs";
+import { buildEnvWithoutSecrets } from "./siga/build-env.mjs";
 import {
   assertWranglerLoginAllowed,
   selectDeployApps,
@@ -87,6 +88,10 @@ const mergedEnv = {
     "https://payflow.portal-siga.com",
 };
 
+// Os builds correm código de centenas de dependências e não precisam de segredos; só o
+// `wrangler` os recebe (análise 22, P2-2; scripts/siga/build-env.mjs).
+const buildEnv = buildEnvWithoutSecrets(mergedEnv);
+
 const selectedApps = selectDeployApps(process.env.SIGA_DEPLOY_APPS ?? envVars["SIGA_DEPLOY_APPS"]);
 assertWranglerLoginAllowed({ ...envVars, ...process.env });
 if (usesWranglerLogin({ ...envVars, ...process.env })) {
@@ -115,7 +120,7 @@ console.log("=== INICIANDO DEPLOY COMPLETO DO ECOSSISTEMA SIGA PLUS ===");
 runStep("docs", "Deploy DOC (painel/docs → siga-docs.pages.dev)", () => {
   const docsDir = path.resolve(root, "painel/docs");
   console.log("==> Building DOC (VitePress)...");
-  execSync("npm run build", { cwd: docsDir, stdio: "inherit", env: mergedEnv });
+  execSync("npm run build", { cwd: docsDir, stdio: "inherit", env: buildEnv });
   console.log("==> Deploying DOC to Cloudflare Pages...");
   execSync(
     "npx wrangler pages deploy .vitepress/dist --project-name siga-docs --branch main --commit-dirty=true",
@@ -131,7 +136,7 @@ runStep("docs", "Deploy DOC (painel/docs → siga-docs.pages.dev)", () => {
 runStep("web", "Deploy WEB (painel/web → siga-web.pages.dev)", () => {
   const webDir = path.resolve(root, "painel/web");
   console.log("==> Building WEB (Vite SPA)...");
-  execSync("npm run build", { cwd: webDir, stdio: "inherit", env: mergedEnv });
+  execSync("npm run build", { cwd: webDir, stdio: "inherit", env: buildEnv });
   console.log("==> Deploying WEB to Cloudflare Pages...");
   execSync(
     "npx wrangler pages deploy dist --project-name siga-web --branch main --commit-dirty=true",
@@ -147,7 +152,7 @@ runStep("web", "Deploy WEB (painel/web → siga-web.pages.dev)", () => {
 runStep("admin", "Deploy ADMIN (painel/admin → siga-admin.pages.dev)", () => {
   const adminDir = path.resolve(root, "painel/admin");
   console.log("==> Building ADMIN (Next.js Static Export)...");
-  execSync("npm run build", { cwd: adminDir, stdio: "inherit", env: mergedEnv });
+  execSync("npm run build", { cwd: adminDir, stdio: "inherit", env: buildEnv });
   console.log("==> Deploying ADMIN to Cloudflare Pages...");
   execSync(
     "npx wrangler pages deploy out --project-name siga-admin --branch main --commit-dirty=true",
@@ -163,7 +168,7 @@ runStep("admin", "Deploy ADMIN (painel/admin → siga-admin.pages.dev)", () => {
 runStep("payflow", "Deploy PAYFLOW (painel/payflow → payflow.portal-siga.com)", () => {
   const payflowDir = path.resolve(root, "painel/payflow");
   console.log("==> Building PAYFLOW (vinext)...");
-  execSync("npm run build", { cwd: payflowDir, stdio: "inherit", env: mergedEnv });
+  execSync("npm run build", { cwd: payflowDir, stdio: "inherit", env: buildEnv });
   console.log("==> Deploying PAYFLOW to Cloudflare Workers...");
   const serverDir = path.resolve(payflowDir, "dist/server");
   const wranglerDist = path.resolve(serverDir, "wrangler.json");

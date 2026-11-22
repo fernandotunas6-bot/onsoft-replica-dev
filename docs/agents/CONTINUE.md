@@ -1,7 +1,13 @@
-> **15/11/2026 — análise crítica do sistema:** achados P0–P3 com evidência e correcções em
-> [22 — análise crítica](../auditoria/22-analise-critica-sistema-2026-11-15.md). Antes de
-> tudo: confirmar na produção as RPC da migração `20261031000000_academic_write_integrity`
-> (sem elas o lançamento de notas falha) e rodar a chave secreta do Supabase.
+> **15–22/11/2026 — análise crítica e correcções; PayFlow desactivado:** achados P0–P3,
+> correcções aplicadas e acções do proprietário em
+> [22 — análise crítica](../auditoria/22-analise-critica-sistema-2026-11-15.md) (secção
+> «Seguimento»). **PayFlow desligado por omissão** (`src/lib/payflow-switch.ts`,
+> `painel/payflow/lib/service-switch.ts`): não religar sem chaves separadas e liquidação
+> assinada. Antes de tudo: aplicar `docs/agents/SIGA_aplicar_escrita_academica_2026-11-15.sql`
+> se a produção não tiver as RPC (sem elas o lançamento de notas falha) e rodar a chave
+> secreta do Supabase. Tokens OAuth (`client_id`) não abrem o SIGA; o website escolar tem CSP
+> obrigatória com `script-src 'self'` — um script novo no modelo tem de ser um ficheiro, não
+> em linha.
 
 > **12/11/2026 — integração dos PRs abertos (#443, fundida e publicada):** o que entrou,
 > o que ficou para decisão, o seguimento e as obrigações em produção (migração académica

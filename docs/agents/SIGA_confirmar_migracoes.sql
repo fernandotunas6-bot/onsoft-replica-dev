@@ -185,6 +185,12 @@ from (values
      coalesce(pg_get_functiondef(
        to_regprocedure('private.announcement_audiences_for(uuid)')) like '%valid_until IS NULL%',
        false)),
+  -- Pacote docs/agents/SIGA_aplicar_escrita_academica_2026-11-15.sql: sem estas funções,
+  -- o lançamento de notas e a devolução de trabalhos com nota falham (análise 22, P0).
+  ('20261031000000_academic_write_integrity',
+     to_regprocedure('public.siga_write_assessment_scores_atomic(uuid, uuid, uuid, jsonb)') is not null
+     and to_regprocedure('public.siga_return_task_submission_atomic(uuid, uuid, uuid, uuid, numeric, text)') is not null
+     and to_regprocedure('public.siga_reorganize_enrollment_guarded(uuid, uuid, uuid, uuid, uuid)') is not null),
   ('20261015120000_tenant_billing_profiles',
      to_regclass('public.tenant_billing_profiles') is not null
      and not has_table_privilege('authenticated', 'public.tenant_billing_profiles', 'SELECT'))

@@ -217,22 +217,29 @@ protecção no ambiente `production`.
 integração) e o SIGA verifica um só HMAC; o limite por IP passa a contar só as assinaturas
 falhadas; depois de verificada, aplica-se um limite por escola.
 
-### P3-1 — Permissões por módulo gravam numa escola suspensa
+### P3-1 — Permissões por módulo gravam numa escola suspensa (revisto: não é defeito)
 
 `setStaffModuleGrant` e `clearStaffModuleGrant` (`src/features/access/grants.ts:69` e `:115`)
 usam `requireSgaWriter` simples, que não chama `assertTenantAllowsWrites` (só as variantes
-`…ForWrite` o fazem). O contrato `tests/security/module-grant-enforcement.test.ts:165` não cobre
-`src/features/access`. Correcção: chamar `assertTenantAllowsWrites(membership.schoolId)` nas
-duas funções e incluir `access` no contrato.
+`…ForWrite` o fazem).
 
-### P3-2 — O registo dos documentos emitidos vive na auditoria
+**Revisto no seguimento (abaixo):** todo o `features/access` (convites, suspender contas,
+cargos, permissões) fica disponível numa escola suspensa, de propósito: retirar acesso a alguém
+é uma acção de segurança. E uma permissão «Escrita» não abre nada durante a suspensão, porque
+`requireSgaWriterForWrite` continua a recusar as escritas dos módulos. Bloquear aqui impediria
+revogar acessos. A decisão ficou documentada em `grants.ts`.
+
+### P3-2 — O registo dos documentos emitidos vive na auditoria (revisto: sem risco hoje)
 
 A verificação pública `/verificar` lê `audit_logs` por `metadata->>'code'`
-(`src/features/documents/verification.ts:246-300`). Mistura auditoria com uma entidade de
-negócio: uma política de retenção da auditoria tornaria documentos válidos inverificáveis; o
-índice não é único; e duas migrações criam o mesmo índice (`20261013100000`, `20261022081401`).
-Correcção: tabela `issued_documents` (código `UNIQUE`, escola, metadados mínimos), por migração
-aditiva com cópia dos registos existentes.
+(`src/features/documents/verification.ts:246-300`), com um índice não único criado por duas
+migrações (`20261013100000`, `20261022081401`).
+
+**Revisto no seguimento:** o risco apontado — uma retenção da auditoria tornar documentos
+inverificáveis — não existe hoje: `audit_logs` é imutável (gatilho `audit_logs_immutable`, que
+está no retrato da produção). Não se criou uma tabela nova, que seria mais uma migração por
+aplicar sem staging; a garantia ficou escrita em `verification.ts`, para qualquer limpeza futura
+da auditoria poupar `documents.issued`.
 
 ### P3-3 — Arquitectura e processo
 
@@ -279,6 +286,43 @@ aditiva com cópia dos registos existentes.
 | Esta semana   | P1-2 (chaves do PayFlow separadas, liquidação assinada, sem entrada por chave); P3-1; P2-1 |
 | Este mês      | P2-2 (pipeline); P2-3 (webhook); app Android nas rotas `/api/mobile/*` (P1-3)              |
 | Próximo ciclo | P1-1 (sessão HttpOnly/BFF e CSP obrigatória); portão de esquema no deploy; P3-2; P3-3      |
+
+## Seguimento — correcções aplicadas (15–22/11/2026)
+
+Pedido do proprietário: corrigir tudo e **desactivar o PayFlow**. Ramo
+`claude/funny-keller-i4dgj0`. Sem SQL aplicado, sem deploy, sem escritas na produção.
+
+| Achado | Estado                      | O que mudou                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------ | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0     | Pronto a aplicar            | Pacote `docs/agents/SIGA_aplicar_escrita_academica_2026-11-15.sql` (a migração tal e qual + confirmação), sonda em `SIGA_confirmar_migracoes.sql`, ambos ensaiados em PGlite. O deploy ganhou um passo só de leitura e não bloqueante (`scripts/siga/check-schema-contract.mjs`) que marca o run com erro quando a produção não tem as funções da lista de espera.                                                                                                                                                                           |
+| P1-1   | Mitigado                    | CSP **obrigatória** nos websites das escolas, com `script-src 'self'` (ao lado da de relatório). Verificado no Chromium: 60 páginas renderizadas, 0 violações e 0 erros, scripts carregados; um script e um `onerror` injectados ficam bloqueados. O PayFlow desligado deixa de correr código no domínio do cookie. Fica por fazer: sessão `HttpOnly` gerida pelo Worker (exige desenho e staging).                                                                                                                                          |
+| P1-2   | Resolvido pela desactivação | Interruptor desligado por omissão: `src/lib/payflow-switch.ts` (SIGA), `painel/payflow/lib/service-switch.ts` (Worker responde 503 «desactivado»; o health dá 200 com `status: "disabled"`), `PAYFLOW_ENABLED` no ADMIN. A liquidação PayFlow→SIGA recusa antes do limite e da chave; sincronização e SSO recusam; as assinaturas passam a transferência com comprovativo; botões e ligações escondidos no SIGA, ADMIN e WEB. Religar: variável do repositório `PAYFLOW_ENABLED=true` — só depois de chaves separadas e liquidação assinada. |
+| P1-3   | Parcial                     | O Worker da app Android aplica a confirmação 2FA no login (403 com explicação, porque a app ainda não faz o segundo passo) e recusa tokens OAuth. **Falta o proprietário rodar a chave secreta** e, depois, levar a app para `/api/mobile/*`.                                                                                                                                                                                                                                                                                                |
+| P2-1   | Resolvido no SIGA           | `requireSupabaseAuth` e as APIs com Bearer recusam tokens com `client_id` antes de os validar; `/mcp` deixa de confiar em `X-Forwarded-*` e chama-se «SIGA Plus»; o consentimento mostra o endereço de regresso. Fica para o proprietário: desligar o registo dinâmico de clientes no Supabase se não for preciso (o PostgREST continua a aceitar estes tokens com a RLS da pessoa).                                                                                                                                                         |
+| P2-2   | Resolvido (sem fixar SHA)   | Builds sem segredos (`scripts/siga/build-env.mjs`; só o `wrangler` os recebe), bun fixo em `1.4.4` nos 13 sítios, `permissions: contents: read` nos 5 workflows sem bloco. Fixar as acções por SHA fica por fazer (exige ler os repositórios das acções, fora do âmbito desta sessão).                                                                                                                                                                                                                                                       |
+| P2-3   | Resolvido                   | Cabeçalho `X-SIGA-School-Id`: um só HMAC, 600/5 min por IP antes da assinatura e 300/5 min por escola depois; sem o cabeçalho, a procura antiga com 30/5 min. Definições → Integrações mostra o identificador; DOC actualizado.                                                                                                                                                                                                                                                                                                              |
+| P3-1   | Revisto: não é defeito      | Ver acima; decisão documentada em `grants.ts`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| P3-2   | Revisto: sem risco hoje     | Ver acima; garantia documentada em `verification.ts`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| P3-3   | Recomendações               | Processo e arquitectura; sem alterações de código.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+
+**Verificação (22/11):** Vitest 902 ficheiros, **6 446 ✓, 0 ✗** (+28 testes novos); `tsc` 0
+erros; ESLint 0 erros (os mesmos 61 avisos); 54 ensaios SQL em PGlite; PayFlow 67/67 (com o
+build do Worker); Worker da app Android 81/81 e `wrangler deploy --dry-run`; WEB e ADMIN com
+lint e build aprovados; estilo, acessibilidade e inventário de módulos aprovados.
+
+**Impacto para as escolas da desactivação do PayFlow:** encarregados e alunos deixam de ver
+«Pagar propinas»; a página Propinas passa a dizer que se paga na tesouraria. Nenhum pagamento
+real corria pelo PayFlow (sem fornecedor homologado desde 01/11). O site comercial (WEB) deixa
+de anunciar o PayFlow.
+
+**Acções do proprietário, por ordem:**
+
+1. Confirmar e, se faltar, aplicar o pacote do P0; depois esvaziar a lista de espera.
+2. Rodar a chave secreta do Supabase (Worker do SIGA, Worker da app Android, GitHub).
+3. Rodar a `PAYFLOW_INTEGRATION_API_KEY` (deixou de servir, mas continua guardada em vários
+   sítios).
+4. No Supabase Auth: desligar o servidor OAuth ou o registo dinâmico de clientes, se não forem
+   usados.
 
 ## Limites desta análise
 

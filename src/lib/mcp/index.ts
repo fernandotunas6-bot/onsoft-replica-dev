@@ -6,8 +6,8 @@ import listClassGroupsTool from "./tools/list-class-groups";
 const projectRef = import.meta.env["VITE_SUPABASE_PROJECT_ID"] ?? "project-ref-unset";
 
 export default defineMcp({
-  name: "edu-s-code-mirror",
-  title: "Edu's Code Mirror",
+  name: "siga-plus",
+  title: "SIGA Plus",
   version: "0.1.0",
   instructions:
     "Ferramentas do SIGA Plus (gestão escolar). Actuam como o utilizador ligado e respeitam as permissões da sua escola. Use `whoami` para confirmar a conta e `list_class_groups` para ver turmas.",

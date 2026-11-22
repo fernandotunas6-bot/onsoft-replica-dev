@@ -1,7 +1,11 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { CONTENT_SECURITY_POLICY, SCHOOL_WEBSITE_CONTENT_SECURITY_POLICY } from "@/lib/csp";
+import {
+  CONTENT_SECURITY_POLICY,
+  SCHOOL_WEBSITE_CONTENT_SECURITY_POLICY,
+  SCHOOL_WEBSITE_ENFORCED_CONTENT_SECURITY_POLICY,
+} from "@/lib/csp";
 import { withSecurityHeaders } from "@/lib/security-headers";
 
 /**
@@ -102,6 +106,46 @@ describe("CSP do website escolar", () => {
       expect(served.headers.get("Content-Security-Policy-Report-Only"), path).toBe(
         SCHOOL_WEBSITE_CONTENT_SECURITY_POLICY,
       );
+      expect(served.headers.get("Content-Security-Policy"), path).toBe(
+        SCHOOL_WEBSITE_ENFORCED_CONTENT_SECURITY_POLICY,
+      );
+    }
+  });
+
+  it("obrigatória: só scripts do próprio website, o resto igual (análise 22, P1-1)", () => {
+    const report = directives(SCHOOL_WEBSITE_CONTENT_SECURITY_POLICY);
+    const enforced = directives(SCHOOL_WEBSITE_ENFORCED_CONTENT_SECURITY_POLICY);
+    expect([...enforced.keys()]).toEqual([...report.keys()]);
+    expect(enforced.get("script-src")).toBe("script-src 'self'");
+    expect(enforced.get("frame-src")).toBe("frame-src 'self'");
+    expect(enforced.get("object-src")).toBe("object-src 'none'");
+    for (const [name, entry] of enforced) {
+      if (name !== "script-src" && name !== "frame-src") expect(entry, name).toBe(report.get(name));
+    }
+  });
+
+  it("o modelo não tem scripts em linha, on…= nem javascript: (senão a política parte-o)", () => {
+    const pages = JSON.parse(
+      readFileSync(
+        resolve(process.cwd(), "src/features/school-website/site-pages.generated.json"),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+    for (const [path, html] of Object.entries(pages)) {
+      for (const [, attrs, body] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+        const data = /type="application\/(?:ld\+)?json"/.test(attrs);
+        const external = /\bsrc="\//.test(attrs);
+        expect(data || (external && !body.trim()), `${path}: script em linha`).toBe(true);
+      }
+      expect(html, `${path}: handler em linha`).not.toMatch(/\son[a-z]+\s*=\s*["']/i);
+      expect(html, `${path}: javascript:`).not.toMatch(/javascript:/i);
+    }
+    // O mesmo para o código que o website carrega (public/_school-website).
+    const dir = resolve(process.cwd(), "public/_school-website");
+    for (const file of readdirSync(dir).filter((name) => /\.(m?js)$/.test(name))) {
+      const code = readFileSync(resolve(dir, file), "utf8");
+      expect(code, file).not.toMatch(/\beval\(|new Function\(|document\.write|javascript:/);
+      expect(code, file).not.toMatch(/\son[a-z]{3,}=["'\\]/);
     }
   });
 });

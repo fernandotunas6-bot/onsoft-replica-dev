@@ -13,9 +13,17 @@ import {
   Crown,
   Palette
 } from 'lucide-react'
-import { getDocsUrl, getPayflowUrl } from '@/lib/ecosystem-urls'
+import { getDocsUrl } from '@/lib/ecosystem-urls'
 
-const menuSections = [
+type MenuItem = {
+  title: string
+  description: string
+  icon: typeof Package
+  href: string
+  target?: '_blank'
+}
+
+const menuSections: { title: string; items: MenuItem[] }[] = [
   {
     title: 'Produto',
     items: [
@@ -73,13 +81,6 @@ const menuSections = [
         href: '/#features'
       },
       {
-        title: 'PayFlow',
-        description: 'Cobrança por Multicaixa Express e Unitel Money',
-        icon: Zap,
-        href: getPayflowUrl('/'),
-        target: '_blank'
-      },
-      {
         title: 'Segurança',
         description: '2FA, cargos e catracas',
         icon: Shield,
@@ -133,8 +134,8 @@ export function MegaMenu() {
                 <a
                   key={item.title}
                   href={item.href}
-                  target={'target' in item ? item.target : undefined}
-                  rel={'target' in item && item.target === '_blank' ? 'noreferrer' : undefined}
+                  target={item.target}
+                  rel={item.target === '_blank' ? 'noreferrer' : undefined}
                   className="group block space-y-1 lg:space-y-2 hover:bg-accent rounded-md p-2 lg:p-3 -mx-2 lg:-mx-3 transition-colors duration-100 my-0"
                 >
                   <div className="flex items-center gap-2 lg:gap-3">

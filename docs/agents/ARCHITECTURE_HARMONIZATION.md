@@ -150,6 +150,9 @@ empresariais futuros explícitos.
 
 ### PAYFLOW — camada financeira transacional
 
+**Desactivado desde 15/11/2026** — ver a nota em [`PAYFLOW_INTEGRATION.md`](./PAYFLOW_INTEGRATION.md).
+Enquanto estiver desligado, as propinas pagam-se e registam-se na Tesouraria do SIGA.
+
 Pagamentos, referências de provedor, estados transacionais, recibos e reconciliação.
 Recebe identidade académica e obrigações do SIGA por contrato; não recadastra escola,
 aluno, matrícula ou ano letivo. Produção falha de forma fechada sem provedor homologado.
@@ -485,6 +488,16 @@ SQL SGA: `APPLY_IN_SQL_EDITOR.sql` → `APPLY_ENROLLMENT_AND_PREMIUM.sql` →
 ---
 
 ## 18. PayFlow
+
+> **Desactivado desde 15/11/2026 (decisão do proprietário).** Uma só chave estática
+> (`PAYFLOW_INTEGRATION_API_KEY`) servia de prova de pagamento para o SIGA, de sincronização e
+> de entrada de administrador em todas as escolas
+> ([análise 22](../auditoria/22-analise-critica-sistema-2026-11-15.md), P1-2). Interruptor
+> desligado por omissão em três sítios: `src/lib/payflow-switch.ts` (SIGA),
+> `painel/payflow/lib/service-switch.ts` (Worker, responde «desactivado»; o health devolve
+> `status: "disabled"`) e `PAYFLOW_ENABLED` no ADMIN. Religar: variável do repositório
+> `PAYFLOW_ENABLED=true` e republicar — **só depois** de chaves separadas por direcção,
+> liquidação assinada (HMAC + carimbo) e entrada só por SSO.
 
 A integração detalhada, os limites de fonte de verdade e os gates de produção estão em
 [`PAYFLOW_INTEGRATION.md`](./PAYFLOW_INTEGRATION.md). O PayFlow usa D1 próprio nesta fase;

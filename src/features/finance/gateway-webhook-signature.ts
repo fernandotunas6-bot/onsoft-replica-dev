@@ -15,6 +15,12 @@ import { timingSafeEqual } from "@/lib/timing-safe-equal";
  */
 export const GATEWAY_SIGNATURE_HEADER = "x-siga-signature";
 export const GATEWAY_TIMESTAMP_HEADER = "x-siga-timestamp";
+/**
+ * Identificador da escola emissora (o `school_id`, que não é segredo). Com ele, o SIGA
+ * verifica só as keys dessa escola; sem ele, cai na procura antiga por todas as escolas
+ * (análise 22, P2-3), mais lenta e com o limite de pedidos mais apertado.
+ */
+export const GATEWAY_SCHOOL_ID_HEADER = "x-siga-school-id";
 export const GATEWAY_SIGNATURE_TOLERANCE_SECONDS = 300;
 
 async function hmacHex(secret: string, message: string): Promise<string> {

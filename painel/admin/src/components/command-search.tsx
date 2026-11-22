@@ -26,7 +26,7 @@ import {
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { getCreateSchoolUrl, getDocsUrl, getPayflowUrl, getSigaUrl, getWebUrl } from "@/lib/ecosystem-urls"
+import { PAYFLOW_ENABLED, getCreateSchoolUrl, getDocsUrl, getPayflowUrl, getSigaUrl, getWebUrl } from "@/lib/ecosystem-urls"
 import { useLanguage } from "@/contexts/language-context"
 
 const Command = React.forwardRef<
@@ -158,7 +158,10 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
     { title: "Calendário (SIGA)", url: getSigaUrl("/calendario"), group: "Atalhos", icon: GraduationCap, external: true },
     { title: t("nav.web_portal"), url: getWebUrl("/"), group: t("nav.ecosystem"), icon: Globe, external: true },
     { title: t("nav.web_pricing"), url: getWebUrl("/pricing"), group: t("nav.ecosystem"), icon: CreditCard, external: true },
-    { title: t("nav.payflow"), url: getPayflowUrl("/"), group: t("nav.ecosystem"), icon: Receipt, external: true },
+    // PayFlow desactivado (15/11/2026): sem atalho enquanto não for religado.
+    ...(PAYFLOW_ENABLED
+      ? [{ title: t("nav.payflow"), url: getPayflowUrl("/"), group: t("nav.ecosystem"), icon: Receipt, external: true }]
+      : []),
     { title: t("nav.docs"), url: getDocsUrl(), group: t("nav.ecosystem"), icon: BookOpen, external: true },
     { title: "Manual ADMIN", url: getDocsUrl("/admin/control-center.html"), group: t("nav.ecosystem"), icon: BookOpen, external: true },
     { title: "Suporte", url: getDocsUrl("/guide/support.html"), group: t("nav.ecosystem"), icon: HelpCircle, external: true },

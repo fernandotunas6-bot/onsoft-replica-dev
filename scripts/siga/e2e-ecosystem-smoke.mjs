@@ -110,9 +110,12 @@ const endpoints = [
       amount_minor: 100,
       currency: "AOA",
     }),
-    expect: [401],
+    // 503 com o PayFlow desactivado (src/lib/payflow-switch.ts, por omissão desde
+    // 15/11/2026); 401 se for ligado e o pedido não trouxer a chave. Nunca 2xx.
+    expect: [401, 503],
   },
-  { label: "PAYFLOW home", url: "http://localhost:3007/", expect: [200], optionalInCi: true },
+  // Com o PayFlow desactivado, o Worker responde 503 às páginas (lib/service-switch.ts).
+  { label: "PAYFLOW home", url: "http://localhost:3007/", expect: [200, 503], optionalInCi: true },
   {
     label: "PAYFLOW health",
     url: "http://localhost:3007/api/v1/health",
