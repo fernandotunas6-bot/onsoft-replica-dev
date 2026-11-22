@@ -74,5 +74,19 @@ regenerar `content-keys.json` sem razão: é ele que mantém as chaves antigas.
 
 ## Verificação
 
-Ver a secção «Verificação» do commit de integração e o relatório 22. Medido neste ramo: Vitest,
-`tsc`, ESLint, ensaios SQL (PGlite), testes do modelo do website, build do SIGA e do ADMIN.
+Medido localmente sobre `310bb54`:
+
+- Vitest: 6 556 testes passaram e nenhum falhou (25 ignorados).
+- `tsc` e ESLint: 0 erros.
+- Ensaios SQL (PGlite): 56/56.
+- Modelo do website: 14/14 testes; `check` passou com 68 páginas e 4 710 campos.
+- Build do SIGA e do ADMIN: sem erros.
+
+Aberto para revisão como PR #445.
+
+**GitHub Actions parado desde 16/11/2026.** Todos os jobs acabam em 3–4 s sem runner e sem
+registo, incluindo os agendados da `main` sobre o mesmo commit `b581530`, que passavam até
+16/11 às 06:39 UTC. A causa está na conta (limite de minutos ou de gastos, ou pagamento) e não
+no código. Enquanto durar, o CI não corre e **um merge na `main` não publica**: a publicação
+contínua e a vigilância também correm no Actions. Depois de resolvido, voltar a correr as
+verificações do PR #445 antes do merge.
