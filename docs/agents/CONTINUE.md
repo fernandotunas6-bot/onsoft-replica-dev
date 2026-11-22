@@ -1,6 +1,8 @@
 > **22/11/2026 — PRs pendentes resolvidos (#118, #130, #206, #210):** decisão por PR, o que
-> entrou, o que ficou de fora e o SQL a aplicar em
-> [HANDOFF_INTEGRACAO_PRS_2026-11-22.md](HANDOFF_INTEGRACAO_PRS_2026-11-22.md). Ciclos de
+> entrou e o que ficou de fora em
+> [HANDOFF_INTEGRACAO_PRS_2026-11-22.md](HANDOFF_INTEGRACAO_PRS_2026-11-22.md). PR #445. O SQL
+> (escrita académica, ciclos, SIGA AI) foi **aplicado e verificado na produção a 22/11**; falta
+> recapturar o retrato para tirar as entradas da lista de espera dos testes. Ciclos de
 > matrícula **desligados por omissão** (interruptor por escola); SIGA AI adormecido; chaves dos
 > campos do website congeladas em `painel/escolas/content-keys.json` — não o regenerar.
 

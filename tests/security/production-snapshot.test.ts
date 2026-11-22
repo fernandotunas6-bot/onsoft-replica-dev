@@ -157,8 +157,9 @@ const ANON_POLICIES_ESPERADAS = [
 // 2026-10-26: as duas tabelas do QR da escola (20261026100000) entraram no retrato
 // depois de aplicadas, pelo que a lista voltou a ficar vazia.
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
-  // 20261012160000_siga_ai_module.sql (SIGA AI): sai daqui quando o retrato for
-  // recapturado depois de aplicada.
+  // 20261012160000_siga_ai_module.sql (SIGA AI): aplicada na produção a 22/11/2026 e
+  // confirmada com docs/agents/SIGA_verificar_pacotes_2026-11-22.sql. Sai daqui quando o
+  // retrato for recapturado (npm run siga:db-snapshot) e mostrar as tabelas.
   "siga_ai_settings",
   "siga_ai_conversations",
   "siga_ai_messages",

@@ -54,16 +54,27 @@ apareceu um defeito que já existia: em 3 páginas de cursos o menu tinha as cha
 outras; mudar o texto de um campo muda a chave desse campo (como na #206). Não apagar nem
 regenerar `content-keys.json` sem razão: é ele que mantém as chaves antigas.
 
-## Obrigações do proprietário (SQL no SQL Editor, por esta ordem)
+## SQL na produção — aplicado e verificado a 22/11/2026
 
-1. **Escrita académica (P0 da análise 22):** `docs/agents/SIGA_aplicar_escrita_academica_2026-11-15.sql`
-   se a produção não tiver as três funções. Sem elas, o lançamento de notas falha.
-2. **Ciclos de matrícula (#118), opcional:** `docs/agents/SIGA_aplicar_ciclos_matricula.sql`.
-   Com a regra desligada por omissão, aplicá-lo não muda nada até uma escola a ligar; serve para
-   a base aplicar a mesma regra a quem chame a API directamente.
-3. **SIGA AI (#130), só se for para usar:** `20261012160000_siga_ai_module.sql` e
-   `20261112090000_module_catalog_siga_ai.sql` (ver `docs/siga-ai/README.md`), mais o servidor
-   de IA da escola. Sem eles, nada muda para as escolas.
+O proprietário aplicou os três pacotes no SQL Editor do projecto `xodgfmxiaunpamctfeea` (Sga,
+`main` PRODUCTION). Depois correu `docs/agents/SIGA_verificar_pacotes_2026-11-22.sql`, que só
+lê, e as quatro linhas deram «aplicada»:
+
+1. **Escrita académica (P0 da análise 22):** `docs/agents/SIGA_aplicar_escrita_academica_2026-11-15.sql`.
+   As três funções existem e só `service_role` as executa.
+2. **Ciclos de matrícula (#118):** `docs/agents/SIGA_aplicar_ciclos_matricula.sql`. O gatilho
+   está activo e lê o interruptor `enforce`; com a regra desligada por omissão, não muda nada
+   até uma escola a ligar.
+3. **SIGA AI (#130):** `20261012160000_siga_ai_module.sql` e
+   `20261112090000_module_catalog_siga_ai.sql`. As 5 tabelas existem só para o servidor (o
+   cabeçalho da migração diz «seis», mas são cinco) e o módulo está no catálogo. Continua
+   desligado em todas as escolas: falta o servidor de IA de cada escola (`docs/siga-ai/README.md`).
+
+**Ainda por fazer:** recapturar o retrato e os tipos (`npm run siga:db-snapshot`,
+`npm run siga:gen-types`, com acesso à base) e retirar as três funções de
+`FUNCOES_ESPERA_MIGRACAO` (`tests/security/espera-migracao.ts`) e as cinco tabelas de
+`TABELAS_AUSENTES_DA_PRODUCAO` (`tests/security/production-snapshot.test.ts`). Os testes
+obrigam a essa ordem: as entradas só saem quando o retrato as mostrar.
 
 ## Depois do merge na `main`
 
